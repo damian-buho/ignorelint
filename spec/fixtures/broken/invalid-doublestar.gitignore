@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: invalid ** usage (must be a full path segment: a/**/b, **/a, or a/**)
+src**build
+**test
+log**
+a**b/**/c

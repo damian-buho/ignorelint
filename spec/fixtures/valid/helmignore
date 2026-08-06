@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Helm chart packaging excludes
+Chart.lock
+values.schema.json
+templates/NOTES.txt
+templates/tests/
+
+# Development files
+.git/
+.github/
+
+# Editor artifacts
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store

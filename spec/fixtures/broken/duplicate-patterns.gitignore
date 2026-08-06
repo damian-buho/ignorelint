@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: duplicate patterns (identical lines)
+node_modules/
+*.log
+dist/
+node_modules/
+*.log

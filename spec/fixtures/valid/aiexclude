@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Android build outputs
+build/
+out/
+
+# Native libraries
+*.so
+*.dll
+*.dylib
+
+# Generated files
+*.generated.go
+*.generated.java
+
+# Dependencies
+node_modules/
+vendor/
+
+# Secrets
+.env
+credentials.json

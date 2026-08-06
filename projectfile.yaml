@@ -1,0 +1,58 @@
+---
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+$schema: https://projectfile.org/schema/v1.json
+identity:
+  created: "2026-06-05"
+  name: ignorelint
+  summary: Linter for all kinds of ignore files
+  title: Ignorelint
+includes:
+  - .makefile/b19/ci.yaml
+  - .makefile/b19/images/crystal.yaml
+  - .makefile/b19/images/ubuntu.yaml
+  - .makefile/library/languages/crystal.yaml
+  - https://kiota.ch/d9t/metadata/raw/branch/main/include.yaml
+  - https://kiota.ch/damian-buho/metadata/raw/branch/main/include.yaml
+kind: SoftwareSourceCode
+links:
+  - label: Ignorelint on Codeberg
+    type: source-code
+    url: https://codeberg.org/d9t/ignorelint
+  - label: Ignorelint on GitHub
+    type: source-code
+    url: https://github.com/damian-buho/d9t-ignorelint
+  - label: Ignorelint on kiota.ch
+    type: source-code
+    url: https://kiota.ch/d9t/ignorelint
+  - label: Issues on Codeberg
+    type: bugs
+    url: https://codeberg.org/d9t/ignorelint/issues
+  - label: Issues on GitHub
+    type: bugs
+    url: https://github.com/damian-buho/d9t-ignorelint/issues
+org:
+  projectfile:
+    ci:
+      tools:
+        crystal-build:
+          run: crystal build src/ignorelint.cr
+        crystal-lint:
+          run: crystal build --no-codegen src/ignorelint.cr
+    conventions:
+      fragments:
+        parents:
+          - url: ssh://git@kiota.ch/b19/ubuntu.git
+    status: maintained
+repositories:
+  - issues: true
+    role: mirror
+    type: git
+    url: ssh://git@codeberg.org/d9t/ignorelint.git
+  - role: mirror
+    type: git
+    url: git@github.com:damian-buho/d9t-ignorelint.git
+  - role: origin
+    type: git
+    url: ssh://git@kiota.ch/d9t/ignorelint.git

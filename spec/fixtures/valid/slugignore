@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Build artifacts
+build/
+dist/
+*.o
+
+# Documentation
+docs/
+*.md
+
+# Test fixtures
+test/
+spec/
+fixtures/
+
+# Development files
+.eslintrc
+.prettierrc
+
+# Logs
+*.log

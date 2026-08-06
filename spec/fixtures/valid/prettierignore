@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Build output
+dist/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+vendor/
+
+# Generated files
+src/generated/
+
+# Minified assets
+*.min.js
+*.min.css

@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Yarn package excludes
+node_modules/
+*.tgz
+coverage/
+.nyc_output/
+build/
+dist/

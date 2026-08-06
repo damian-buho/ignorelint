@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: malformed bracket expressions (unclosed, empty, nested)
+log[0-9
+file[].txt
+test[a[b].txt
+access[.log

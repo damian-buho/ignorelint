@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Build context excludes
+build/
+dist/
+*.tar.gz
+
+# Dependencies
+node_modules/
+vendor/
+
+# Source control
+.git/
+.gitignore
+
+# CI/CD artifacts
+.ci/
+.github/
+
+# Keep entrypoint scripts
+!scripts/entrypoint.sh

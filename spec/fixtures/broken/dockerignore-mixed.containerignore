@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: path traversal, consecutive asterisks, duplicate patterns,
+#          double negation, unescaped #, malformed brackets,
+#          redundant pair, rooted shallow
+../secrets
+***.log
+!!docs
+file#backup.txt
+cache[abc
+/build
+secret.key
+!secret.key
+../config
+***.log

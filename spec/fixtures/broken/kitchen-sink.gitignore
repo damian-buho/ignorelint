@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: trailing whitespace, duplicate, double negation, unescaped #,
+#          consecutive asterisks, space in pattern, negated rooted,
+#          rooted shallow, redundant pair, malformed brackets
+/build 
+!!docs
+secret.key
+!secret.key
+**test
+file#name.txt
+!/config
+node modules/
+***.log
+log[0-9
+secret.key

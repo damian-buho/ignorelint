@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# fd-specific overrides
+build/
+dist/
+node_modules/
+vendor/
+*.pyc
+__pycache__/
+.git/
+.svn/
+.cache/

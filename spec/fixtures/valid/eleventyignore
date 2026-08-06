@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Eleventy template excludes
+node_modules/
+.git/
+_cache/
+_site/
+
+# Build output
+dist/
+
+# Dependencies
+vendor/

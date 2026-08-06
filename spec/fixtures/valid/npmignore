@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Build output
+dist/
+build/
+*.tgz
+
+# Test and coverage
+coverage/
+.nyc_output/
+
+# Development configs
+.eslintrc*
+.prettierrc
+tsconfig.json
+
+# Dependencies
+node_modules/
+
+# CI/CD
+.github/

@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Binary and generated files
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Build artifacts
+build/
+dist/
+out/
+
+# Large media files
+*.mp4
+*.zip
+*.tar.gz
+
+# Package manager caches
+node_modules/
+vendor/bundle/

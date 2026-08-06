@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: negation not supported, invalid **, consecutive asterisks,
+#          duplicate patterns, trailing whitespace, unescaped #
+!keep
+**test
+***.log
+***.log
+cache#prod 
+file#name.txt
+!config

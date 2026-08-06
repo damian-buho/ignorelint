@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+---
+name: dev-d9t-ignorelint
+services:
+  d9t-ignorelint:
+    container_name: ${M6E_CONTAINER_INSTANCE}
+    image: ${M6E_IMAGE_FULLNAME}
+    # Preset: xlarge (4.0c, 8g) — interactive dev shell. Bounded so it can't starve the shared host.
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 8g
+    labels:
+      com.docker.compose.watch: 'true'
+    networks:
+      - dev-d9t-network
+    environment:
+      - LANG
+      - TZ
+      - B19_VERBOSITY=debug
+    tmpfs:
+      - /tmp:size=64m
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+networks:
+  dev-d9t-network:
+    name: dev-d9t-network
+    external: true

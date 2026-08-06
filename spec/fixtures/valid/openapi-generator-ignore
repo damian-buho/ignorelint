@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Protect generated output from overwrite
+*.generated.go
+*.generated.java
+*.generated.ts
+
+# Build artifacts
+build/
+target/
+out/
+
+# Dependencies
+node_modules/
+vendor/
+
+# Keep custom modifications
+!custom/**

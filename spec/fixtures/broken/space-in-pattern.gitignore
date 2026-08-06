@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: space in pattern (most ignore formats cannot escape spaces)
+my files/
+node modules/
+old code/
+some folder name/

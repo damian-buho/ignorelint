@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: negated pattern anchored with / (anchoring has no effect on negation)
+!/src/keep-important.log
+!/env/production.env
+!/config/database.yml

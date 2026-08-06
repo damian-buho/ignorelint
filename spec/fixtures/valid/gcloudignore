@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Dependencies
+node_modules/
+vendor/
+__pycache__/
+
+# Version control
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local

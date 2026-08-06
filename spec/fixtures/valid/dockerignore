@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Build artifacts
+build/
+dist/
+*.o
+
+# Dependencies
+node_modules/
+vendor/
+
+# Git metadata
+.git/
+.gitignore
+
+# CI/CD artifacts
+.ci/
+.github/
+
+# Keep deployment configs
+!deploy/
