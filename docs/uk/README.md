@@ -4,13 +4,13 @@ SPDX-License-Identifier: MIT
 pf-cli-managed: yes
 -->
 
-<!-- textlint-disable terminology -->
+<!-- textlint-disable terminology,common-misspellings -->
 
 [English](../../README.md) · [Español](../es/README.md)
 
 # Ignorelint
 
-Linter for all kinds of ignore files
+Лінтер для .gitignore, .dockerignore та інших ignore-файлів
 
 [![Stand with Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://damian-buho.github.io/support-ukraine/) [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=4c1&style=flat-square)](LICENSE) ![Commit style](https://img.shields.io/static/v1?label=commits&message=conventional&color=blue&style=flat-square) ![Workflow](https://img.shields.io/static/v1?label=workflow&message=git-flow&color=blue&style=flat-square) ![Versioning](https://img.shields.io/static/v1?label=versioning&message=semantic&color=blue&style=flat-square) [![PRs welcome](https://img.shields.io/static/v1?label=PRs&message=welcome&color=4c1&style=flat-square)](CONTRIBUTING.md) [![Citation](https://img.shields.io/static/v1?label=citation&message=cff&color=blue&style=flat-square)](CITATION.cff) [![REUSE compliance](https://api.reuse.software/badge/codeberg.org/d9t/ignorelint)](https://api.reuse.software/info/codeberg.org/d9t/ignorelint)
 
@@ -20,9 +20,9 @@ Linter for all kinds of ignore files
 
 ## Можливості
 
-- CLI, output formats and exit codes
-- Linter rules and check pipeline
-- Supported ignore-file formats
+- CLI, формати виводу та коди виходу
+- Правила лінтера та конвеєр перевірок
+- Підтримувані формати ignore-файлів
 - Persistent APT cache across builds
 - Service process management with log routing (b19-exec)
 - Cached artifact downloads with integrity verification (b19-fetch)
@@ -51,7 +51,7 @@ Linter for all kinds of ignore files
 - Pre-installed utility tools
 - XDG Base Directory paths
 
-Див. [FEATURES.md](../../FEATURES.md), щоб переглянути повний перелік.
+Див. [FEATURES.md](FEATURES.md), щоб переглянути повний перелік.
 
 ## Що надає цей проєкт
 
@@ -106,12 +106,18 @@ docker run --rm --volume "$PWD:/work" --workdir /work docker.io/damianbuho/d9t-i
 
 ## Посилання
 
+### Проєкт
+
 - [Специфікація Projectfile](https://projectfile.org)
-- [Ignorelint on Codeberg](https://codeberg.org/d9t/ignorelint)
-- [Ignorelint on GitHub](https://github.com/damian-buho/d9t-ignorelint)
-- [Ignorelint on kiota.ch](https://kiota.ch/d9t/ignorelint)
-- [Issues on Codeberg](https://codeberg.org/d9t/ignorelint/issues)
-- [Issues on GitHub](https://github.com/damian-buho/d9t-ignorelint/issues)
+- [Ignorelint на Codeberg](https://codeberg.org/d9t/ignorelint)
+- [Ignorelint на GitHub](https://github.com/damian-buho/d9t-ignorelint)
+- [Ignorelint на kiota.ch](https://kiota.ch/d9t/ignorelint)
+- [Issues на Codeberg](https://codeberg.org/d9t/ignorelint/issues)
+- [Issues на GitHub](https://github.com/damian-buho/d9t-ignorelint/issues)
+
+### Інше
+
+- [Від автора](https://dbuho.me)
 
 ## Ліцензія
 

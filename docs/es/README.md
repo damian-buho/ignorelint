@@ -4,13 +4,13 @@ SPDX-License-Identifier: MIT
 pf-cli-managed: yes
 -->
 
-<!-- textlint-disable terminology -->
+<!-- textlint-disable terminology,common-misspellings -->
 
 [English](../../README.md) · [Українська](../uk/README.md)
 
 # Ignorelint
 
-Linter for all kinds of ignore files
+Linter para .gitignore, .dockerignore y otros archivos de ignorados
 
 [![Stand with Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://damian-buho.github.io/support-ukraine/) [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=4c1&style=flat-square)](LICENSE) ![Commit style](https://img.shields.io/static/v1?label=commits&message=conventional&color=blue&style=flat-square) ![Workflow](https://img.shields.io/static/v1?label=workflow&message=git-flow&color=blue&style=flat-square) ![Versioning](https://img.shields.io/static/v1?label=versioning&message=semantic&color=blue&style=flat-square) [![PRs welcome](https://img.shields.io/static/v1?label=PRs&message=welcome&color=4c1&style=flat-square)](CONTRIBUTING.md) [![Citation](https://img.shields.io/static/v1?label=citation&message=cff&color=blue&style=flat-square)](CITATION.cff) [![REUSE compliance](https://api.reuse.software/badge/codeberg.org/d9t/ignorelint)](https://api.reuse.software/info/codeberg.org/d9t/ignorelint)
 
@@ -20,9 +20,9 @@ Linter for all kinds of ignore files
 
 ## Características
 
-- CLI, output formats and exit codes
-- Linter rules and check pipeline
-- Supported ignore-file formats
+- CLI, formatos de salida y códigos de salida
+- Reglas del linter y pipeline de comprobaciones
+- Formatos de archivos ignore soportados
 - Persistent APT cache across builds
 - Service process management with log routing (b19-exec)
 - Cached artifact downloads with integrity verification (b19-fetch)
@@ -51,7 +51,7 @@ Linter for all kinds of ignore files
 - Pre-installed utility tools
 - XDG Base Directory paths
 
-Consulta [FEATURES.md](../../FEATURES.md) para ver la lista completa.
+Consulta [FEATURES.md](FEATURES.md) para ver la lista completa.
 
 ## Qué entrega este proyecto
 
@@ -106,12 +106,18 @@ Para el bucle de desarrollo local, `make dev-container` levanta el dev-container
 
 ## Enlaces
 
+### Proyecto
+
 - [Especificación de Projectfile](https://projectfile.org)
-- [Ignorelint on Codeberg](https://codeberg.org/d9t/ignorelint)
-- [Ignorelint on GitHub](https://github.com/damian-buho/d9t-ignorelint)
-- [Ignorelint on kiota.ch](https://kiota.ch/d9t/ignorelint)
-- [Issues on Codeberg](https://codeberg.org/d9t/ignorelint/issues)
-- [Issues on GitHub](https://github.com/damian-buho/d9t-ignorelint/issues)
+- [Ignorelint en Codeberg](https://codeberg.org/d9t/ignorelint)
+- [Ignorelint en GitHub](https://github.com/damian-buho/d9t-ignorelint)
+- [Ignorelint en kiota.ch](https://kiota.ch/d9t/ignorelint)
+- [Incidencias en Codeberg](https://codeberg.org/d9t/ignorelint/issues)
+- [Incidencias en GitHub](https://github.com/damian-buho/d9t-ignorelint/issues)
+
+### Otros
+
+- [Del autor](https://dbuho.me)
 
 ## Licencia
 
