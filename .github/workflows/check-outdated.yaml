@@ -26,6 +26,6 @@ jobs:
       - name: check-outdated-shards
         uses: projectfile/ci-actions/run-tool@v1
         with:
-          image: ${{ vars.B19_DOCKER_REGISTRY }}/b19/crystal
+          image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: shards outdated
