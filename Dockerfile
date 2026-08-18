@@ -30,8 +30,8 @@ USER 0
 
 RUN --mount=type=bind,from=fetch,source=.,target=/fetch                                           \
     --mount=type=cache,target=${B19_DOWNLOAD_PATH},sharing=shared                                 \
-    --mount=type=cache,id=apt-cache-${B19_UBUNTU_SERIES},target=/var/cache/apt,sharing=shared     \
-    --mount=type=cache,id=apt-lists-${B19_UBUNTU_SERIES},target=/var/lib/apt,sharing=shared       \
+    --mount=type=cache,id=apt-cache-${B19_UBUNTU_SERIES}-${TARGETARCH},target=/var/cache/apt,sharing=shared     \
+    --mount=type=cache,id=apt-lists-${B19_UBUNTU_SERIES}-${TARGETARCH},target=/var/lib/apt,sharing=shared       \
     --mount=type=cache,target=${SHARDS_CACHE_PATH},sharing=locked                                 \
     --mount=type=tmpfs,target=${B19_TEMP_PATH}                                                    \
     build-stage compile-crystal
@@ -62,8 +62,8 @@ WORKDIR ${B19_HOME}
 
 RUN --mount=type=bind,from=fetch,source=.,target=/fetch                                           \
     --mount=type=cache,target=${B19_DOWNLOAD_PATH},sharing=shared                                 \
-    --mount=type=cache,id=apt-cache-${B19_UBUNTU_SERIES},target=/var/cache/apt,sharing=shared     \
-    --mount=type=cache,id=apt-lists-${B19_UBUNTU_SERIES},target=/var/lib/apt,sharing=shared       \
+    --mount=type=cache,id=apt-cache-${B19_UBUNTU_SERIES}-${TARGETARCH},target=/var/cache/apt,sharing=shared     \
+    --mount=type=cache,id=apt-lists-${B19_UBUNTU_SERIES}-${TARGETARCH},target=/var/lib/apt,sharing=shared       \
     --mount=type=tmpfs,target=${B19_TEMP_PATH}                                                    \
     build-stage base
 
