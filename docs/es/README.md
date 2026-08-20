@@ -24,7 +24,7 @@ Linter para .gitignore, .dockerignore y otros archivos de ignorados
 - Reglas del linter y pipeline de comprobaciones
 - Formatos de archivos ignore soportados
 
-### Heredado de B19/Ubuntu 1.4.1
+### Heredado de B19/Ubuntu
 
 - Caché APT persistente entre compilaciones
 - Gestión de procesos de servicio con enrutado de logs (b19-exec)

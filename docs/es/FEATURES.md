@@ -36,7 +36,7 @@ SPDX-License-Identifier: MIT
 - Sin argumentos PATH el CLI autodescubre toda entrada de `KNOWN_FILES` presente en el directorio actual; `--verbose` imprime un informe de encontrados/no encontrados.
 - Los documentos de especificación por formato viven en `specifications/` (24 formatos) y los fixtures dorados en `spec/fixtures/{valid,broken}/`.
 
-## Heredado de B19/Ubuntu 1.4.1
+## Heredado de B19/Ubuntu
 
 ### Caché APT persistente entre compilaciones
 
@@ -103,7 +103,7 @@ SPDX-License-Identifier: MIT
 ### Conmutadores de funcionalidades para todos los subsistemas
 
 - Cada subsistema mayor (entrypoint, healthchecks, bootstrap, tests, secrets, validación de puertos, i18n, shell hooks) puede desactivarse en runtime mediante variables de entorno.
-- Los hooks individuales del entrypoint y del bootstrap pueden omitirse por nombre sin desactivar el subsistema entero.
+- Los hooks individuales del entrypoint, del bootstrap y de las comprobaciones de salud pueden omitirse por nombre sin desactivar el subsistema entero.
 - No hace falta reconstruir la imagen: los conmutadores son solo de runtime.
 
 ### Monitorización de estado integrada (healthcheck.d)

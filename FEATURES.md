@@ -34,7 +34,7 @@ SPDX-License-Identifier: MIT
 - With no PATH arguments the CLI auto-discovers every `KNOWN_FILES` entry present in the current directory; `--verbose` prints a found/not-found report.
 - Per-format specification documents live in `specifications/` (24 formats) and golden fixtures in `spec/fixtures/{valid,broken}/`.
 
-## Inherited from B19/Ubuntu 1.4.1
+## Inherited from B19/Ubuntu
 
 ### Persistent APT cache across builds
 
@@ -101,7 +101,7 @@ SPDX-License-Identifier: MIT
 ### Feature toggles for all subsystems
 
 - Every major subsystem (entrypoint, healthchecks, bootstrap, tests, secrets, port validation, i18n, shell hooks) can be disabled at runtime via environment variables.
-- Individual entrypoint and bootstrap hooks can be skipped by name without disabling the whole subsystem.
+- Individual entrypoint, bootstrap and health-check hooks can be skipped by name without disabling the whole subsystem.
 - No image rebuild required — toggles are runtime-only.
 
 ### Built-in health monitoring (healthcheck.d)
