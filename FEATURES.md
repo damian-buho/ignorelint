@@ -34,7 +34,7 @@ SPDX-License-Identifier: MIT
 - With no PATH arguments the CLI auto-discovers every `KNOWN_FILES` entry present in the current directory; `--verbose` prints a found/not-found report.
 - Per-format specification documents live in `specifications/` (24 formats) and golden fixtures in `spec/fixtures/{valid,broken}/`.
 
-## Inherited from B19/Ubuntu 1.4.0
+## Inherited from B19/Ubuntu 1.4.1
 
 ### Persistent APT cache across builds
 
