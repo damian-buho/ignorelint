@@ -64,10 +64,6 @@ Fail early when a registry variable is unset and still parked on the *.invalid s
 
 ## Build
 
-### `build-local`
-
-Build ignorelint binary locally into dist/ (requires Crystal toolchain)
-
 ### `build-push`
 
 Build the image and push it to the registry
@@ -111,10 +107,6 @@ Build with BuildX using the shared BuildKit cache
 ### `container-build`
 
 Build the container image with the configured backend
-
-### `install-local`
-
-Build ignorelint binary locally into dist/ (requires Crystal toolchain)
 
 ## CI
 
@@ -294,9 +286,9 @@ Check for outdated Crystal shards
 
 ### `crystal-build`
 
-Compile the Crystal project
+Compile the release binary into dist/
 
-`crystal build src/ignorelint.cr`
+`.makefile/library/scripts/crystal-build.sh ${identity.name}`
 
 > Image: CRYSTAL_TOOL_IMAGE
 
@@ -328,7 +320,7 @@ Check Crystal formatting without writing
 
 Type-check Crystal without code generation
 
-`crystal build --no-codegen src/ignorelint.cr`
+`crystal build --no-codegen src/${identity.name}.cr`
 
 > Image: CRYSTAL_TOOL_IMAGE
 
@@ -339,6 +331,14 @@ Run the Crystal spec suite
 `crystal spec`
 
 > Image: CRYSTAL_TOOL_IMAGE
+
+### `install-binary`
+
+Build the host-native binary and install it into ~/.local/bin
+
+`.makefile/library/scripts/crystal-install.sh ${identity.name}`
+
+> Image: host runner
 
 ## Dependencies
 
