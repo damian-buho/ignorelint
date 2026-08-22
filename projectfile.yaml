@@ -69,14 +69,6 @@ links:
     url: https://github.com/damian-buho/d9t-ignorelint/issues
 org:
   projectfile:
-    artifacts:
-      # Stated literally, overriding the crystal.yaml fragment's
-      # dist/${identity.name}: ci-resolver reads artifacts.path straight off the
-      # merged document for the forgejo-release `release-asset-path:` input and
-      # never runs it through interpolateRefs, so the reference would reach the
-      # workflow verbatim. Drop this once that resolver fix is released.
-      crystal-binary:
-        path: dist/ignorelint
     # The binary release plane, tag-gated, mirroring the Go apps. The compile
     # itself comes from the crystal.yaml fragment (crystal-build on `built`, which
     # uploads dist/); this only adds the two release leaves that attach the built
