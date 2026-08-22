@@ -58,6 +58,7 @@ pf-cli-managed: yes
 
 ## Що надає цей проєкт
 
+- **Виконуваний файл** `ignorelint`
 - **Образ контейнера** `ghcr.io/damian-buho/d9t/ignorelint:latest`
 - **Образ контейнера** `docker.io/damianbuho/d9t-ignorelint:latest`
 

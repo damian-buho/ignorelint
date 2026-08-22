@@ -19,6 +19,9 @@ msgstr ""
 msgid "Install dependencies"
 msgstr "Instalar dependencias"
 
+msgid "Stamping version %s"
+msgstr "Sellando versión %s"
+
 msgid "Build %s"
 msgstr "Construir %s"
 

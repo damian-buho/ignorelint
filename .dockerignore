@@ -17,14 +17,18 @@
 .gitlab
 .makefile
 .secrets
+.shards/
 CITATION.cff
 CODEOWNERS
 LICENSE
 LICENSES
 Makefile
+bin/
+dist/
 docs
 lefthook.yaml
 lefthook.yml
+lib/
 reports
 scaffold
 # <<< user-include

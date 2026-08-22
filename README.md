@@ -56,6 +56,7 @@ See [FEATURES.md](FEATURES.md) for the full list.
 
 ## What this provides
 
+- **Executable** `ignorelint`
 - **Container image** `ghcr.io/damian-buho/d9t/ignorelint:latest`
 - **Container image** `docker.io/damianbuho/d9t-ignorelint:latest`
 

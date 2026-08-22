@@ -58,6 +58,7 @@ Consulta [FEATURES.md](FEATURES.md) para ver la lista completa.
 
 ## Qué entrega este proyecto
 
+- **Ejecutable** `ignorelint`
 - **Imagen de contenedor** `ghcr.io/damian-buho/d9t/ignorelint:latest`
 - **Imagen de contenedor** `docker.io/damianbuho/d9t-ignorelint:latest`
 

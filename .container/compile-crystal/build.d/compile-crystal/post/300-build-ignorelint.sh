@@ -22,6 +22,12 @@ fi
 b19-run "SHARDS" "$(_ "Install dependencies")" --     \
   shards install
 
+# Crystal has no -X linker flag, so the version reaches the binary as a
+# compile-time macro env (src/version.cr). M6E_VERSION is the build ARG the OCI
+# `version` label already carries, so the label and `ignorelint --version` agree.
+export M6E_VERSION="${M6E_VERSION:-dev}"
+b19-log info "IGNORELINT" "$(_p "Stamping version %s" "${M6E_VERSION}")"
+
 b19-run "CRYSTAL" "$(_p "Build %s" "ignorelint")" --      \
   crystal build src/ignorelint.cr                         \
     -o "${export_dir}/ignorelint"                         \

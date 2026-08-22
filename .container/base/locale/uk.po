@@ -19,6 +19,9 @@ msgstr ""
 msgid "Install dependencies"
 msgstr "Встановити залежності"
 
+msgid "Stamping version %s"
+msgstr "Проставляння версії %s"
+
 msgid "Build %s"
 msgstr "Зібрати %s"
 
