@@ -9,7 +9,13 @@
 
 # >>> user-include
 .git
+.shards/
 CITATION.cff
+LICENSE
+LICENSES
+bin/
+dist/
+lib/
 # <<< user-include
 
 # >>> user-extra
