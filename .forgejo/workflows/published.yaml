@@ -61,9 +61,18 @@ jobs:
     needs: ["built"]
     steps:
       - run: echo artifact-ready
+  binaries-built:
+    runs-on: docker
+    steps:
+      - run: echo binaries-built
+  binaries-ready:
+    runs-on: docker
+    needs: ["binaries-built"]
+    steps:
+      - run: echo binaries-ready
   binaries-released:
     runs-on: docker
-    needs: ["built"]
+    needs: ["binaries-ready"]
     if: startsWith(github.ref, 'refs/tags/')
     env:
       FORGEJO_TOKEN: ${{ secrets.RELEASE_TOKEN }}
@@ -71,10 +80,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: true
-      - uses: actions/download-artifact@v3
-        with:
-          name: crystal-build-${{ github.run_id }}
-          path: dist
       - name: forgejo-release
         uses: projectfile/ci-actions/forgejo-release@v1
         with:
@@ -87,25 +92,7 @@ jobs:
     runs-on: docker
     needs: ["source-is-ready"]
     steps:
-      - uses: actions/checkout@v7
-        with:
-          submodules: true
-      - name: crystal-build
-        uses: projectfile/ci-actions/run-tool@v1
-        with:
-          image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'kiota.ch') }}
-          version: ${{ env.M6E_TAG }}
-          run: .makefile/library/scripts/crystal-build.sh ignorelint
-          env: |-
-            GITHUB_REF_NAME
-            GITHUB_REF_TYPE
-            M6E_VERSION
-            TARGET_ARCH
-            TARGET_OS
-      - uses: actions/upload-artifact@v3
-        with:
-          name: crystal-build-${{ github.run_id }}
-          path: dist
+      - run: echo built
   container-is-ready:
     runs-on: docker
     needs: ["images-are-current"]

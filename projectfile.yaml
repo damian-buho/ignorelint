@@ -20,6 +20,7 @@ includes:
   - .makefile/b19/images/crystal.yaml
   - .makefile/b19/images/ubuntu.yaml
   - .makefile/library/languages/crystal.yaml
+  - .makefile/library/traits/binary-release.yaml
   - https://kiota.ch/d9t/metadata/raw/branch/main/include.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/include.yaml
 kind: SoftwareSourceCode
@@ -69,16 +70,7 @@ links:
     url: https://github.com/damian-buho/d9t-ignorelint/issues
 org:
   projectfile:
-    # The binary release plane, tag-gated, mirroring the Go apps. The compile
-    # itself comes from the crystal.yaml fragment (crystal-build on `built`, which
-    # uploads dist/); this only adds the two release leaves that attach the built
-    # asset to a forge, so nothing is compiled twice.
     ci:
-      # ONE target, declared rather than guessed. Crystal has no usable
-      # cross-compile (`--cross-compile` emits an object file that still needs a
-      # linker on the target) and kiota's runners are amd64-only, so a second arch
-      # would mean LLVM codegen under QEMU. Declaring the pair also pins the asset
-      # name instead of leaving crystal-build to read `uname` on whatever ran it.
       env:
         TARGET_ARCH: amd64
         TARGET_OS: linux
@@ -89,33 +81,21 @@ org:
         credentials:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       nodes:
-        binaries-released:
-          needs:
-            built: true
-            forgejo-release: true
-            gh-release: true
-          when:
-            events:
-              - tag
-        published:
-          needs:
-            binaries-released: true
+        binaries-built:
+          matrix:
+            axes:
+              TARGET_ARCH:
+                - amd64
+              TARGET_OS:
+                - linux
       tools:
-        forgejo-release:
-          action: forgejo-release
-          env:
-            - FORGEJO_TOKEN
+        install-binary:
+          run: .makefile/library/scripts/crystal-install.sh ${identity.name}
+          description: Build the host-native binary and install it into ~/.local/bin
+          guard: shard.yml
           gha: false
-          m6e: false
-          tags: [publish]
-        gh-release:
-          env:
-            - GH_TOKEN
           forgejo: false
-          m6e: false
-          run: .scripts/gh-release.sh "$${{ github.ref_name }}"
-          description: Upload the built binary to a GitHub release
-          tags: [publish]
+          tags: [crystal, publish]
     conventions:
       fragments:
         parents:
