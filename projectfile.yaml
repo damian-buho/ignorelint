@@ -20,7 +20,6 @@ includes:
   - .makefile/b19/images/crystal.yaml
   - .makefile/b19/images/ubuntu.yaml
   - .makefile/library/languages/crystal.yaml
-  - .makefile/library/traits/binary-release.yaml
   - https://kiota.ch/d9t/metadata/raw/branch/main/include.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/include.yaml
 kind: SoftwareSourceCode
@@ -82,6 +81,13 @@ org:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       nodes:
         binaries-built:
+          matrix:
+            axes:
+              TARGET_ARCH:
+                - amd64
+              TARGET_OS:
+                - linux
+        binaries-released:
           matrix:
             axes:
               TARGET_ARCH:
