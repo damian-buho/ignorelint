@@ -22,7 +22,17 @@ includes:
   - .makefile/library/languages/crystal.yaml
   - https://kiota.ch/d9t/metadata/raw/branch/main/include.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/include.yaml
+keywords:
+  - ignorelint
+  - linter
+  - gitignore
+  - dockerignore
+  - ignore-files
+  - crystal
 kind: SoftwareSourceCode
+license:
+  covers: project
+  spdx: ""
 links:
   - label:
       en: Ignorelint on Codeberg
@@ -94,14 +104,6 @@ org:
                 - amd64
               TARGET_OS:
                 - linux
-      tools:
-        install-binary:
-          run: .makefile/library/scripts/crystal-install.sh ${identity.name}
-          description: Build the host-native binary and install it into ~/.local/bin
-          guard: shard.yml
-          gha: false
-          forgejo: false
-          tags: [crystal, publish]
     conventions:
       fragments:
         parents:
@@ -119,15 +121,5 @@ repositories:
     role: origin
     type: git
     url: ssh://git@kiota.ch/d9t/ignorelint.git
-keywords:
-  - ignorelint
-  - linter
-  - gitignore
-  - dockerignore
-  - ignore-files
-  - crystal
 technologies:
   - crystal
-license:
-  covers: project
-  spdx: "MIT"
