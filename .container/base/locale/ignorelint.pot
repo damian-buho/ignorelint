@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
-# Copyright (C) 2026
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 #
 # SPDX-License-Identifier: MIT
 msgid ""
 msgstr ""
-"Project-Id-Version: ignorelint\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-05 00:00+0000\n"
+"Project-Id-Version: ignorelint 1.2.2\n"
+"Report-Msgid-Bugs-To: https://codeberg.org/d9t/ignorelint/issues\n"
+"POT-Creation-Date: 2026-09-07 03:46+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,17 +15,22 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: .container/compile-crystal/build.d/compile-crystal/post/300-build-ignorelint.sh:22
 msgid "Install dependencies"
 msgstr ""
 
+#: .container/compile-crystal/build.d/compile-crystal/post/300-build-ignorelint.sh:29
 msgid "Stamping version %s"
 msgstr ""
 
+#: .container/compile-crystal/build.d/compile-crystal/post/300-build-ignorelint.sh:31
 msgid "Build %s"
 msgstr ""
 
+#: .container/compile-crystal/build.d/compile-crystal/post/300-build-ignorelint.sh:37
 msgid "Built %s → %s"
 msgstr ""
 
+#: .container/user/entrypoint.d/5000-start.sh:8
 msgid "Starting"
 msgstr ""
