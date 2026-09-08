@@ -32,3 +32,4 @@ jobs:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'kiota.ch') }}
           version: ${{ env.M6E_TAG }}
           run: shards outdated
+          mounts: /app/data/ci-cache/shards:/app/.cache/shards:rw
