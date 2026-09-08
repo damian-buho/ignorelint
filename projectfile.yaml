@@ -90,14 +90,14 @@ org:
         credentials:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       nodes:
-        binaries-built:
+        binaries-are-built:
           matrix:
             axes:
               TARGET_ARCH:
                 - amd64
               TARGET_OS:
                 - linux
-        binaries-released:
+        binaries-are-released:
           matrix:
             axes:
               TARGET_ARCH:
