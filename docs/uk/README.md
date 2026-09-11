@@ -59,49 +59,13 @@ pf-cli-managed: yes
 ## Що надає цей проєкт
 
 - **Виконуваний файл** `ignorelint`
-- **Образ контейнера** `ghcr.io/damian-buho/d9t/ignorelint:latest`
-- **Образ контейнера** `docker.io/damianbuho/d9t-ignorelint:latest`
 
 ## Встановлення
 
-Завантажте опублікований образ контейнера:
-
-### Завантажити з GHCR
-
-```sh
-docker pull ghcr.io/damian-buho/d9t/ignorelint:latest
-```
-
-### Завантажити з DockerHub
-
-```sh
-docker pull docker.io/damianbuho/d9t-ignorelint:latest
-```
-
-Стабільні випуски також публікують теґи `X.Y.Z`, `X.Y` і `X` — завантажте той рівень точності, який хочете зафіксувати.
-
 Якщо наведені вище реєстри недоступні, завантажте з джерела:
-
-### Завантажити з Kiota
 
 ```sh
 docker pull kiota.ch/d9t/ignorelint:latest
-```
-
-## Використання
-
-Запустіть інструмент з образу в поточному каталозі:
-
-### З GHCR
-
-```sh
-docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/d9t/ignorelint:latest <tool> [args]
-```
-
-### З DockerHub
-
-```sh
-docker run --rm --volume "$PWD:/work" --workdir /work docker.io/damianbuho/d9t-ignorelint:latest <tool> [args]
 ```
 
 ## Збирання

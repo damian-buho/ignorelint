@@ -57,49 +57,13 @@ See [FEATURES.md](FEATURES.md) for the full list.
 ## What this provides
 
 - **Executable** `ignorelint`
-- **Container image** `ghcr.io/damian-buho/d9t/ignorelint:latest`
-- **Container image** `docker.io/damianbuho/d9t-ignorelint:latest`
 
 ## Installation
 
-Pull the published container image:
-
-### Pull from GHCR
-
-```sh
-docker pull ghcr.io/damian-buho/d9t/ignorelint:latest
-```
-
-### Pull from DockerHub
-
-```sh
-docker pull docker.io/damianbuho/d9t-ignorelint:latest
-```
-
-Stable releases also publish `X.Y.Z`, `X.Y` and `X` tags — pull the precision you want to pin.
-
 If the registries above are unreachable, pull from the origin instead:
-
-### Pull from Kiota
 
 ```sh
 docker pull kiota.ch/d9t/ignorelint:latest
-```
-
-## Usage
-
-Run a tool from the image against the current directory:
-
-### From GHCR
-
-```sh
-docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/d9t/ignorelint:latest <tool> [args]
-```
-
-### From DockerHub
-
-```sh
-docker run --rm --volume "$PWD:/work" --workdir /work docker.io/damianbuho/d9t-ignorelint:latest <tool> [args]
 ```
 
 ## Building

@@ -59,49 +59,13 @@ Consulta [FEATURES.md](FEATURES.md) para ver la lista completa.
 ## Qué entrega este proyecto
 
 - **Ejecutable** `ignorelint`
-- **Imagen de contenedor** `ghcr.io/damian-buho/d9t/ignorelint:latest`
-- **Imagen de contenedor** `docker.io/damianbuho/d9t-ignorelint:latest`
 
 ## Instalación
 
-Descarga la imagen de contenedor publicada:
-
-### Descargar de GHCR
-
-```sh
-docker pull ghcr.io/damian-buho/d9t/ignorelint:latest
-```
-
-### Descargar de DockerHub
-
-```sh
-docker pull docker.io/damianbuho/d9t-ignorelint:latest
-```
-
-Las versiones estables también publican las etiquetas `X.Y.Z`, `X.Y` y `X`: descarga el nivel de precisión que quieras fijar.
-
 Si los registros anteriores no están disponibles, descarga desde el origen:
-
-### Descargar de Kiota
 
 ```sh
 docker pull kiota.ch/d9t/ignorelint:latest
-```
-
-## Uso
-
-Ejecuta una herramienta de la imagen sobre el directorio actual:
-
-### Desde GHCR
-
-```sh
-docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/d9t/ignorelint:latest <tool> [args]
-```
-
-### Desde DockerHub
-
-```sh
-docker run --rm --volume "$PWD:/work" --workdir /work docker.io/damianbuho/d9t-ignorelint:latest <tool> [args]
 ```
 
 ## Compilación
