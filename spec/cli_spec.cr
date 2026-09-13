@@ -36,10 +36,10 @@ private def with_env(key : String, value : String?, & : -> T) : T forall T
   end
 end
 
-private def run_cli(args : Array(String)) : {Int32, String, String}
+private def run_cli(args : Array(String), input : String = "") : {Int32, String, String}
   io = IO::Memory.new
   err = IO::Memory.new
-  code = Ignorelint::CLI.new(io, err).run(args)
+  code = Ignorelint::CLI.new(io, err).run(args, IO::Memory.new(input))
   {code, io.to_s, err.to_s}
 end
 
@@ -178,6 +178,50 @@ describe Ignorelint::CLI do
         code, out, _ = run_cli(["--diff", path] of String)
         code.should eq(0)
         out.should_not contain("would fix")
+      end
+    end
+  end
+
+  describe "--stdin mode" do
+    it "lints piped content under the given name" do
+      code, out, err = run_cli(["--stdin", "--file=.gitignore"] of String, "!!foo\n")
+      code.should eq(1)
+      out.should contain(".gitignore:1")
+      out.should contain("Double negation")
+      err.should be_empty
+    end
+
+    it "reports clean piped content as valid" do
+      code, out, _ = run_cli(["--stdin", "--file=.gitignore"] of String, "# just a comment\n")
+      code.should eq(0)
+      out.should contain(".gitignore is valid")
+    end
+
+    it "prints fixed content to stdout with the report on stderr" do
+      code, out, err = run_cli(["--stdin", "--file=.gitignore", "--fix"] of String, "!!foo\n")
+      code.should eq(0)
+      out.should eq("foo\n")
+      err.should contain("fixed:")
+    end
+
+    it "passes clean content through stdout with --fix" do
+      code, out, err = run_cli(["--stdin", "--file=.gitignore", "--fix"] of String, "# just a comment\n")
+      code.should eq(0)
+      out.should eq("# just a comment\n")
+      err.should contain("is valid")
+    end
+
+    it "requires --file with --stdin" do
+      code, _, err = run_cli(["--stdin"] of String, "!!foo\n")
+      code.should eq(2)
+      err.should contain("--file")
+    end
+
+    it "rejects PATH arguments with --stdin" do
+      with_ignore_file("!!foo\n") do |path|
+        code, _, err = run_cli(["--stdin", "--file=.gitignore", path] of String, "!!foo\n")
+        code.should eq(2)
+        err.should contain("PATH")
       end
     end
   end

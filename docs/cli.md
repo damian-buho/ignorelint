@@ -20,6 +20,8 @@ Synopsis: `ignorelint [OPTIONS] [PATH…]`. With no paths, known ignore files ar
 | `--recursive` / `-r` | off | Search subdirectories, not just the working directory |
 | `--verbose` / `-v` | off | Print the discovery report |
 | `--version` / `-V`, `--help` / `-h` | — | Print version or help to standard output |
+| `--stdin` | off | Lint piped content instead of files (requires `--file`) |
+| `--file=NAME` | — | Filename for `--stdin` input; drives format detection and display |
 
 ## Environment
 
@@ -27,7 +29,11 @@ Synopsis: `ignorelint [OPTIONS] [PATH…]`. With no paths, known ignore files ar
 
 ## Discovery
 
-With no `PATH` arguments the working directory is scanned for the [recognised filenames](formats.md). With `--recursive`, the whole tree is walked instead: paths are reported relative to the working directory in sorted order, while hidden directories, `node_modules`, and symlinks are skipped. Explicit `PATH` arguments override discovery entirely.
+With no `PATH` arguments the working directory is scanned for the [recognised filenames](formats.md). With `--recursive`, the whole tree is walked instead: paths are reported relative to the working directory in sorted order, while hidden directories, `node_modules`, and symlinks are skipped. Explicit `PATH` arguments override discovery entirely. `--stdin` skips discovery altogether and takes neither `PATH` arguments nor a working-directory scan.
+
+## Standard input
+
+`ignorelint --stdin --file=.gitignore < buffer` lints piped content as if it were that filename: the basename drives format detection and the given name is the display path. Filesystem checks resolve against the working directory (see [rules](rules.md)). Missing `--file`, or combining `--stdin` with `PATH` arguments, exits `2`. With `--fix`, the corrected document goes to standard output while the issue report goes to standard error, so editors can replace the buffer from standard output without parsing the report out of it.
 
 ## Output and exit codes
 

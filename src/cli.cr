@@ -97,6 +97,12 @@ module Ignorelint
     # Whether `--diff` was requested (preview fixes without writing).
     @diff : Bool
 
+    # Whether `--stdin` was requested (lint piped content instead of files).
+    @stdin : Bool
+
+    # The display filename for `--stdin` mode (drives format detection).
+    @stdin_file : String?
+
     # Whether `--verbose` was requested (show file discovery output).
     @verbose : Bool
 
@@ -117,6 +123,8 @@ module Ignorelint
       @recursive = env_true?("IGNORELINT_RECURSIVE")
       @fix = false
       @diff = false
+      @stdin = false
+      @stdin_file = nil
     end
 
     # Main execution: parse flags, discover files, lint, format.
@@ -132,7 +140,7 @@ module Ignorelint
     #   5. Lint each file, collecting the exit code
     #   6. Emit formatted output
     #   7. Return non-zero if issues were found above the threshold
-    def run(args : Array(String)) : Int32
+    def run(args : Array(String), input : IO = STDIN) : Int32
       parser = build_option_parser
 
       parser.parse(args)
@@ -146,6 +154,11 @@ module Ignorelint
       apply_env_overrides
 
       formatter = build_formatter
+      if @stdin
+        name = stdin_name
+        return 2 if name.nil?
+        return lint_stdin(input, formatter, name)
+      end
       paths = @paths.empty? ? find_ignore_files(formatter) : @paths
       exit_code = 0
 
@@ -217,6 +230,12 @@ module Ignorelint
         parser.on("--diff", "Preview auto-fix changes without writing (cannot combine with --fix)") do
           @diff = true
         end
+        parser.on("--stdin", "Lint piped content instead of files (requires --file)") do
+          @stdin = true
+        end
+        parser.on("--file=NAME", "Filename for --stdin input (drives format detection)") do |v|
+          @stdin_file = v
+        end
 
         parser.separator("")
         parser.separator("When no PATH is given, discovers supported *ignore files in the current directory.")
@@ -285,6 +304,42 @@ module Ignorelint
       else
         HumanFormatter.new(color)
       end
+    end
+
+    # Validates --stdin usage; reports and returns nil on conflict.
+    private def stdin_name : String?
+      file = @stdin_file
+      if file.nil?
+        @err << "error: --stdin requires --file=NAME (e.g. --file=.gitignore)\n"
+        return
+      end
+      if !@paths.empty?
+        @err << "error: --stdin cannot be combined with PATH arguments\n"
+        return
+      end
+      file
+    end
+
+    # Lints piped content under the --file name; discovery is skipped.
+    private def lint_stdin(input : IO, formatter : Formatter, name : String) : Int32
+      content = read_input(input)
+      result = Linter.lint(name, content)
+      if @fix
+        content_lines = content.lines(chomp: false)
+        fixes, sort_fix = result.collect_fixes(content_lines)
+        @io << Fixer.apply_fixes(content_lines, fixes, sort_fix)
+        result = mark_fixed(result, fixes, sort_fix) unless fixes.empty? && sort_fix.nil?
+      end
+      output = @fix ? @err : @io
+      formatter.start(output)
+      formatter.format_file(FileResult.new(name, result.issues), output)
+      formatter.finish(output)
+      should_fail?(result) ? 1 : 0
+    end
+
+    # Reads piped input fully; the parameter is a seam for specs.
+    private def read_input(input : IO) : String
+      input.gets_to_end
     end
 
     # Lint a single file and optionally auto-fix issues.
