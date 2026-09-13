@@ -129,6 +129,11 @@ describe Ignorelint::Linter do
       result = Ignorelint::Linter.lint("test.gitignore", content)
       result.issues.any?(&.message.includes?("Unsorted")).should be_false
     end
+
+    it "skips the sort check when a negation is present" do
+      result = Ignorelint::Linter.lint("test.gitignore", "zoo\n!keep.log\nbar\n")
+      result.issues.select(&.code.unsorted_rule?).should be_empty
+    end
   end
 
   # -- .gitignore-specific rules ------------------------------------------

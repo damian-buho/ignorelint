@@ -204,6 +204,8 @@ module Ignorelint
     # Returns `nil` if there are fewer than 2 active patterns (nothing to sort).
     private def build_sort_fix(patterns : Array(Pattern),
                                content_lines : Array(String)) : SortFix?
+      active = patterns.reject(&.blank?).reject(&.comment?)
+      return if active.any?(&.negated?)
       active_indices = [] of {Int32, String}
       patterns.each do |pat|
         next if pat.blank?
@@ -241,12 +243,16 @@ module Ignorelint
       # non-comment lines and sort their content.
       result = lines.dup
       active_positions = [] of Int32
+      has_negation = false
       result.each_with_index do |line, i|
         stripped = line.strip
         next if stripped.empty?
         next if stripped.starts_with?('#')
+        has_negation ||= stripped.starts_with?('!')
         active_positions << i
       end
+
+      return result if has_negation
 
       return result if active_positions.size < 2
 

@@ -166,6 +166,19 @@ describe Ignorelint::Fixer do
       sorted_active = lines.reject { |line| line.strip.empty? || line.strip.starts_with?('#') }
       sorted_active.should eq(["bar", "zoo"])
     end
+
+    it "produces no sort fix when a negation is present" do
+      _fixes, sort = lint_and_collect("*.log\n!keep.log\n")
+      sort.should be_nil
+    end
+
+    it "leaves negation order untouched when sorting" do
+      content = "zoo\n!keep.log\nbar\n"
+      fixes, sort = lint_and_collect(content)
+      sort.should be_nil
+      result = apply(content, fixes, sort)
+      result.should eq(content)
+    end
   end
 
   describe "IG-015: slash no effect (dockerignore)" do

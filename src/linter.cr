@@ -217,10 +217,14 @@ module Ignorelint
     # IG-023: Check that all active (non-blank, non-comment) patterns are
     # sorted alphabetically (case-sensitive).
     #
+    # Skipped when any active pattern is negated: negation order is semantic
+    # (last match wins), so sorting would change what the file ignores.
+    #
     # Only reports the first unsorted line to avoid flooding the output.
     # The `--fix` flag will sort all active lines at once.
     private def check_unsorted(patterns : Array(Pattern), issues : Array(Issue)) : Nil
       active = patterns.reject(&.blank?).reject(&.comment?)
+      return if active.any?(&.negated?)
       sorted = active.map(&.raw.strip).sort!
       active.each_with_index do |pat, i|
         if pat.raw.strip != sorted[i]
