@@ -13,7 +13,7 @@
 #   5. Lint each file via `Linter.lint`
 #   6. Optionally auto-fix issues via `Fixer.apply_fixes`
 #   7. Format and emit results
-#   8. Exit with the appropriate code (0 = clean, 1 = issues found)
+#   8. Return the appropriate exit code (0 = clean, 1 = issues found)
 #
 # ## Crystal note: `OptionParser`
 #
@@ -67,8 +67,8 @@ module Ignorelint
     # The `io` parameter defaults to `STDOUT` but can be replaced with a
     # `StringIO` for testing.
     def self.run(args : Array(String), io : IO = STDOUT) : Nil
-      instance = new(io)
-      instance.run(args)
+      code = new(io).run(args)
+      exit(code) if code != 0
     end
 
     # Output stream for all human-facing text (help, errors, results).
@@ -81,6 +81,9 @@ module Ignorelint
     # Default: `:error` — only errors cause failure. Use `--fail-on=warn`
     # to fail on warnings too, or `--fail-on=info` to fail on anything.
     @fail_on : Severity = :error
+
+    # True once `--fail-on` was passed explicitly (env must not override it).
+    @fail_on_set : Bool = false
 
     # Output format selector. Determines which `Formatter` subclass to use.
     @format : OutputFormat = :human
@@ -105,7 +108,10 @@ module Ignorelint
       @fix = false
     end
 
-    # Main execution: parse flags, discover files, lint, format, exit.
+    # Main execution: parse flags, discover files, lint, format.
+    #
+    # Returns the process exit code (0 = clean) instead of exiting, so specs
+    # can assert on it; `self.run` performs the actual `exit`.
     #
     # The flow is:
     #   1. Build and parse the option parser (consumes flags from `args`)
@@ -114,8 +120,8 @@ module Ignorelint
     #   4. Determine which files to lint (explicit paths or auto-discovery)
     #   5. Lint each file, collecting the exit code
     #   6. Emit formatted output
-    #   7. Exit non-zero if issues were found above the threshold
-    def run(args : Array(String)) : Nil
+    #   7. Return non-zero if issues were found above the threshold
+    def run(args : Array(String)) : Int32
       parser = build_option_parser
 
       parser.parse(args)
@@ -137,7 +143,7 @@ module Ignorelint
 
       formatter.finish(@io)
 
-      exit(exit_code) if exit_code != 0
+      exit_code
     end
 
     # Apply environment variable overrides for options not set via CLI flags.
@@ -151,7 +157,7 @@ module Ignorelint
       end
 
       if env_val = ENV["IGNORELINT_FAIL_ON"]?
-        @fail_on = parse_severity(env_val)
+        @fail_on = parse_severity(env_val) unless @fail_on_set
       end
     end
 
@@ -172,6 +178,7 @@ module Ignorelint
         parser.on("-V", "--version", "Show version") { @io << "ignorelint " << VERSION << '\n'; exit }
         parser.on("--fail-on=LEVEL", "Exit non-zero on LEVEL or worse (error|warn|info, default: error)") do |v|
           @fail_on = parse_severity(v)
+          @fail_on_set = true
         end
         parser.on("--format=FORMAT", "Output format (#{OutputFormat.valid_values}, default: human)") do |v|
           parsed = OutputFormat.parse?(v)
