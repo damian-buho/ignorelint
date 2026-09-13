@@ -103,6 +103,12 @@ module Ignorelint
     # The display filename for `--stdin` mode (drives format detection).
     @stdin_file : String?
 
+    # Disabled rule tags (e.g. IG-001); these issues never surface.
+    @disabled : Set(String)
+
+    # True once `--disabled-rules` was passed explicitly (env must not override it).
+    @disabled_set : Bool = false
+
     # Whether `--verbose` was requested (show file discovery output).
     @verbose : Bool
 
@@ -125,6 +131,7 @@ module Ignorelint
       @diff = false
       @stdin = false
       @stdin_file = nil
+      @disabled = Set(String).new
     end
 
     # Main execution: parse flags, discover files, lint, format.
@@ -189,6 +196,22 @@ module Ignorelint
       if env_val = ENV["IGNORELINT_FAIL_ON"]?
         @fail_on = parse_severity(env_val) unless @fail_on_set
       end
+
+      if env_val = ENV["IGNORELINT_DISABLED_RULES"]?
+        @disabled = parse_disabled_rules(env_val) unless @disabled_set
+      end
+    end
+
+    # Splits comma/space-separated rule tags, normalized for comparison.
+    private def parse_disabled_rules(value : String) : Set(String)
+      value.split(/[\s,]+/).map(&.strip.upcase).reject(&.empty?).to_set
+    end
+
+    # Drops disabled-rule issues; patterns are kept for downstream fixing.
+    private def without_disabled(result : LintResult) : LintResult
+      return result if @disabled.empty?
+      kept = result.issues.reject { |issue| @disabled.includes?(issue.code.tag) }
+      LintResult.new(issues: kept, patterns: result.patterns)
     end
 
     # Build the `OptionParser` that handles all CLI flags.
@@ -236,6 +259,10 @@ module Ignorelint
         parser.on("--file=NAME", "Filename for --stdin input (drives format detection)") do |v|
           @stdin_file = v
         end
+        parser.on("--disabled-rules=CODES", "Skip rules entirely (comma-separated tags, e.g. IG-001,IG-020)") do |v|
+          parse_disabled_rules(v).each { |tag| @disabled << tag }
+          @disabled_set = true
+        end
 
         parser.separator("")
         parser.separator("When no PATH is given, discovers supported *ignore files in the current directory.")
@@ -245,6 +272,7 @@ module Ignorelint
         parser.separator("  IGNORELINT_VERBOSE=1       Same as --verbose")
         parser.separator("  IGNORELINT_FAIL_ON=LEVEL   Same as --fail-on (error|warn|info)")
         parser.separator("  IGNORELINT_RECURSIVE=1     Same as --recursive")
+        parser.separator("  IGNORELINT_DISABLED_RULES=CODES Same as --disabled-rules")
         parser.separator("  NO_COLOR=1                 Disable colored output")
 
         parser.unknown_args do |remaining|
@@ -324,6 +352,7 @@ module Ignorelint
     private def lint_stdin(input : IO, formatter : Formatter, name : String) : Int32
       content = read_input(input)
       result = Linter.lint(name, content)
+      result = without_disabled(result)
       if @fix
         content_lines = content.lines(chomp: false)
         fixes, sort_fix = result.collect_fixes(content_lines)
@@ -366,6 +395,7 @@ module Ignorelint
 
       content = File.read(path)
       result = Linter.lint(path, content)
+      result = without_disabled(result)
       result = handle_fixes(path, content, result) if @fix || @diff
 
       {should_fail?(result) ? 1 : 0, FileResult.new(path, result.issues)}

@@ -22,10 +22,11 @@ Synopsis: `ignorelint [OPTIONS] [PATH…]`. With no paths, known ignore files ar
 | `--version` / `-V`, `--help` / `-h` | — | Print version or help to standard output |
 | `--stdin` | off | Lint piped content instead of files (requires `--file`) |
 | `--file=NAME` | — | Filename for `--stdin` input; drives format detection and display |
+| `--disabled-rules=CODES` | — | Skip rules entirely; comma-separated tags like `IG-001,IG-020` |
 
 ## Environment
 
-`IGNORELINT_VERBOSE`, `IGNORELINT_FAIL_ON`, and `IGNORELINT_RECURSIVE` mirror their flags for CI systems that set policy once. Explicit flags always win. `IGNORELINT_VERBOSE` and `IGNORELINT_RECURSIVE` accept `1`/`true`-style values; `0`, `false`, `no`, `n`, and `off` disable. `NO_COLOR` disables colour following the no-color.org convention; colour also requires a terminal.
+`IGNORELINT_VERBOSE`, `IGNORELINT_FAIL_ON`, `IGNORELINT_RECURSIVE`, and `IGNORELINT_DISABLED_RULES` mirror their flags for CI systems that set policy once. Explicit flags always win. `IGNORELINT_VERBOSE` and `IGNORELINT_RECURSIVE` accept `1`/`true`-style values; `0`, `false`, `no`, `n`, and `off` disable. Disabled rules take comma-separated tags (`IG-001,IG-020`, case-insensitive); unknown codes match nothing. `NO_COLOR` disables colour following the no-color.org convention; colour also requires a terminal.
 
 ## Discovery
 

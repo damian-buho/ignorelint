@@ -226,6 +226,63 @@ describe Ignorelint::CLI do
     end
   end
 
+  describe "--disabled-rules" do
+    it "drops matching issues entirely" do
+      with_ignore_file("!!foo\n") do |path|
+        code, out, _ = run_cli(["--disabled-rules=IG-003", path] of String)
+        code.should eq(0)
+        out.should contain("is valid")
+      end
+    end
+
+    it "takes comma-separated tags case-insensitively" do
+      with_ignore_file("!!foo\nfoo  \n") do |path|
+        code, out, _ = run_cli(["--disabled-rules=ig-001,IG-003", path] of String)
+        code.should eq(0)
+        out.should_not contain("Double negation")
+        out.should_not contain("Trailing whitespace")
+        out.should contain("Space in pattern")
+      end
+    end
+
+    it "reads IGNORELINT_DISABLED_RULES" do
+      with_ignore_file("!!foo\n") do |path|
+        with_env("IGNORELINT_DISABLED_RULES", "IG-003") do
+          code, out, _ = run_cli([path] of String)
+          code.should eq(0)
+          out.should contain("is valid")
+        end
+      end
+    end
+
+    it "prefers the explicit flag over the env" do
+      with_ignore_file("!!foo\nfoo  \n") do |path|
+        with_env("IGNORELINT_DISABLED_RULES", "IG-003") do
+          code, out, _ = run_cli(["--disabled-rules=IG-001", path] of String)
+          code.should eq(1)
+          out.should contain("Double negation")
+          out.should_not contain("Trailing whitespace")
+        end
+      end
+    end
+
+    it "ignores unknown codes safely" do
+      with_ignore_file("!!foo\n") do |path|
+        code, out, _ = run_cli(["--disabled-rules=BOGUS", path] of String)
+        code.should eq(1)
+        out.should contain("Double negation")
+      end
+    end
+
+    it "keeps disabled issues out of --fix" do
+      with_ignore_file("foo  \n") do |path|
+        code, _, _ = run_cli(["--fix", "--disabled-rules=IG-001", path] of String)
+        code.should eq(0)
+        File.read(path).should eq("foo  \n")
+      end
+    end
+  end
+
   describe "IGNORLINT_VERBOSE parsing" do
     it "treats no/off as false" do
       dir = File.join("/tmp", "ignorelint-verbose-spec-#{Process.pid}-#{Random.rand(1_000_000)}")

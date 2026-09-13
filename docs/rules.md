@@ -54,7 +54,7 @@ A comment silences codes on the next pattern line:
 legacy-path/
 ```
 
-Blank lines and other comments between the directive and the pattern are skipped; several codes may be listed separated by commas or spaces. Unknown codes match nothing, so a mistyped code fails safe and the finding is still reported. Suppressed findings never reach autofix or the exit code.
+Blank lines and other comments between the directive and the pattern are skipped; several codes may be listed separated by commas or spaces. Unknown codes match nothing, so a mistyped code fails safe and the finding is still reported. Suppressed findings never reach autofix or the exit code. To silence a rule for the whole run instead of one line, use `--disabled-rules` (see [CLI reference](cli.md)).
 
 ## Filesystem checks
 
