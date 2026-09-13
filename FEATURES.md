@@ -9,32 +9,39 @@ SPDX-License-Identifier: MIT
 
 ## Project Features
 
-### CLI, output formats and exit codes
+### Autofix that preserves file meaning
 
-- Flags: `--fail-on=LEVEL` (`error`|`warn`|`info`, default `error`), `--format=FORMAT` (`human`|`json`|`checkstyle`|`sarif`, default `human`), `--fix`, `--recursive`/`-r`, `--verbose`/`-v`, `--version`/`-V`, `--help`/`-h`; positional `PATH...` overrides auto-discovery.
-- Environment overrides (lower priority than CLI flags): `IGNORELINT_VERBOSE`, `IGNORELINT_FAIL_ON`, `IGNORELINT_RECURSIVE`, `NO_COLOR` (disables colour per the no-color.org convention; colour also requires a TTY).
-- With no PATH arguments the CLI auto-discovers known files in the current directory, or the whole tree with `--recursive` (hidden directories, `node_modules` and symlinks skipped).
-- Four output formatters (`src/formatter/`): `human` (colour, TTY-aware), `json`, `checkstyle`, `sarif`; SARIF embeds `VERSION` (kept in sync with `shard.yml` in `src/version.cr`).
-- Exit codes: `0` no issues at/above `--fail-on`, `1` issues found at/above the threshold, `2` invalid CLI arguments.
-- Container wiring: `entrypoint.d/5000-start.sh` runs `sleep infinity` (no explicit `CMD`); `command.d/get-ignorelint-version` prints the `ignorelint` version for self-test `test.d/1100-check-version.sh`.
+- `--fix` corrects deterministic issues in place, so cleanups apply without hand-editing. See the [rules reference](docs/rules.md).
+- Corrections on one line compose in a single pass, so one run converges.
+- Files are rewritten atomically with permissions kept, so an interrupted run never leaves a truncated file.
+- Negations are never reordered and symlinks never rewritten, so a fix cannot change what the file ignores.
+- Fixed findings are relabelled and left out of the failure decision, so exit codes reflect what remains.
 
-### Linter rules and check pipeline
+### Dead-rule detection against the live filesystem
 
-- 24 diagnostic codes `IG-001`…`IG-024` (`src/issue.cr` `CODE_TAG_MAP`) with severities `error`/`warn`/`info` (plus a synthetic `fixed` severity set after `--fix`); every code is emitted in all output formats.
-- `Linter.lint` (`src/linter.cr`) runs a four-phase pipeline: universal checks, format-specific checks via a `FormatLinter` adapter, filesystem dead-rule checks, then a deterministic line sort.
-- Universal (all formats): `IG-001` trailing whitespace, `IG-002` unescaped `#`, `IG-003` double negation, `IG-004` empty pattern, `IG-005` consecutive `***`, `IG-006` malformed brackets, `IG-007` space in pattern (suppressed for dockerignore), `IG-008` duplicate rule, `IG-022` double slash, `IG-023` unsorted rule, `IG-024` leading whitespace.
-- Format-specific examples: `IG-014` path traversal (dockerignore/containerignore), `IG-015` ineffective leading/trailing slash, `IG-018` redundant built-in exclude (npm/prettier/cf).
-- Filesystem dead-rule detection: `IG-020` literal path does not exist, `IG-021` glob matches no files/directories; negated patterns are skipped (they re-include rather than ignore).
-- `--fix` auto-corrects nine deterministic codes (`IG-001,002,003,008,015,018,022,023,024`): line replacements/deletions are applied first, then a bulk `SortFix` alphabetises all active lines (skipped when any pattern is negated, since negation order decides the match); fixed issues are relabelled severity `fixed` and excluded from the fail decision.
-- Suppression directives: a comment `# ignorelint: disable-next-line IG-020, IG-021` silences the listed codes on the next pattern; unknown codes match nothing, so a typo fails safe and the issue is still reported.
+- Literal patterns are checked for existence and globs for at least one match, so removed paths surface as stale rules. See the [rules reference](docs/rules.md).
+- Negated patterns are skipped, since they re-include rather than ignore.
+- Patterns reaching outside the tree are skipped instead of probed.
 
-### Supported ignore-file formats
+### Whole-tree discovery for monorepos
 
-- Linter for `*ignore` files, built-in Crystal (`shard.yml`, `crystal >= 1.13.0`); compiled `--release --no-debug` to `/export/usr/local/bin/ignorelint` at the `compile-crystal` stage (base `b19/crystal`, builder APT `libxml2-dev`), runtime `b19/ubuntu/resolute`.
-- 25 filenames are recognised in `KNOWN_FILES` (`src/file_type.cr`): `.gitignore`, `.dockerignore`, `.containerignore`, `.npmignore`, `.yarnignore`, `.eslintignore`, `.prettierignore`, `.stylelintignore`, `.tfignore`, `.helmignore`, `.gcloudignore`, `.ebignore`, `.slugignore`, `.vercelignore`, `.cfignore`, `.openapi-generator-ignore`, `.cursorignore`, `.aiderignore`, `.aiexclude`, `.codeiumignore`, `.claudeignore`, `.ignore`, `.rgignore`, `.fdignore`, `.eleventyignore`.
-- Eight format-specific glob drivers in `src/driver/` (`gitignore`, `dockerignore`, `npmignore`, `prettierignore`, `eslintignore`, `helmignore`, `slugignore`, `cfignore`) model each tool’s matching semantics; `.containerignore` reuses the dockerignore driver, and unrecognised basenames fall back to universal rules only.
-- With no PATH arguments the CLI auto-discovers every `KNOWN_FILES` entry present in the current directory; `--verbose` prints a found/not-found report.
-- Per-format specification documents live in `specifications/` (24 formats) and golden fixtures in `spec/fixtures/{valid,broken}/`.
+- With no paths given, ignore files are found automatically: one directory, or the whole tree with `--recursive`. See the [CLI reference](docs/cli.md).
+- Findings report working-directory-relative paths in sorted order, so output is stable across runs.
+- Hidden directories, `node_modules`, and symlinks are skipped, so internals, dependencies, and link cycles are never linted.
+- Explicit paths override discovery entirely.
+
+### Output pipelines can parse
+
+- Human, JSON, Checkstyle, and SARIF renderings, so results feed terminals and code scanning alike. See the [CLI reference](docs/cli.md).
+- Diagnostics go to standard error, so machine-readable standard output stays parseable.
+- Severity thresholds decide the exit code, so warnings break a build only when asked.
+
+### Suppressions for intentional exceptions
+
+- A comment directive silences listed codes on the next pattern, so known-good entries stop failing runs. See the [rules reference](docs/rules.md).
+- Directives cover every code, including dead-rule findings from the filesystem.
+- Unknown codes match nothing, so a mistyped directive fails safe and the finding still appears.
+- Suppressed findings never reach autofix or exit codes.
 
 ## Inherited from B19/Ubuntu
 

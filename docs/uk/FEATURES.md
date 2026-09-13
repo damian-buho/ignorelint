@@ -9,33 +9,6 @@ SPDX-License-Identifier: MIT
 
 # Можливості
 
-## Можливості проєкту
-
-### CLI, формати виводу та коди виходу
-
-- Прапорці: `--fail-on=LEVEL` (`error`|`warn`|`info`, типово `error`), `--format=FORMAT` (`human`|`json`|`checkstyle`|`sarif`, типово `human`), `--fix`, `--verbose`/`-v`, `--version`/`-V`, `--help`/`-h`; позиційний `PATH...` перекриває автовиявлення.
-- Перевизначення через середовище (нижчий пріоритет за CLI-прапорці): `IGNORELINT_VERBOSE`, `IGNORELINT_FAIL_ON`, `NO_COLOR` (вимикає кольори за конвенцією no-color.org; колір також потребує TTY).
-- Чотири форматувальники виводу (`src/formatter/`): `human` (колір, з урахуванням TTY), `json`, `checkstyle`, `sarif`; SARIF вбудовує `VERSION` (синхронізована з `shard.yml` у `src/version.cr`).
-- Коди виходу: `0` — проблем на рівні `--fail-on` чи вище немає, `1` — знайдено проблеми на рівні порога чи вище, `2` — недійсні аргументи CLI.
-- Підключення всередині контейнера: `entrypoint.d/5000-start.sh` виконує `sleep infinity` (без явного `CMD`); `command.d/get-ignorelint-version` виводить версію `ignorelint` для самоперевірки `test.d/1100-check-version.sh`.
-
-### Правила лінтера та конвеєр перевірок
-
-- 24 діагностичні коди `IG-001`…`IG-024` (`CODE_TAG_MAP` у `src/issue.cr`) із рівнями `error`/`warn`/`info` (плюс синтетичний рівень `fixed`, що виставляється після `--fix`); кожен код виводиться в усіх форматах виводу.
-- `Linter.lint` (`src/linter.cr`) виконує чотирифазний конвеєр: універсальні перевірки, специфічні для формату перевірки через адаптер `FormatLinter`, перевірки мертвих правил проти файлової системи, потім детерміноване сортування рядків.
-- Універсальні (усі формати): `IG-001` хвостові пробіли, `IG-002` неекранований `#`, `IG-003` подвійне заперечення, `IG-004` порожній шаблон, `IG-005` послідовні `***`, `IG-006` неправильні дужки, `IG-007` пробіл у шаблоні (придушено для dockerignore), `IG-008` дублікат правила, `IG-022` подвійний слеш, `IG-023` несортоване правило, `IG-024` початкові пробіли.
-- Приклади специфічних для формату: `IG-014` вихід за межі шляху (dockerignore/containerignore), `IG-015` неефективний початковий/кінцевий слеш, `IG-018` надлишковий вбудований виняток (npm/prettier/cf).
-- Виявлення мертвих правил проти файлової системи: `IG-020` літерального шляху не існує, `IG-021` glob не збігається ані з одним файлом/каталогом; заперечені шаблони пропускаються (вони повторно включають, а не ігнорують).
-- `--fix` автовиправляє дев’ять детермінованих кодів (`IG-001,002,003,008,015,018,022,023,024`): спочатку застосовуються заміни/видалення рядків, потім масовий `SortFix` сортує за абеткою всі активні рядки; виправлені проблеми позначаються заново рівнем `fixed` і виключаються з рішення про збій.
-
-### Підтримувані формати ignore-файлів
-
-- Лінтер для файлів `*ignore`, на чистому Crystal (`shard.yml`, `crystal >= 1.13.0`); зібраний `--release --no-debug` до `/export/usr/local/bin/ignorelint` на стадії `compile-crystal` (база `b19/crystal`, APT builder-стадії `libxml2-dev`), runtime `b19/ubuntu/resolute`.
-- 25 імен файлів розпізнається в `KNOWN_FILES` (`src/file_type.cr`): `.gitignore`, `.dockerignore`, `.containerignore`, `.npmignore`, `.yarnignore`, `.eslintignore`, `.prettierignore`, `.stylelintignore`, `.tfignore`, `.helmignore`, `.gcloudignore`, `.ebignore`, `.slugignore`, `.vercelignore`, `.cfignore`, `.openapi-generator-ignore`, `.cursorignore`, `.aiderignore`, `.aiexclude`, `.codeiumignore`, `.claudeignore`, `.ignore`, `.rgignore`, `.fdignore`, `.eleventyignore`.
-- Вісім специфічних для формату glob-драйверів у `src/driver/` (`gitignore`, `dockerignore`, `npmignore`, `prettierignore`, `eslintignore`, `helmignore`, `slugignore`, `cfignore`) моделюють семантику збігів кожного інструмента; `.containerignore` повторно використовує драйвер dockerignore, а для нерозпізнаних базових імен діє лише універсальний набір правил.
-- Без аргументів PATH CLI автоматично виявляє кожен запис із `KNOWN_FILES`, присутній у поточному каталозі; `--verbose` виводить звіт знайдено/не знайдено.
-- Специфікації за форматами лежать у `specifications/` (24 формати), а золоті фікстури — у `spec/fixtures/{valid,broken}/`.
-
 ## Успадковано від B19/Ubuntu
 
 ### Постійний APT-кеш між збираннями

@@ -9,33 +9,6 @@ SPDX-License-Identifier: MIT
 
 # Características
 
-## Características del proyecto
-
-### CLI, formatos de salida y códigos de salida
-
-- Flags: `--fail-on=LEVEL` (`error`|`warn`|`info`, por defecto `error`), `--format=FORMAT` (`human`|`json`|`checkstyle`|`sarif`, por defecto `human`), `--fix`, `--verbose`/`-v`, `--version`/`-V`, `--help`/`-h`; un `PATH...` posicional anula el autodescubrimiento.
-- Variables de entorno que sobrescriben (menor prioridad que los flags de CLI): `IGNORELINT_VERBOSE`, `IGNORELINT_FAIL_ON`, `NO_COLOR` (desactiva el color según la convención no-color.org; el color además requiere TTY).
-- Cuatro formateadores de salida (`src/formatter/`): `human` (color, consciente de TTY), `json`, `checkstyle`, `sarif`; SARIF incrusta `VERSION` (mantenida en sincronía con `shard.yml` en `src/version.cr`).
-- Códigos de salida: `0` sin problemas en el nivel `--fail-on` o por encima, `1` problemas encontrados en el umbral o por encima, `2` argumentos de CLI inválidos.
-- Cableado del contenedor: `entrypoint.d/5000-start.sh` ejecuta `sleep infinity` (sin `CMD` explícito); `command.d/get-ignorelint-version` imprime la versión de `ignorelint` para la autoprueba `test.d/1100-check-version.sh`.
-
-### Reglas del linter y pipeline de comprobaciones
-
-- 24 códigos de diagnóstico `IG-001`…`IG-024` (`CODE_TAG_MAP` en `src/issue.cr`) con severidades `error`/`warn`/`info` (más una severidad sintética `fixed` aplicada tras `--fix`); todo código se emite en todos los formatos de salida.
-- `Linter.lint` (`src/linter.cr`) ejecuta un pipeline de cuatro fases: comprobaciones universales, comprobaciones específicas del formato mediante un adaptador `FormatLinter`, comprobaciones de reglas muertas contra el sistema de archivos, y por último una ordenación determinista de líneas.
-- Universales (todos los formatos): `IG-001` espacio final, `IG-002` `#` sin escapar, `IG-003` doble negación, `IG-004` patrón vacío, `IG-005` `***` consecutivos, `IG-006` corchetes malformados, `IG-007` espacio en el patrón (suprimido para dockerignore), `IG-008` regla duplicada, `IG-022` barra doble, `IG-023` regla sin ordenar, `IG-024` espacio al inicio.
-- Ejemplos específicos del formato: `IG-014` path traversal (dockerignore/containerignore), `IG-015` barra inicial/final inefectiva, `IG-018` exclusión integrada redundante (npm/prettier/cf).
-- Detección de reglas muertas contra el sistema de archivos: `IG-020` la ruta literal no existe, `IG-021` el glob no coincide con ningún archivo/directorio; los patrones negados se omiten (reincluyen en lugar de ignorar).
-- `--fix` autocorrige nueve códigos deterministas (`IG-001,002,003,008,015,018,022,023,024`): primero se aplican reemplazos/eliminaciones de líneas, luego un `SortFix` masivo ordena alfabéticamente todas las líneas activas; los problemas corregidos se reetiquetan con severidad `fixed` y quedan excluidos de la decisión de fallo.
-
-### Formatos de archivos ignore soportados
-
-- Linter para archivos `*ignore`, en Crystal nativo (`shard.yml`, `crystal >= 1.13.0`); compilado `--release --no-debug` a `/export/usr/local/bin/ignorelint` en la etapa `compile-crystal` (base `b19/crystal`, APT del builder `libxml2-dev`), runtime `b19/ubuntu/resolute`.
-- 25 nombres de archivo reconocidos en `KNOWN_FILES` (`src/file_type.cr`): `.gitignore`, `.dockerignore`, `.containerignore`, `.npmignore`, `.yarnignore`, `.eslintignore`, `.prettierignore`, `.stylelintignore`, `.tfignore`, `.helmignore`, `.gcloudignore`, `.ebignore`, `.slugignore`, `.vercelignore`, `.cfignore`, `.openapi-generator-ignore`, `.cursorignore`, `.aiderignore`, `.aiexclude`, `.codeiumignore`, `.claudeignore`, `.ignore`, `.rgignore`, `.fdignore`, `.eleventyignore`.
-- Ocho drivers de glob específicos del formato en `src/driver/` (`gitignore`, `dockerignore`, `npmignore`, `prettierignore`, `eslintignore`, `helmignore`, `slugignore`, `cfignore`) modelan la semántica de coincidencia de cada herramienta; `.containerignore` reutiliza el driver dockerignore, y los nombres base no reconocidos caen solo a las reglas universales.
-- Sin argumentos PATH el CLI autodescubre toda entrada de `KNOWN_FILES` presente en el directorio actual; `--verbose` imprime un informe de encontrados/no encontrados.
-- Los documentos de especificación por formato viven en `specifications/` (24 formatos) y los fixtures dorados en `spec/fixtures/{valid,broken}/`.
-
 ## Heredado de B19/Ubuntu
 
 ### Caché APT persistente entre compilaciones
