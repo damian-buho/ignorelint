@@ -32,3 +32,4 @@ keywords:
   - dockerignore
   - ignore-files
   - crystal
+version: 1.2.2
