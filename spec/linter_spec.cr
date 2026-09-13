@@ -34,6 +34,11 @@ describe Ignorelint::Linter do
       result = Ignorelint::Linter.lint("test.gitignore", "/\n")
       result.issues.any?(&.message.includes?("Empty pattern")).should be_true
     end
+
+    it "reports bare !" do
+      result = Ignorelint::Linter.lint("test.gitignore", "!\n")
+      result.issues.any?(&.message.includes?("Empty pattern")).should be_true
+    end
   end
 
   describe "universal: malformed brackets" do

@@ -335,7 +335,7 @@ module Ignorelint
     #
     # `"!!build"` → `"build"`, `"!!!!x"` → `"x"` (pairs cancel out).
     private def fix_double_negation(pat : Pattern) : Fix
-      fixed = pat.raw
+      fixed = pat.raw.lstrip
       while fixed.starts_with?("!!")
         fixed = fixed.lchop("!!")
       end

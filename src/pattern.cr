@@ -157,17 +157,16 @@ module Ignorelint
       false
     end
 
-    # Detect `!!` at the start of a line. Double negation cancels out —
-    # `"!!foo"` is equivalent to `"foo"` but confuses readers.
+    # Detect `!!` at the start of a line (after leading whitespace).
+    # Double negation cancels out — `"!!foo"` is equivalent to `"foo"`.
     def double_negation? : Bool
-      @raw.starts_with?("!!")
+      @raw.lstrip.starts_with?("!!")
     end
 
-    # Detect an empty pattern after decomposition (no body, no negation).
-    # An empty line that is not blank and not a comment is an error — something
-    # like `"!"` or `"/"` that has flags but no actual pattern text.
+    # Detect an empty pattern after decomposition (no body text).
+    # Lines like `"!"`, `"!/"` or `"/"` carry flags but no pattern text.
     def empty_pattern? : Bool
-      @body.empty? && !negated?
+      @body.empty?
     end
 
     # -- Glob validity ----------------------------------------------------
@@ -197,24 +196,32 @@ module Ignorelint
     #   - Empty: `[]` — no characters to match
     #   - Nested: `[a[b]` — brackets inside brackets
     #
-    # The algorithm tracks `in_bracket` and `bracket_start` (right after `[`)
-    # to detect these cases.
+    # Runs on the raw line with escape awareness: an escaped `\[` is a
+    # literal bracket, not an expression opener.
     def malformed_brackets? : Bool
       return false if comment?
       in_bracket = false
       bracket_start = false
-      @body.each_char do |char|
-        case char
-        when '['
-          return true if in_bracket
-          in_bracket = true
-          bracket_start = true
-        when ']'
-          return true if bracket_start
-          in_bracket = false
-          bracket_start = false
-        else
+      in_escape = false
+      @raw.each_char do |char|
+        if in_escape
+          in_escape = false
           bracket_start = false if in_bracket
+        else
+          case char
+          when '\\'
+            in_escape = true
+          when '['
+            return true if in_bracket
+            in_bracket = true
+            bracket_start = true
+          when ']'
+            return true if bracket_start
+            in_bracket = false
+            bracket_start = false
+          else
+            bracket_start = false if in_bracket
+          end
         end
       end
       in_bracket # unclosed [
@@ -234,7 +241,7 @@ module Ignorelint
     def invalid_doublestar? : Bool
       return false if comment?
       return false unless @body.includes?("**")
-      return true if consecutive_asterisks?
+      return false if consecutive_asterisks?
 
       @body.split('/').each do |segment|
         next unless segment.includes?("**")
@@ -267,36 +274,52 @@ module Ignorelint
 
     # -- Filesystem check helpers ------------------------------------------
 
-    # True when the body contains no glob metacharacters (*, ?, [)
+    # True when the body contains no UNESCAPED glob metacharacters (*, ?, [)
     # and the pattern is not negated — i.e. it names a concrete path.
+    #
+    # Scans the raw line (skipping `\`-escaped chars) so an escaped `\*`
+    # counts as a literal asterisk, not a glob.
     #
     # Used by filesystem checks to decide whether to test `File.exists?`
     # (for literal patterns) vs. `Dir.glob` (for glob patterns).
-    #
-    # The regex `/[*?\[]/` matches any of the three glob metacharacters.
-    # `String#matches?` returns `true` if the regex matches anywhere.
     def literal? : Bool
       return false if negated?
       return false if @body.empty?
-      !@body.matches?(/[*?\[]/)
+      in_escape = false
+      @raw.each_char do |char|
+        if in_escape
+          in_escape = false
+        elsif char == '\\'
+          in_escape = true
+        elsif char == '*' || char == '?' || char == '['
+          return false
+        end
+      end
+      true
     end
 
     # -- Conflict detection helpers ----------------------------------------
 
-    # Normalized form for duplicate/conflict comparison: strip escapes,
-    # collapse whitespace, lowercase (gitignore is case-sensitive but
-    # many users don't realize).
+    # Normalized form for duplicate/conflict comparison: escape-stripped
+    # body, trimmed. Case-sensitive: ignore files are (e.g. `"Build"` and
+    # `"build"` match different files on case-sensitive filesystems).
     def normalized : String
-      @body.downcase.strip
+      @body.strip
     end
 
     # Does this pattern (as an ignore) conflict with a later negation?
     # A pattern P and a negation !P cancel each other.
     #
+    # Scope flags participate: `/build` vs `!build` (rooted vs unrooted)
+    # and `build/` vs `!build` (directory-only vs either) match different
+    # sets, so they are not exact cancels.
+    #
     # Used by `Checks::Conflicts` to detect redundant pairs like
     # `"build"` followed by `"!build"`.
     def conflicts_with?(other : Pattern) : Bool
       return false if negated? == other.negated?
+      return false if rooted? != other.rooted?
+      return false if directory_only? != other.directory_only?
       normalized == other.normalized
     end
 
@@ -324,6 +347,7 @@ module Ignorelint
           result << char
         end
       end
+      result << '\\' if escaped # trailing lone backslash is literal
       result.to_s
     end
   end

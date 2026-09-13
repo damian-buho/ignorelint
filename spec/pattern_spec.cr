@@ -87,11 +87,19 @@ describe Ignorelint::Pattern do
     it "single ! is not double negation" do
       Ignorelint::Pattern.new("!foo", 1).double_negation?.should be_false
     end
+
+    it "detects !! after leading whitespace" do
+      Ignorelint::Pattern.new(" !!foo", 1).double_negation?.should be_true
+    end
   end
 
   describe "empty pattern" do
     it "detects bare !" do
-      Ignorelint::Pattern.new("!", 1).empty_pattern?.should be_false # negated, not empty
+      Ignorelint::Pattern.new("!", 1).empty_pattern?.should be_true
+    end
+
+    it "detects !/" do
+      Ignorelint::Pattern.new("!/", 1).empty_pattern?.should be_true
     end
 
     it "detects lone /" do
@@ -133,6 +141,10 @@ describe Ignorelint::Pattern do
     it "allows negation brackets" do
       Ignorelint::Pattern.new("[!abc]", 1).malformed_brackets?.should be_false
     end
+
+    it "ignores escaped brackets" do
+      Ignorelint::Pattern.new("\\[abc", 1).malformed_brackets?.should be_false
+    end
   end
 
   describe "invalid doublestar" do
@@ -154,6 +166,10 @@ describe Ignorelint::Pattern do
 
     it "rejects ** mixed with text" do
       Ignorelint::Pattern.new("**foo", 1).invalid_doublestar?.should be_true
+    end
+
+    it "leaves *** to the consecutive-star check" do
+      Ignorelint::Pattern.new("***", 1).invalid_doublestar?.should be_false
     end
   end
 
@@ -183,6 +199,34 @@ describe Ignorelint::Pattern do
       pat = Ignorelint::Pattern.new("foo", 1)
       neg = Ignorelint::Pattern.new("!foo", 2)
       pat.conflicts_with?(neg).should be_true
+    end
+
+    it "ignores rooted vs unrooted pairs" do
+      pat = Ignorelint::Pattern.new("/build", 1)
+      neg = Ignorelint::Pattern.new("!build", 2)
+      pat.conflicts_with?(neg).should be_false
+    end
+
+    it "ignores directory-only vs plain pairs" do
+      pat = Ignorelint::Pattern.new("build/", 1)
+      neg = Ignorelint::Pattern.new("!build", 2)
+      pat.conflicts_with?(neg).should be_false
+    end
+
+    it "is case-sensitive" do
+      pat = Ignorelint::Pattern.new("Build", 1)
+      neg = Ignorelint::Pattern.new("!build", 2)
+      pat.conflicts_with?(neg).should be_false
+    end
+  end
+
+  describe "literal detection" do
+    it "treats escaped stars as literal" do
+      Ignorelint::Pattern.new("\\*.log", 1).literal?.should be_true
+    end
+
+    it "treats real stars as globs" do
+      Ignorelint::Pattern.new("*.log", 1).literal?.should be_false
     end
   end
 
