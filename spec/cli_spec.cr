@@ -162,4 +162,75 @@ describe Ignorelint::CLI do
       end
     end
   end
+
+  describe "--recursive discovery" do
+    it "finds nested files, skipping .git, node_modules and symlinks" do
+      dir = File.join("/tmp", "ignorelint-recursive-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+      Dir.mkdir_p(File.join(dir, "sub", "nested"))
+      Dir.mkdir_p(File.join(dir, ".git"))
+      Dir.mkdir_p(File.join(dir, "node_modules"))
+      begin
+        File.write(File.join(dir, "sub", ".gitignore"), "foo  \n")
+        File.write(File.join(dir, "sub", "nested", ".dockerignore"), "# clean\n")
+        File.write(File.join(dir, ".git", ".gitignore"), "evil  \n")
+        File.write(File.join(dir, "node_modules", ".gitignore"), "evil2  \n")
+        File.symlink(dir, File.join(dir, "loop"))
+        old = Dir.current
+        begin
+          Dir.cd(dir)
+          code, out, _ = run_cli(["--recursive"] of String)
+          code.should eq(0)
+          out.should contain("sub/.gitignore")
+          out.should contain("sub/nested/.dockerignore")
+          out.should_not contain(".git/.gitignore")
+          out.should_not contain("node_modules")
+          out.should_not contain("loop")
+        ensure
+          Dir.cd(old)
+        end
+      ensure
+        FileUtils.rm_rf(dir)
+      end
+    end
+
+    it "stays in the top directory without the flag" do
+      dir = File.join("/tmp", "ignorelint-nonrecursive-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+      Dir.mkdir_p(File.join(dir, "sub"))
+      begin
+        File.write(File.join(dir, "sub", ".gitignore"), "foo  \n")
+        old = Dir.current
+        begin
+          Dir.cd(dir)
+          code, out, _ = run_cli([] of String)
+          code.should eq(0)
+          out.should be_empty
+        ensure
+          Dir.cd(old)
+        end
+      ensure
+        FileUtils.rm_rf(dir)
+      end
+    end
+
+    it "honours IGNORELINT_RECURSIVE" do
+      dir = File.join("/tmp", "ignorelint-recursive-env-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+      Dir.mkdir_p(File.join(dir, "sub"))
+      begin
+        File.write(File.join(dir, "sub", ".gitignore"), "foo  \n")
+        old = Dir.current
+        begin
+          Dir.cd(dir)
+          with_env("IGNORELINT_RECURSIVE", "1") do
+            code, out, _ = run_cli([] of String)
+            code.should eq(0)
+            out.should contain("sub/.gitignore")
+          end
+        ensure
+          Dir.cd(old)
+        end
+      ensure
+        FileUtils.rm_rf(dir)
+      end
+    end
+  end
 end

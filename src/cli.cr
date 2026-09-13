@@ -7,7 +7,7 @@
 # This is the top-level coordinator that ties together all subsystems:
 #
 #   1. Parse command-line flags (`--format`, `--fail-on`, `--fix`, `--verbose`)
-#   2. Apply environment variable overrides (`IGNORELINT_VERBOSE`, `NO_COLOR`)
+#   2. Apply environment variable overrides (`IGNORELINT_*`, `NO_COLOR`)
 #   3. Build the appropriate output `Formatter`
 #   4. Discover ignore files (or use explicitly provided paths)
 #   5. Lint each file via `Linter.lint`
@@ -97,6 +97,9 @@ module Ignorelint
     # Whether `--verbose` was requested (show file discovery output).
     @verbose : Bool
 
+    # Whether to search subdirectories for ignore files (vs cwd only).
+    @recursive : Bool
+
     # Whether the output stream is a TTY (used to decide color output).
     @tty : Bool
 
@@ -108,6 +111,7 @@ module Ignorelint
     def initialize(@io : IO, @err : IO = STDERR)
       @tty = @io.responds_to?(:tty?) && @io.tty?
       @verbose = env_true?("IGNORELINT_VERBOSE")
+      @recursive = env_true?("IGNORELINT_RECURSIVE")
       @fix = false
     end
 
@@ -194,6 +198,9 @@ module Ignorelint
         parser.on("-v", "--verbose", "Show discovery output and extra diagnostics") do
           @verbose = true
         end
+        parser.on("-r", "--recursive", "Search subdirectories for *ignore files (skips hidden dirs, node_modules, symlinks)") do
+          @recursive = true
+        end
         parser.on("--fix", "Auto-fix deterministically fixable issues (IG-001,002,003,008,015,018,022,023,024)") do
           @fix = true
         end
@@ -205,6 +212,7 @@ module Ignorelint
         parser.separator("Environment variables:")
         parser.separator("  IGNORELINT_VERBOSE=1       Same as --verbose")
         parser.separator("  IGNORELINT_FAIL_ON=LEVEL   Same as --fail-on (error|warn|info)")
+        parser.separator("  IGNORELINT_RECURSIVE=1     Same as --recursive")
         parser.separator("  NO_COLOR=1                 Disable colored output")
 
         parser.unknown_args do |remaining|
@@ -383,6 +391,7 @@ module Ignorelint
     # formatter is human-readable, prints a discovery list showing which files
     # were found and which were not.
     private def find_ignore_files(formatter : Formatter) : Array(String)
+      return find_ignore_files_recursive(formatter) if @recursive
       found = [] of String
 
       Ignorelint::KNOWN_FILES.each_key do |name|
@@ -394,6 +403,47 @@ module Ignorelint
       print_discovery_list(found) if @verbose && formatter.is_a?(HumanFormatter)
 
       found
+    end
+
+    # Walk the directory tree collecting known *ignore files as cwd-relative
+    # paths, sorted for deterministic output. Hidden directories (`.git`),
+    # `node_modules`, and symlinks are skipped: the first two are not user
+    # code, the last avoids cycles and double-linting linked files.
+    private def find_ignore_files_recursive(formatter : Formatter) : Array(String)
+      found = [] of String
+      collect_ignore_files(Dir.current, Dir.current, found)
+      found.sort!
+
+      if @verbose && formatter.is_a?(HumanFormatter)
+        if found.empty?
+          @io << info_label << " no *ignore files found\n\n"
+        else
+          found.each { |path| @io << info_label << ' ' << path << " found\n" }
+          @io << '\n'
+        end
+      end
+
+      found
+    end
+
+    # Recursively collect known files under `dir`, recording paths relative
+    # to `root`. Unreadable directories yield no children, never fatal.
+    private def collect_ignore_files(root : String, dir : String, found : Array(String)) : Nil
+      children = begin
+        Dir.children(dir)
+      rescue Exception
+        [] of String
+      end
+      children.each do |entry|
+        full = File.join(dir, entry)
+        next if File.symlink?(full)
+        if Dir.exists?(full)
+          next if entry.starts_with?('.') || entry == "node_modules"
+          collect_ignore_files(root, full, found)
+        elsif File.file?(full) && Ignorelint::KNOWN_FILES.has_key?(entry)
+          found << Path[full].relative_to(root).to_s
+        end
+      end
     end
 
     # Print a verbose discovery report showing which *ignore files were found.
