@@ -68,11 +68,7 @@ module Ignorelint
     # `**/` prefix (which would search subdirectories). Both rooted and
     # unrooted patterns resolve to the same direct path.
     def build_glob(pat : Pattern, base_dir : String) : String
-      if pat.rooted?
-        File.join(base_dir, pat.body)
-      else
-        File.join(base_dir, pat.body)
-      end
+      File.join(base_dir, pat.body)
     end
 
     def check_pattern(pat : Pattern) : Array(Issue)

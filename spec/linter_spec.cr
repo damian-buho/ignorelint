@@ -180,6 +180,11 @@ describe Ignorelint::Linter do
       result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
+    it "reports reversed pair (dead negation first)" do
+      result = Ignorelint::Linter.lint(".gitignore", "!foo\nfoo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
+    end
+
     it "does not flag separated ignore/negation" do
       result = Ignorelint::Linter.lint(".gitignore", "*.log\n!important.log\n")
       result.issues.any?(&.message.includes?("Redundant pair")).should be_false
@@ -239,11 +244,26 @@ describe Ignorelint::Linter do
       result = Ignorelint::Linter.lint(".dockerignore", "/src/build/\n")
       result.issues.any?(&.message.includes?("has no effect")).should be_false
     end
+
+    it "reports doubled outer slashes" do
+      result = Ignorelint::Linter.lint(".dockerignore", "//src/build//\n")
+      result.issues.any?(&.message.includes?("has no effect")).should be_true
+    end
   end
 
   describe "dockerignore: path traversal" do
     it "reports ../ in pattern" do
       result = Ignorelint::Linter.lint(".dockerignore", "../secrets\n")
+      result.issues.any?(&.message.includes?("Path traversal")).should be_true
+    end
+
+    it "reports bare .." do
+      result = Ignorelint::Linter.lint(".dockerignore", "..\n")
+      result.issues.any?(&.message.includes?("Path traversal")).should be_true
+    end
+
+    it "reports trailing .." do
+      result = Ignorelint::Linter.lint(".dockerignore", "foo/..\n")
       result.issues.any?(&.message.includes?("Path traversal")).should be_true
     end
 
@@ -326,6 +346,16 @@ describe Ignorelint::Linter do
     it "warns on negation of built-in include (README*)" do
       result = Ignorelint::Linter.lint(".npmignore", "!README.md\n")
       result.issues.any?(&.message.includes?("can never be excluded")).should be_true
+    end
+
+    it "warns on long AppleDouble files (._*)" do
+      result = Ignorelint::Linter.lint(".npmignore", "._longname\n")
+      result.issues.any?(&.message.includes?("already excluded by default")).should be_true
+    end
+
+    it "warns on swap files (foo.swp)" do
+      result = Ignorelint::Linter.lint(".npmignore", "foo.swp\n")
+      result.issues.any?(&.message.includes?("already excluded by default")).should be_true
     end
 
     it "passes a clean file" do

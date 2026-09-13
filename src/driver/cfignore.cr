@@ -39,7 +39,7 @@ module Ignorelint
       def check(pat : Pattern) : Array(Issue)
         issues = [] of Issue
 
-        if !pat.negated? && BUILTIN_EXCLUDES.includes?(pat.body) || BUILTIN_EXCLUDES.includes?("#{pat.body}/")
+        if !pat.negated? && BUILTIN_EXCLUDES.includes?(pat.body)
           issues << Issue.new(pat.line,
             "\"#{pat.raw}\" is already excluded by default in Cloud Foundry — redundant pattern",
             :info, :redundant_builtin_exclude)

@@ -46,11 +46,8 @@ module Ignorelint
       end
 
       # Check if the pattern body matches a built-in exclude.
-      #
-      # Handles both exact matches and the directory variant with trailing `/`
-      # (e.g., `"node_modules"` matches both `"node_modules"` and `"node_modules/"`).
       private def matches_builtin?(body : String) : Bool
-        BUILTIN_EXCLUDES.any? { |builtin| body == builtin || body == "#{builtin}/" }
+        BUILTIN_EXCLUDES.includes?(body)
       end
     end
   end

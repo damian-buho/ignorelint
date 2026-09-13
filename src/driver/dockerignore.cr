@@ -47,7 +47,7 @@ module Ignorelint
         # IG-014: Path traversal is a security concern in dockerignore.
         # Patterns like `../../etc/passwd` could leak files outside the
         # build context if Docker's path validation is bypassed.
-        if pat.body.includes?("../")
+        if pat.body.split('/').includes?("..")
           issues << Issue.new(pat.line, "Path traversal \"#{pat.body}\" in dockerignore", :error,
             :path_traversal)
         end
@@ -55,13 +55,13 @@ module Ignorelint
         # IG-015: Warn on patterns relying on `/` anchoring — dockerignore
         # strips leading/trailing slashes before matching, so rooted and
         # directory-only distinctions have no effect.
-        if pat.rooted? && !pat.body.includes?('/')
+        if pat.rooted? && (!pat.body.includes?('/') || pat.body.starts_with?('/'))
           issues << Issue.new(pat.line,
             "Leading \"/\" in \"#{pat.raw}\" has no effect — dockerignore strips slashes before matching",
             :info, :slash_no_effect)
         end
 
-        if pat.directory_only? && !pat.body.includes?('/')
+        if pat.directory_only? && (!pat.body.includes?('/') || pat.body.ends_with?('/'))
           issues << Issue.new(pat.line,
             "Trailing \"/\" in \"#{pat.raw}\" has no effect — dockerignore strips slashes before matching",
             :info, :slash_no_effect)

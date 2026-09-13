@@ -26,28 +26,25 @@ module Ignorelint
 
       # Check all patterns for adjacent ignore/negation conflicts.
       #
-      # For each negated pattern, walks backwards through earlier active
-      # patterns to find a matching non-negated one. Only flags the pair
-      # when the negation immediately follows the ignore (they are adjacent
-      # in the active pattern list, ignoring blanks and comments).
+      # Only flags pairs adjacent in the active list (blanks and comments
+      # aside) — non-adjacent pairs may be intentional (e.g., ignore
+      # everything then re-include specific files). Both orders are
+      # covered: an ignore cancelled by a negation, and a negation made
+      # dead by a later ignore.
       #
       # Mutates `issues` in place by appending found conflicts.
       def check(patterns : Array(Pattern), issues : Array(Issue)) : Nil
         active = patterns.reject(&.blank?).reject(&.comment?)
-        active.each_with_index do |pat, i|
-          next unless pat.negated?
-
-          active[0...i].reverse_each do |prev|
-            next if prev.negated?
-            if pat.conflicts_with?(prev)
-              # Only flag when the two are adjacent (right next to each other
-              # in the active list) — non-adjacent pairs may be intentional
-              if i > 0 && active[i - 1] == prev
-                issues << Issue.new(pat.line,
-                  "Redundant pair — \"#{pat.raw}\" cancels \"#{prev.raw}\" on line #{prev.line}", :warn,
-                  :redundant_pair)
-              end
-            end
+        active.each_cons(2) do |pair|
+          first, second = pair[0], pair[1]
+          if second.negated? && !first.negated? && second.conflicts_with?(first)
+            issues << Issue.new(second.line,
+              "Redundant pair — \"#{second.raw}\" cancels \"#{first.raw}\" on line #{first.line}", :warn,
+              :redundant_pair)
+          elsif first.negated? && !second.negated? && second.conflicts_with?(first)
+            issues << Issue.new(second.line,
+              "Redundant pair — \"#{second.raw}\" overrides earlier \"#{first.raw}\" on line #{first.line}", :warn,
+              :redundant_pair)
           end
         end
       end

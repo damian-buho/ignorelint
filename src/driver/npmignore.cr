@@ -107,7 +107,8 @@ module Ignorelint
       private def glob_matches?(pattern : String, builtin : String) : Bool
         return true if pattern == builtin
         return true if pattern == "#{builtin}/"
-        return true if builtin == "._*" && pattern.starts_with?("._") && pattern.size == 3
+        return true if builtin == "._*" && pattern.starts_with?("._")
+        return true if builtin == "*.swp" && pattern.ends_with?(".swp")
         false
       end
     end

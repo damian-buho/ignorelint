@@ -247,6 +247,7 @@ module Ignorelint
     # not exist, the rule is likely stale.
     private def check_path_exists(pat : Pattern, base_dir : String, issues : Array(Issue)) : Nil
       return unless pat.literal?
+      return if pat.body.split('/').includes?("..")
 
       target = File.join(base_dir, pat.body)
       return if File.exists?(target) || Dir.exists?(target)
@@ -269,10 +270,11 @@ module Ignorelint
     private def check_glob_matches(pat : Pattern, base_dir : String, issues : Array(Issue),
                                    format_linter : FormatLinter) : Nil
       return if pat.literal?
+      return if pat.body.split('/').includes?("..")
 
       glob = format_linter.build_glob(pat, base_dir)
       matches = begin
-        Dir.glob(glob).reject(&.starts_with?('.'))
+        Dir.glob(glob)
       rescue File::BadPatternError
         # If the pattern is invalid as a filesystem glob, skip the check
         # rather than crashing. The structural glob checks will have already
