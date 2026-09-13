@@ -122,18 +122,20 @@ module Ignorelint
     # Apply individual fixes + sort fix to content lines, return new content.
     #
     # The algorithm:
-    #   1. Chomp all lines to strip newlines (avoids newline mismatch issues)
-    #   2. Apply replacements (overwrite lines at their original index)
+    #   1. Detect the file's line-ending style (CRLF vs LF) and chomp all lines
+    #   2. Compose per-line fixes (each recomputed on the evolving line text)
     #   3. Apply deletions (remove lines whose fix is a deletion)
     #   4. Apply sort fix (reorder all active lines alphabetically)
-    #   5. Re-join with `\n` and restore trailing newline if the original had one
+    #   5. Re-join with the detected ending, restoring the final newline
     #
     # `content_lines` comes from `content.lines(chomp: false)` — each element
     # may or may not end with `\n`. We normalize by chomping everything and
-    # then adding a final `\n` at the end if the original file had one.
+    # then adding a final ending at the end if the original file had one.
     def apply_fixes(content_lines : Array(String), fixes : Array(Fix),
                     sort_fix : SortFix?) : String
       return content_lines.join if fixes.empty? && sort_fix.nil?
+
+      eol = detect_eol(content_lines)
 
       # Work with chomped lines to avoid newline mismatch issues.
       # Preserve whether the original content ended with a newline.
@@ -144,15 +146,7 @@ module Ignorelint
       # built-in excludes). We collect all deletions first and remove them
       # in one pass to avoid shifting indices during iteration.
       deleted = Set(Int32).new
-
-      fixes.each do |fix|
-        idx = fix.line_number - 1 # Convert 1-based line number to 0-based array index
-        if fix.deletion?
-          deleted << idx
-        elsif idx < lines.size
-          lines[idx] = fix.replacement.chomp
-        end
-      end
+      apply_line_fixes(lines, fixes, deleted)
 
       # Remove deleted lines in one pass. The `reject` filter removes lines
       # whose 0-based index is in the `deleted` set, then `map(&.[0])` extracts
@@ -166,28 +160,47 @@ module Ignorelint
         lines = apply_sort_fix(lines, sort_fix)
       end
 
-      result = lines.join('\n')
-      result += '\n' if had_final_newline && !result.ends_with?('\n')
+      result = lines.join(eol)
+      result += eol if had_final_newline && !result.ends_with?(eol)
       result
+    end
+
+    # Detect the file's line-ending style (majority vote, ties go to LF).
+    private def detect_eol(content_lines : Array(String)) : String
+      crlf = content_lines.count(&.ends_with?("\r\n"))
+      lf = content_lines.count { |line| line.ends_with?('\n') && !line.ends_with?("\r\n") }
+      crlf > 0 && crlf >= lf ? "\r\n" : "\n"
+    end
+
+    # Compose same-line fixes: each fix is recomputed on the evolving text
+    # so later fixes see earlier ones (a stored replacement would clobber).
+    private def apply_line_fixes(lines : Array(String), fixes : Array(Fix), deleted : Set(Int32)) : Nil
+      fixes.group_by(&.line_number).each do |line_number, line_fixes|
+        idx = line_number - 1 # Convert 1-based line number to 0-based array index
+        next if idx >= lines.size
+        if line_fixes.any?(&.deletion?)
+          deleted << idx
+        else
+          text = lines[idx]
+          line_fixes.each do |fix|
+            text = refine_fix(fix.code, text, line_number)
+          end
+          lines[idx] = text
+        end
+      end
     end
 
     # A SortFix describes which active lines to reorder.
     #
     # Rather than tracking exact indices (which shift after deletions), the
-    # sort fix records:
-    #   - `indices`: original 0-based positions of active (non-blank, non-comment) lines
-    #   - `original_values`: what those lines currently contain
-    #   - `sorted_values`: what they should contain (alphabetically sorted)
-    #
-    # `apply_sort_fix` uses a simpler approach: scan the post-deletion array
-    # for all active lines and sort their content in-place.
+    # sort fix records the active lines' values before and after sorting.
+    # `apply_sort_fix` re-scans the post-deletion array for active lines and
+    # sorts their content in place, using `needed?` to skip already-sorted input.
     struct SortFix
-      getter indices : Array(Int32)
       getter original_values : Array(String)
       getter sorted_values : Array(String)
 
-      def initialize(@indices : Array(Int32), @original_values : Array(String),
-                     @sorted_values : Array(String))
+      def initialize(@original_values : Array(String), @sorted_values : Array(String))
       end
 
       # Whether sorting is actually needed (i.e. the file is not already sorted).
@@ -206,25 +219,15 @@ module Ignorelint
                                content_lines : Array(String)) : SortFix?
       active = patterns.reject(&.blank?).reject(&.comment?)
       return if active.any?(&.negated?)
-      active_indices = [] of {Int32, String}
-      patterns.each do |pat|
-        next if pat.blank?
-        next if pat.comment?
-        idx = pat.line - 1
-        raw = content_lines[idx]? || pat.raw
-        active_indices << {idx, raw.strip}
+      original = [] of String
+      active.each do |pat|
+        raw = content_lines[pat.line - 1]? || pat.raw
+        original << raw.strip
       end
 
-      return if active_indices.size < 2
+      return if original.size < 2
 
-      original = active_indices.map(&.[1])
-      sorted = original.sort
-
-      SortFix.new(
-        indices: active_indices.map(&.[0]),
-        original_values: original,
-        sorted_values: sorted
-      )
+      SortFix.new(original, original.sort)
     end
 
     # Apply the sort fix to the (already deletion-adjusted) line array.
@@ -264,6 +267,24 @@ module Ignorelint
       end
 
       result
+    end
+
+    # Recompute a replacement fix against evolving line text.
+    #
+    # Stored `Fix#replacement` values are computed from the original line, so
+    # same-line fixes must be re-derived in sequence to compose. Deletion codes
+    # never reach here (deletion wins the whole line in `apply_fixes`).
+    private def refine_fix(code : Code, text : String, line_number : Int32) : String
+      pat = Pattern.new(text, line_number)
+      case code
+      when .trailing_whitespace? then fix_trailing_whitespace(pat).replacement
+      when .unescaped_hash?      then fix_unescaped_hash(pat).replacement
+      when .double_negation?     then fix_double_negation(pat).replacement
+      when .double_slash?        then fix_double_slash(pat).replacement
+      when .leading_whitespace?  then fix_leading_whitespace(pat).replacement
+      when .slash_no_effect?     then fix_slash_no_effect(pat).replacement
+      else                            text
+      end
     end
 
     # -- Individual fix generators -------------------------------------------
@@ -312,9 +333,12 @@ module Ignorelint
 
     # Fix: remove the double negation prefix `!!`.
     #
-    # `"!!build"` → `"build"`
+    # `"!!build"` → `"build"`, `"!!!!x"` → `"x"` (pairs cancel out).
     private def fix_double_negation(pat : Pattern) : Fix
-      fixed = pat.raw.lchop("!!")
+      fixed = pat.raw
+      while fixed.starts_with?("!!")
+        fixed = fixed.lchop("!!")
+      end
       Fix.new(:double_negation, pat.line, pat.raw, fixed)
     end
 
@@ -327,9 +351,9 @@ module Ignorelint
 
     # Fix: collapse double slashes into a single slash.
     #
-    # `"src//dist"` → `"src/dist"`
+    # `"src//dist"` → `"src/dist"`, `"a///b"` → `"a/b"`.
     private def fix_double_slash(pat : Pattern) : Fix
-      fixed = pat.raw.gsub("//", "/")
+      fixed = pat.raw.gsub(/\/\/+/, "/")
       Fix.new(:double_slash, pat.line, pat.raw, fixed)
     end
 
@@ -347,8 +371,12 @@ module Ignorelint
     # behave identically to `"build"`. Remove the confusing slash.
     private def fix_slash_no_effect(pat : Pattern) : Fix
       fixed = pat.raw
-      fixed = fixed.lchop('/') if fixed.starts_with?('/')
-      fixed = fixed.rchop('/') if fixed.ends_with?('/')
+      while fixed.starts_with?('/')
+        fixed = fixed.lchop('/')
+      end
+      while fixed.ends_with?('/')
+        fixed = fixed.rchop('/')
+      end
       Fix.new(:slash_no_effect, pat.line, pat.raw, fixed)
     end
 

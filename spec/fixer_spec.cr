@@ -231,5 +231,49 @@ describe Ignorelint::Fixer do
       result = apply(content, fixes, sort)
       result.should eq("bar\nfoo\n")
     end
+
+    it "composes same-line fixes in one pass" do
+      content = "foo//bar  \n"
+      fixes, sort = lint_and_collect(content)
+      result = apply(content, fixes, sort)
+      result.should eq("foo/bar\n")
+    end
+
+    it "composes leading, trailing and slash fixes in one pass" do
+      content = "  foo//bar  \n"
+      fixes, sort = lint_and_collect(content)
+      result = apply(content, fixes, sort)
+      result.should eq("foo/bar\n")
+    end
+
+    it "collapses triple slashes fully" do
+      content = "a///b\n"
+      fixes, sort = lint_and_collect(content)
+      result = apply(content, fixes, sort)
+      result.should eq("a/b\n")
+    end
+
+    it "strips repeated double negations fully" do
+      content = "!!!!x\n"
+      fixes, sort = lint_and_collect(content)
+      result = apply(content, fixes, sort)
+      result.should eq("x\n")
+    end
+
+    it "preserves CRLF line endings" do
+      content = "bar\r\nfoo  \r\n"
+      fixes, sort = lint_and_collect(content)
+      result = apply(content, fixes, sort)
+      result.should eq("bar\r\nfoo\r\n")
+    end
+
+    it "is stable when applied twice" do
+      content = "  zoo//a  \nbar\n"
+      fixes, sort = lint_and_collect(content)
+      once = apply(content, fixes, sort)
+      fixes2, sort2 = lint_and_collect(once)
+      twice = apply(once, fixes2, sort2)
+      twice.should eq(once)
+    end
   end
 end
