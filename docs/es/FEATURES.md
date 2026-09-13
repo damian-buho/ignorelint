@@ -9,6 +9,42 @@ SPDX-License-Identifier: MIT
 
 # Características
 
+## Características del proyecto
+
+### Autocorrección que preserva el significado del archivo
+
+- `--fix` corrige problemas deterministas en el lugar, para limpiar sin editar a mano. Ver la [referencia de reglas](docs/rules.md).
+- Las correcciones de una misma línea se combinan en una sola pasada, para converger en una ejecución.
+- Los archivos se reescriben de forma atómica conservando los permisos, para que una interrupción nunca deje un archivo truncado.
+- Las negaciones nunca se reordenan y los enlaces simbólicos nunca se reescriben, para que una corrección no cambie lo que el archivo ignora.
+- Los hallazgos corregidos se reetiquetan y quedan fuera de la decisión de fallo, para que los códigos de salida reflejen lo pendiente.
+
+### Detección de reglas muertas contra el sistema de archivos
+
+- Los patrones literales se comprueban por existencia y los globs por al menos una coincidencia, para que las rutas eliminadas aparezcan como reglas obsoletas. Ver la [referencia de reglas](docs/rules.md).
+- Los patrones negados se omiten, ya que reincluyen en lugar de ignorar.
+- Los patrones que salen del árbol se omiten en lugar de explorarse.
+
+### Descubrimiento de todo el árbol para monorepos
+
+- Sin rutas, los archivos ignore se encuentran solos: un directorio, o todo el árbol con `--recursive`. Ver la [referencia CLI](docs/cli.md).
+- Los hallazgos usan rutas relativas al directorio de trabajo en orden, para una salida estable entre ejecuciones.
+- Los directorios ocultos, `node_modules` y los enlaces simbólicos se omiten, para no revisar nunca internos, dependencias ni ciclos de enlaces.
+- Las rutas explícitas reemplazan al descubrimiento.
+
+### Salida que los pipelines pueden procesar
+
+- Versiones legibles, JSON, Checkstyle y SARIF, para alimentar terminales y escaneo de código por igual. Ver la [referencia CLI](docs/cli.md).
+- Los diagnósticos van al error estándar, para que la salida estándar procesable siga siendo válida.
+- Los umbrales de severidad deciden el código de salida, para que las advertencias solo rompan una compilación cuando se pida.
+
+### Supresiones para excepciones intencionales
+
+- Una directiva en un comentario silencia los códigos listados en el siguiente patrón, para que las entradas correctas dejen de fallar ejecuciones. Ver la [referencia de reglas](docs/rules.md).
+- Las directivas cubren todos los códigos, incluidos los hallazgos de reglas muertas del sistema de archivos.
+- Los códigos desconocidos no coinciden con nada, para que una directiva mal escrita falle de forma segura y el hallazgo siga apareciendo.
+- Los hallazgos suprimidos nunca llegan a la autocorrección ni a los códigos de salida.
+
 ## Heredado de B19/Ubuntu
 
 ### Caché APT persistente entre compilaciones

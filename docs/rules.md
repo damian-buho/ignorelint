@@ -58,3 +58,5 @@ Blank lines and other comments between the directive and the pattern are skipped
 ## Filesystem checks
 
 Literal patterns are tested for existence, glob patterns for at least one match on disk. Negated patterns are skipped (they re-include rather than ignore), as are patterns containing `..` segments.
+
+<!-- textlint-enable -->

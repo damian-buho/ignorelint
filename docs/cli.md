@@ -35,3 +35,5 @@ Results go to standard output; diagnostics (bad flags, missing files, unexpected
 ## Container
 
 The image runs `sleep infinity` as its service (no explicit `CMD`); shell in to use it. `command.d/get-ignorelint-version` prints the binary version for the self-test in `test.d/1100-check-version.sh`.
+
+<!-- textlint-enable -->

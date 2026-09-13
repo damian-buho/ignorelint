@@ -31,3 +31,5 @@ Filenames outside the list above still get the universal checks; only the format
 ## Build
 
 Single static binary written in Crystal (`crystal >= 1.13.0`, no dependencies), compiled `--release --no-debug`. No runtime to install: it runs anywhere, including minimal CI containers.
+
+<!-- textlint-enable -->
