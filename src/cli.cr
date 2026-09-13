@@ -287,6 +287,13 @@ module Ignorelint
       result = Linter.lint(path, content)
 
       if @fix
+        # Never write through a symlink: the link target may live outside
+        # the repo. Linting symlinks is fine; fixing them is refused.
+        if File.symlink?(path)
+          @err << "error: " << path << ": refusing --fix on symlink\n"
+          return {should_fail?(result) ? 1 : 0, FileResult.new(path, result.issues)}
+        end
+
         # Split content preserving line endings for accurate reconstruction.
         # `chomp: false` keeps `\n` on each line so we can detect whether
         # the file originally ended with a newline.
@@ -295,7 +302,7 @@ module Ignorelint
 
         unless fixes.empty? && sort_fix.nil?
           new_content = Fixer.apply_fixes(content_lines, fixes, sort_fix)
-          File.write(path, new_content)
+          atomic_write(path, new_content)
           result = mark_fixed(result, fixes, sort_fix)
         end
       end
@@ -305,6 +312,21 @@ module Ignorelint
       # Catch-all for unexpected errors (permission denied, encoding issues, etc.)
       @err << "error: " << path << ": " << ex.message << '\n'
       {1, FileResult.new(path, [] of Issue)}
+    end
+
+    # Write fixed content atomically: temp file in the same directory plus
+    # rename, so a crash never leaves a truncated ignore file behind.
+    private def atomic_write(path : String, content : String) : Nil
+      perms = File.info(path).permissions
+      tmp_path = "#{path}.ignorelint-tmp"
+      begin
+        File.write(tmp_path, content)
+        File.chmod(tmp_path, perms)
+        File.rename(tmp_path, path)
+      rescue ex
+        File.delete(tmp_path) if File.exists?(tmp_path)
+        raise ex
+      end
     end
 
     # Re-label issues that were auto-fixed with severity `:fixed`.

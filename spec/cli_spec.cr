@@ -98,4 +98,32 @@ describe Ignorelint::CLI do
       end
     end
   end
+
+  describe "--fix file handling" do
+    it "writes fixes atomically with no temp file left behind" do
+      with_ignore_file("foo  \n") do |path|
+        code, _, _ = run_cli(["--fix", path] of String)
+        code.should eq(0)
+        File.read(path).should eq("foo\n")
+        Dir.glob("#{path}.ignorelint-tmp").should be_empty
+      end
+    end
+
+    it "refuses --fix on a symlink and leaves the target untouched" do
+      dir = File.join("/tmp", "ignorelint-symlink-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+      Dir.mkdir_p(dir)
+      begin
+        target = File.join(dir, "target")
+        File.write(target, "foo  \n")
+        link = File.join(dir, ".gitignore")
+        File.symlink(target, link)
+        code, _, err = run_cli(["--fix", link] of String)
+        code.should eq(0)
+        err.should contain("symlink")
+        File.read(target).should eq("foo  \n")
+      ensure
+        FileUtils.rm_rf(dir)
+      end
+    end
+  end
 end
