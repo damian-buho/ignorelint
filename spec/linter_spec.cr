@@ -175,6 +175,52 @@ describe Ignorelint::Linter do
     end
   end
 
+  describe "suppressions: disable-next-line" do
+    it "suppresses the listed code on the next pattern" do
+      content = "# ignorelint: disable-next-line IG-001\nfoo  \n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.select(&.code.trailing_whitespace?).should be_empty
+    end
+
+    it "suppresses multiple codes" do
+      content = "# ignorelint: disable-next-line IG-001, IG-020\nfoo  \n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.select(&.code.trailing_whitespace?).should be_empty
+      result.issues.select(&.code.path_not_found?).should be_empty
+    end
+
+    it "leaves other codes on the same line alone" do
+      content = "# ignorelint: disable-next-line IG-020\nfoo  \n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.count(&.code.trailing_whitespace?).should eq(1)
+    end
+
+    it "does not leak to later lines" do
+      content = "# ignorelint: disable-next-line IG-001\nfoo  \nbar  \n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      trailing = result.issues.select(&.code.trailing_whitespace?)
+      trailing.map(&.line).should eq([3])
+    end
+
+    it "skips blanks and comments between directive and pattern" do
+      content = "# ignorelint: disable-next-line IG-001\n\n# note\nfoo  \n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.select(&.code.trailing_whitespace?).should be_empty
+    end
+
+    it "fails safe on unknown codes" do
+      content = "# ignorelint: disable-next-line IG-999\nfoo  \n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.count(&.code.trailing_whitespace?).should eq(1)
+    end
+
+    it "ignores a trailing directive with no pattern after it" do
+      content = "foo  \n# ignorelint: disable-next-line IG-001\n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.count(&.code.trailing_whitespace?).should eq(1)
+    end
+  end
+
   # -- .gitignore-specific rules ------------------------------------------
 
   describe "gitignore: negated rooted pattern" do

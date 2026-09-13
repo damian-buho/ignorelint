@@ -25,6 +25,7 @@ SPDX-License-Identifier: MIT
 - Format-specific examples: `IG-014` path traversal (dockerignore/containerignore), `IG-015` ineffective leading/trailing slash, `IG-018` redundant built-in exclude (npm/prettier/cf).
 - Filesystem dead-rule detection: `IG-020` literal path does not exist, `IG-021` glob matches no files/directories; negated patterns are skipped (they re-include rather than ignore).
 - `--fix` auto-corrects nine deterministic codes (`IG-001,002,003,008,015,018,022,023,024`): line replacements/deletions are applied first, then a bulk `SortFix` alphabetises all active lines (skipped when any pattern is negated, since negation order decides the match); fixed issues are relabelled severity `fixed` and excluded from the fail decision.
+- Suppression directives: a comment `# ignorelint: disable-next-line IG-020, IG-021` silences the listed codes on the next pattern; unknown codes match nothing, so a typo fails safe and the issue is still reported.
 
 ### Supported ignore-file formats
 

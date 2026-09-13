@@ -24,6 +24,9 @@
 #
 #   4. **Sort** — issues are sorted by line number for deterministic output
 #
+# Suppression directives (`# ignorelint: disable-next-line IG-020`) are
+# applied after all phases: matching issues never reach the result.
+#
 # ## Crystal note: `module` with `extend self`
 #
 # The `Linter` module uses `extend self` so its methods can be called without
@@ -130,6 +133,7 @@ module Ignorelint
       end
 
       # Sort issues by line number for deterministic, editor-friendly output
+      issues = apply_suppressions(patterns, issues)
       LintResult.new(issues: issues.sort_by(&.line), patterns: patterns)
     end
 
@@ -288,6 +292,39 @@ module Ignorelint
       label = pat.directory_only? ? "directory" : "file"
       issues << Issue.new(pat.line, "Glob \"#{pat.body}\" matches no #{label}s (dead rule)", :info,
         :dead_glob_rule)
+    end
+
+    # -- Suppressions --------------------------------------------------------
+    #
+    # A comment line `# ignorelint: disable-next-line IG-020, IG-021`
+    # suppresses matching codes on the next pattern line (blanks and other
+    # comments in between are skipped). Unknown codes match nothing, so a
+    # typo fails safe: the issue is still reported. Runs after every check,
+    # so any code — universal, format-specific, or filesystem — is covered.
+    private def apply_suppressions(patterns : Array(Pattern), issues : Array(Issue)) : Array(Issue)
+      pending = [] of String
+      suppressed = {} of Int32 => Set(String)
+      patterns.each do |pat|
+        if pat.blank?
+          next
+        elsif pat.comment?
+          pending.concat(parse_suppression(pat.raw))
+        elsif !pending.empty?
+          suppressed[pat.line] = Set(String).new(pending)
+          pending = [] of String
+        end
+      end
+      return issues if suppressed.empty?
+      issues.reject do |issue|
+        suppressed[issue.line]?.try(&.includes?(issue.code.tag)) || false
+      end
+    end
+
+    # Parse suppression codes from a comment line (empty when not a directive).
+    private def parse_suppression(raw : String) : Array(String)
+      match = raw.match(/#\s*ignorelint:\s*disable-next-line\s+(.+)/i)
+      return [] of String unless match
+      match[1].split(/[\s,]+/).map(&.strip.upcase).reject(&.empty?)
     end
 
     # -- Helpers -----------------------------------------------------------
