@@ -12,9 +12,9 @@ identity:
     uk: Лінтер для .gitignore, .dockerignore та понад 20 інших ignore-файлів
   title: Ignorelint
   description:
-    en: Ignorelint is a linter and auto-fixer for ignore files such as .gitignore, .dockerignore and .npmignore, written in Crystal. It recognises 25 filenames across eight format-specific glob drivers and reports 24 diagnostic rules with human, JSON, checkstyle and SARIF output.
-    es: Ignorelint es un linter y corrector automático para archivos de ignorados como .gitignore, .dockerignore y .npmignore, escrito en Crystal. Reconoce 25 nombres de archivo a través de ocho controladores de globs específicos de formato e informa 24 reglas de diagnóstico con salida humana, JSON, checkstyle y SARIF.
-    uk: Ignorelint — лінтер і автокоректор для ignore-файлів як-от .gitignore, .dockerignore та .npmignore, написаний на Crystal. Розпізнає 25 назв файлів у восьми специфічних для форматів glob-драйверах і звітує 24 діагностичні правила з виводом для людини, JSON, checkstyle та SARIF.
+    en: Ignorelint is a linter and auto-fixer for ignore files such as .gitignore, .dockerignore and .npmignore, written in Crystal. It recognises 25 filenames across eight format-specific glob drivers and reports 25 diagnostic rules with human, JSON, checkstyle and SARIF output.
+    es: Ignorelint es un linter y corrector automático para archivos de ignorados como .gitignore, .dockerignore y .npmignore, escrito en Crystal. Reconoce 25 nombres de archivo a través de ocho controladores de globs específicos de formato e informa 25 reglas de diagnóstico con salida humana, JSON, checkstyle y SARIF.
+    uk: Ignorelint — лінтер і автокоректор для ignore-файлів як-от .gitignore, .dockerignore та .npmignore, написаний на Crystal. Розпізнає 25 назв файлів у восьми специфічних для форматів glob-драйверах і звітує 25 діагностичних правил з виводом для людини, JSON, checkstyle та SARIF.
   version: 1.2.2
 includes:
   - .makefile/b19/ci.yaml

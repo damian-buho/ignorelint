@@ -175,6 +175,61 @@ describe Ignorelint::Linter do
     end
   end
 
+  describe "filesystem: case mismatch" do
+    it "warns IG-025 when only the case differs" do
+      with_repo(["README.md"]) do |dir|
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "Readme.md\n")
+        found = result.issues.select(&.code.case_mismatch?)
+        found.size.should eq(1)
+        found.first.severity.warn?.should be_true
+        found.first.code.tag.should eq("IG-025")
+        found.first.message.should contain("Readme.md")
+        found.first.message.should contain("README.md")
+        result.issues.select(&.code.path_not_found?).should be_empty
+      end
+    end
+
+    it "stays silent on exact matches" do
+      with_repo(["README.md"]) do |dir|
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "README.md\n")
+        result.issues.select(&.code.case_mismatch?).should be_empty
+      end
+    end
+
+    it "keeps IG-020 when nothing matches at all" do
+      with_repo(["other.txt"]) do |dir|
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "missing.txt\n")
+        result.issues.select(&.code.case_mismatch?).should be_empty
+        result.issues.count(&.code.path_not_found?).should eq(1)
+      end
+    end
+
+    it "corrects every mismatched segment of nested paths" do
+      dir = File.join("/tmp", "ignorelint-case-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+      Dir.mkdir_p(File.join(dir, "src"))
+      begin
+        File.write(File.join(dir, "src", "app.js"), "x\n")
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "SRC/App.JS\n")
+        found = result.issues.select(&.code.case_mismatch?)
+        found.size.should eq(1)
+        found.first.message.should contain("src/app.js")
+      ensure
+        FileUtils.rm_rf(dir)
+      end
+    end
+
+    it "uses Directory wording for directory-only patterns" do
+      with_repo([] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "build"))
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "Build/\n")
+        found = result.issues.select(&.code.case_mismatch?)
+        found.size.should eq(1)
+        found.first.message.should contain("Directory")
+        found.first.message.should contain("build")
+      end
+    end
+  end
+
   describe "suppressions: disable-next-line" do
     it "suppresses the listed code on the next pattern" do
       content = "# ignorelint: disable-next-line IG-001\nfoo  \n"

@@ -37,6 +37,7 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | IG-022 | Double slash | ✓ |
 | IG-023 | Unsorted rule | ✓ |
 | IG-024 | Leading whitespace | ✓ |
+| IG-025 | Case mismatch | — |
 
 Severities are `error`, `warn`, and `info`; every code is emitted in all output formats.
 
@@ -57,6 +58,6 @@ Blank lines and other comments between the directive and the pattern are skipped
 
 ## Filesystem checks
 
-Literal patterns are tested for existence, glob patterns for at least one match on disk. Negated patterns are skipped (they re-include rather than ignore), as are patterns containing `..` segments. Paths resolve against the directory of the linted file, or the working directory for `--stdin` input.
+Literal patterns are tested for existence, glob patterns for at least one match on disk. Negated patterns are skipped (they re-include rather than ignore), as are patterns containing `..` segments. A literal missing only by case warns with the on-disk spelling instead of plain absence. Paths resolve against the directory of the linted file, or the working directory for `--stdin` input.
 
 <!-- textlint-enable -->

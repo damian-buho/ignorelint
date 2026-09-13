@@ -249,6 +249,9 @@ module Ignorelint
     # For patterns without glob metacharacters (e.g. `"build"`, `"dist/"`),
     # we check `File.exists?` / `Dir.exists?` directly. If the target does
     # not exist, the rule is likely stale.
+    #
+    # A missing target that exists under a different case (IG-025) reports
+    # the mismatch instead of plain absence, so the fix is obvious.
     private def check_path_exists(pat : Pattern, base_dir : String, issues : Array(Issue)) : Nil
       return unless pat.literal?
       return if pat.body.split('/').includes?("..")
@@ -257,8 +260,44 @@ module Ignorelint
       return if File.exists?(target) || Dir.exists?(target)
 
       kind = pat.directory_only? ? "Directory" : "Path"
+      if corrected = case_corrected_path(base_dir, pat.body)
+        issues << Issue.new(pat.line, "#{kind} \"#{pat.body}\" differs in case from \"#{corrected}\" on disk", :warn,
+          :case_mismatch)
+        return
+      end
+
       issues << Issue.new(pat.line, "#{kind} \"#{pat.body}\" does not exist", :info,
         :path_not_found)
+    end
+
+    # IG-025: Walk each path segment for a case-only difference on disk.
+    #
+    # Returns the corrected relative path when some segment matches
+    # case-insensitively but not exactly, or nil when everything matches
+    # exactly or some segment is genuinely absent.
+    private def case_corrected_path(base_dir : String, body : String) : String?
+      corrected = [] of String
+      differs = false
+      current = base_dir
+      body.split('/').each do |segment|
+        next if segment.empty?
+        entries = begin
+          Dir.children(current)
+        rescue
+          return
+        end
+        if entries.includes?(segment)
+          corrected << segment
+          current = File.join(current, segment)
+        elsif match = entries.find { |entry| entry.downcase == segment.downcase }
+          corrected << match
+          current = File.join(current, match)
+          differs = true
+        else
+          return
+        end
+      end
+      differs ? corrected.join('/') : nil
     end
 
     # IG-021: Check whether a glob pattern matches any files on disk.

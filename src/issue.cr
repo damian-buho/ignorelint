@@ -65,6 +65,7 @@ module Ignorelint
     Code::DoubleSlash             => "IG-022",
     Code::UnsortedRule            => "IG-023",
     Code::LeadingWhitespace       => "IG-024",
+    Code::CaseMismatch            => "IG-025",
   }
 
   # Human-readable rule titles, e.g. for SARIF `shortDescription`.
@@ -93,6 +94,7 @@ module Ignorelint
     Code::DoubleSlash             => "Double slash",
     Code::UnsortedRule            => "Unsorted rule",
     Code::LeadingWhitespace       => "Leading whitespace",
+    Code::CaseMismatch            => "Case mismatch",
   }
 
   enum Code
@@ -120,6 +122,7 @@ module Ignorelint
     DoubleSlash
     UnsortedRule
     LeadingWhitespace
+    CaseMismatch
 
     def tag : String
       CODE_TAG_MAP[self]? || "IG-???"
