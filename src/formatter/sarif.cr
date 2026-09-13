@@ -28,6 +28,7 @@
 # level, and the closing brace/bracket is generated automatically when the
 # block exits.
 require "json"
+require "uri"
 require "../version"
 
 module Ignorelint
@@ -49,13 +50,12 @@ module Ignorelint
     # The document has two main sections:
     #
     #   1. **rules**: deduplicated list of all rule IDs encountered, each with
-    #      a short description extracted from the first matching issue's message.
+    #      a short description derived from the diagnostic code name.
     #
     #   2. **results**: every issue with its location (file URI + line number),
     #      severity level, rule ID, and message.
     #
-    # Fixed issues get a `"kind": "fix"` field to distinguish them from new
-    # findings in tools that track remediation status.
+    # Fixed issues map to level `"note"`; no non-standard `kind` is emitted.
     def finish(io : IO) : Nil
       # First pass: collect unique rules and all result locations.
       # `rules` is a Hash keyed by rule ID — duplicates are automatically
@@ -88,7 +88,7 @@ module Ignorelint
                       json.object do
                         json.field "name", "ignorelint"
                         json.field "version", VERSION
-                        json.field "informationUri", "https://github.com/anomalyco/ignorelint"
+                        json.field "informationUri", "https://github.com/damian-buho/d9t-ignorelint"
                         json.field "rules" do
                           json.array do
                             rules.each_value do |rule|
@@ -114,11 +114,6 @@ module Ignorelint
                       json.object do
                         json.field "ruleId", loc[:rule_id]
                         json.field "level", severity_to_sarif(loc[:severity])
-                        # Mark fixed issues with kind="fix" for tools that track
-                        # remediation (e.g., GitHub shows these differently)
-                        if loc[:severity].fixed?
-                          json.field "kind", "fix"
-                        end
                         json.field "message" do
                           json.object do
                             json.field "text", loc[:message]
@@ -131,7 +126,7 @@ module Ignorelint
                                 json.object do
                                   json.field "artifactLocation" do
                                     json.object do
-                                      json.field "uri", loc[:file]
+                                      json.field "uri", URI.encode_path(loc[:file])
                                     end
                                   end
                                   json.field "region" do
@@ -156,17 +151,9 @@ module Ignorelint
       io << '\n'
     end
 
-    # Extract a short description from the issue message for the rule definition.
-    #
-    # Takes the first word of the message. For example:
-    #   - "Trailing whitespace in \"build  \"" → "Trailing"
-    #   - "Duplicate of line 5: \"build\"" → "Duplicate"
-    #
-    # This is used as the rule's `shortDescription.text` in the SARIF output.
+    # Stable rule title from the diagnostic code (survives message rewording).
     private def short_desc(issue : Issue) : String
-      msg = issue.message
-      space_idx = msg.index(' ')
-      space_idx ? msg[0...space_idx] : msg
+      issue.code.title
     end
 
     # Map our `Severity` enum to SARIF severity levels.

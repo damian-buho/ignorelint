@@ -51,19 +51,25 @@ module Ignorelint
     def format_file(result : FileResult, io : IO) : Nil
       if result.issues.empty?
         check = @color ? "\e[32m✔\e[0m" : "✔"
-        io << check << ' ' << result.path << " is valid\n"
+        io << check << ' ' << sanitize(result.path) << " is valid\n"
         return
       end
 
       result.issues.each do |issue|
         label = format_severity(issue.severity)
-        io << label << ' ' << result.path << ':' << issue.line << ' ' \
-          << '[' << issue.code.tag << "] " << issue.message << '\n'
+        io << label << ' ' << sanitize(result.path) << ':' << issue.line << ' ' \
+          << '[' << issue.code.tag << "] " << sanitize(issue.message) << '\n'
       end
     end
 
     # No-op for human output — no footer needed after file processing.
     def finish(io : IO) : Nil
+    end
+
+    # Strip control characters so hostile pattern text cannot inject
+    # terminal escape sequences or break the one-issue-per-line layout.
+    private def sanitize(text : String) : String
+      text.gsub(/[\x00-\x1F\x7F]/, "")
     end
 
     # Format the severity label with optional ANSI color codes.

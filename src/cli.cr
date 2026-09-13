@@ -278,6 +278,11 @@ module Ignorelint
     #   3. Apply fixes and write the new content back to disk
     #   4. Re-label fixed issues with severity `:fixed`
     private def lint_file(path : String) : {Int32, FileResult}
+      if Dir.exists?(path)
+        @err << "error: " << path << ": is a directory\n"
+        return {1, FileResult.new(path, [] of Issue)}
+      end
+
       unless File.file?(path)
         @err << "error: " << path << ": file not found\n"
         return {1, FileResult.new(path, [] of Issue)}
@@ -396,12 +401,11 @@ module Ignorelint
     # Only called when `--verbose` is active and the output format is human.
     # Each known filename is listed as either "found" or "not found".
     private def print_discovery_list(found : Array(String)) : Nil
-      color = @tty && !ENV.has_key?("NO_COLOR")
       Ignorelint::KNOWN_FILES.each_key do |name|
         if found.includes?(name)
-          @io << info_label(color) << ' ' << name << " found\n"
+          @io << info_label << ' ' << name << " found\n"
         else
-          @io << info_label(color) << ' ' << name << " not found\n"
+          @io << info_label << ' ' << name << " not found\n"
         end
       end
       @io << '\n'
@@ -411,17 +415,18 @@ module Ignorelint
     #
     # Left-aligned to `SEVERITY_WIDTH` characters so it lines up with
     # the severity labels in human output.
-    private def info_label(color : Bool) : String
+    private def info_label : String
       "%-#{SEVERITY_WIDTH}s" % "info:"
     end
 
     # Check whether an environment variable is set to a truthy value.
     #
-    # Truthy: any non-empty string except `"0"` and `"false"` (case-insensitive).
-    # This follows common CLI conventions for boolean env vars.
+    # Falsy: unset, empty, or `"0"`, `"false"`, `"no"`, `"n"`, `"off"`
+    # (case-insensitive, surrounding whitespace ignored).
     private def env_true?(key : String) : Bool
       val = ENV[key]?
-      !val.nil? && !val.empty? && val != "0" && val.downcase != "false"
+      return false if val.nil?
+      !{"", "0", "false", "no", "n", "off"}.includes?(val.strip.downcase)
     end
   end
 end

@@ -3,7 +3,19 @@
 # SPDX-License-Identifier: MIT
 
 require "spec"
+require "file_utils"
 require "../src/linter"
+
+private def with_repo(files : Array(String), & : String -> T) : T forall T
+  dir = File.join("/tmp", "ignorelint-fs-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+  Dir.mkdir_p(dir)
+  begin
+    files.each { |name| File.write(File.join(dir, name), "x\n") }
+    yield dir
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+end
 
 describe Ignorelint::Linter do
   # -- Universal rules ----------------------------------------------------
@@ -138,6 +150,28 @@ describe Ignorelint::Linter do
     it "skips the sort check when a negation is present" do
       result = Ignorelint::Linter.lint("test.gitignore", "zoo\n!keep.log\nbar\n")
       result.issues.select(&.code.unsorted_rule?).should be_empty
+    end
+  end
+
+  describe "filesystem: dead-rule detection" do
+    it "flags missing literal paths but not existing ones" do
+      with_repo(["exists.txt"]) do |dir|
+        content = "*.nomatch-xyz\n*.txt\nexists.txt\nmissing.txt\n"
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), content)
+        found = result.issues.select(&.code.path_not_found?)
+        found.any?(&.message.includes?("missing.txt")).should be_true
+        found.any?(&.message.includes?("exists.txt")).should be_false
+      end
+    end
+
+    it "flags globs matching nothing but not globs matching files" do
+      with_repo(["exists.txt"]) do |dir|
+        content = "*.nomatch-xyz\n*.txt\nexists.txt\nmissing.txt\n"
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), content)
+        found = result.issues.select(&.code.dead_glob_rule?)
+        found.any?(&.message.includes?("*.nomatch-xyz")).should be_true
+        found.any?(&.message.includes?("*.txt")).should be_false
+      end
     end
   end
 

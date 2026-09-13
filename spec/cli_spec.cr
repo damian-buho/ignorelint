@@ -90,6 +90,12 @@ describe Ignorelint::CLI do
       err.should contain("file not found")
     end
 
+    it "names directories instead of claiming file not found" do
+      code, _, err = run_cli(["/tmp"] of String)
+      code.should eq(1)
+      err.should contain("is a directory")
+    end
+
     it "leaves stderr empty on a clean human run" do
       with_ignore_file("# just a comment\n") do |path|
         code, _, err = run_cli([path] of String)
@@ -121,6 +127,36 @@ describe Ignorelint::CLI do
         code.should eq(0)
         err.should contain("symlink")
         File.read(target).should eq("foo  \n")
+      ensure
+        FileUtils.rm_rf(dir)
+      end
+    end
+  end
+
+  describe "IGNORLINT_VERBOSE parsing" do
+    it "treats no/off as false" do
+      dir = File.join("/tmp", "ignorelint-verbose-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+      Dir.mkdir_p(dir)
+      begin
+        File.write(File.join(dir, ".gitignore"), "# clean\n")
+        old = Dir.current
+        begin
+          Dir.cd(dir)
+          {"no", "off", "0", "false"}.each do |value|
+            with_env("IGNORELINT_VERBOSE", value) do
+              code, out, _ = run_cli([] of String)
+              code.should eq(0)
+              out.should_not contain("found")
+            end
+          end
+          with_env("IGNORELINT_VERBOSE", "1") do
+            code, out, _ = run_cli([] of String)
+            code.should eq(0)
+            out.should contain("found")
+          end
+        ensure
+          Dir.cd(old)
+        end
       ensure
         FileUtils.rm_rf(dir)
       end

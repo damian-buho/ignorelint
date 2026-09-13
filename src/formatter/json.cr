@@ -14,7 +14,7 @@
 #       {
 #         "file": ".gitignore",
 #         "line": 3,
-#         "severity": "warn",
+#         "severity": "warning",
 #         "code": "IG-001",
 #         "message": "Trailing whitespace in \"build  \""
 #       }
@@ -52,15 +52,16 @@ module Ignorelint
       @results << result
     end
 
-    # Convert the severity enum to a lowercase JSON string value.
+    # Convert the severity enum to a JSON string value.
     #
-    # The `Severity::Fixed` enum value renders as `"fixed"` (not the default
-    # `"Fixed"` from `to_s.downcase`, because `to_s` would give the Crystal
-    # enum member name).
+    # Uses `"warning"` (not `"warn"`) to match the checkstyle and SARIF
+    # formatters and the SARIF `level` vocabulary.
     private def severity_to_json(severity : Severity) : String
       case severity
+      when .error? then "error"
+      when .warn?  then "warning"
       when .fixed? then "fixed"
-      else              severity.to_s.downcase
+      else              "info"
       end
     end
 

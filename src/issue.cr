@@ -12,7 +12,7 @@
 # ## Adding a new lint rule
 #
 # 1. Add a member to the `Code` enum
-# 2. Add a `when` branch in `Code#tag` mapping it to an `"IG-NNN"` string
+# 2. Add entries in `CODE_TAG_MAP` and `CODE_TITLE_MAP`
 # 3. Implement the check in `Linter` or a format-specific driver
 # 4. (Optional) Add auto-fix support in `Fixer`
 module Ignorelint
@@ -67,6 +67,34 @@ module Ignorelint
     Code::LeadingWhitespace       => "IG-024",
   }
 
+  # Human-readable rule titles, e.g. for SARIF `shortDescription`.
+  CODE_TITLE_MAP = {
+    Code::TrailingWhitespace      => "Trailing whitespace",
+    Code::UnescapedHash           => "Unescaped hash",
+    Code::DoubleNegation          => "Double negation",
+    Code::EmptyPattern            => "Empty pattern",
+    Code::ConsecutiveStar         => "Consecutive asterisks",
+    Code::MalformedBrackets       => "Malformed brackets",
+    Code::SpaceInPattern          => "Space in pattern",
+    Code::DuplicateRule           => "Duplicate rule",
+    Code::InvalidDoublestar       => "Invalid doublestar",
+    Code::RootedShallow           => "Rooted shallow pattern",
+    Code::NegatedRooted           => "Negated rooted pattern",
+    Code::RedundantPair           => "Redundant pair",
+    Code::NegationUnsupported     => "Negation unsupported",
+    Code::PathTraversal           => "Path traversal",
+    Code::SlashNoEffect           => "Slash has no effect",
+    Code::DoublestarUnsupported   => "Doublestar unsupported",
+    Code::UnrootedNonRecursive    => "Unrooted non-recursive pattern",
+    Code::RedundantBuiltinExclude => "Redundant built-in exclude",
+    Code::BuiltinIncludeProtected => "Built-in include protected",
+    Code::PathNotFound            => "Path not found",
+    Code::DeadGlobRule            => "Dead glob rule",
+    Code::DoubleSlash             => "Double slash",
+    Code::UnsortedRule            => "Unsorted rule",
+    Code::LeadingWhitespace       => "Leading whitespace",
+  }
+
   enum Code
     TrailingWhitespace
     UnescapedHash
@@ -102,6 +130,11 @@ module Ignorelint
     # instead of `"TrailingWhitespace"`.
     def to_s(io : IO) : Nil
       io << tag
+    end
+
+    # Human-readable rule title (e.g. for SARIF `shortDescription`).
+    def title : String
+      CODE_TITLE_MAP[self]? || raise "missing Code#title for #{tag}"
     end
   end
 

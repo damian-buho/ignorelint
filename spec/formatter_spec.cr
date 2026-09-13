@@ -109,6 +109,20 @@ describe Ignorelint::HumanFormatter do
     output.should contain("fixed:")
     output.should_not contain("\e[")
   end
+
+  it "strips control characters from hostile input" do
+    io = IO::Memory.new
+    f = Ignorelint::HumanFormatter.new(false)
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(1, "Bad \e[31mred\ninjection", :warn, :trailing_whitespace),
+    ]), io)
+    f.finish(io)
+    output = io.to_s
+    output.should_not contain("\e")
+    output.should_not contain("\n\n")
+    output.should contain("Bad [31mredinjection")
+  end
 end
 
 describe Ignorelint::JsonFormatter do
@@ -131,7 +145,7 @@ describe Ignorelint::JsonFormatter do
     issues[0]["line"].as_i.should eq(1)
     issues[0]["severity"].as_s.should eq("error")
     issues[0]["code"].as_s.should match(/^IG-/)
-    issues[1]["severity"].as_s.should eq("warn")
+    issues[1]["severity"].as_s.should eq("warning")
   end
 
   it "outputs empty issues array for no issues" do
@@ -222,6 +236,20 @@ describe Ignorelint::CheckstyleFormatter do
     doc = XML.parse(io.to_s)
     doc.xpath_nodes("//file").size.should eq(1)
   end
+
+  it "escapes XML special characters" do
+    io = IO::Memory.new
+    f = Ignorelint::CheckstyleFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(1, "Bad <tag> & \"quotes\"", :error),
+    ]), io)
+    f.finish(io)
+
+    doc = XML.parse(io.to_s)
+    errors = doc.xpath_nodes("//file/error")
+    errors[0]["message"].should eq("Bad <tag> & \"quotes\"")
+  end
 end
 
 describe Ignorelint::SarifFormatter do
@@ -301,5 +329,46 @@ describe Ignorelint::SarifFormatter do
 
     parsed = JSON.parse(io.to_s)
     parsed["runs"].as_a[0]["results"].as_a.should be_empty
+  end
+
+  it "uses rule titles instead of message fragments" do
+    io = IO::Memory.new
+    f = Ignorelint::SarifFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(1, "Trailing whitespace in \"foo  \"", :warn, :trailing_whitespace),
+    ]), io)
+    f.finish(io)
+
+    parsed = JSON.parse(io.to_s)
+    rules = parsed["runs"].as_a[0]["tool"]["driver"]["rules"].as_a
+    rules[0]["shortDescription"]["text"].as_s.should eq("Trailing whitespace")
+  end
+
+  it "uri-encodes paths with spaces" do
+    io = IO::Memory.new
+    f = Ignorelint::SarifFormatter.new
+    f.start(io)
+    f.format_file(make_result("my dir/.gitignore", [make_issue(1, "err")]), io)
+    f.finish(io)
+
+    parsed = JSON.parse(io.to_s)
+    loc = parsed["runs"].as_a[0]["results"].as_a[0]["locations"].as_a[0]["physicalLocation"]
+    loc["artifactLocation"]["uri"].as_s.should eq("my%20dir/.gitignore")
+  end
+
+  it "emits no non-standard kind for fixed issues" do
+    io = IO::Memory.new
+    f = Ignorelint::SarifFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(1, "Fixed", :fixed, :trailing_whitespace),
+    ]), io)
+    f.finish(io)
+
+    parsed = JSON.parse(io.to_s)
+    result = parsed["runs"].as_a[0]["results"].as_a[0]
+    result["level"].as_s.should eq("note")
+    result.as_h.has_key?("kind").should be_false
   end
 end
