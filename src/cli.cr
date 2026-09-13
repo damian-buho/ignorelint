@@ -66,13 +66,16 @@ module Ignorelint
     # Separates construction from execution so tests can inject a custom `IO`.
     # The `io` parameter defaults to `STDOUT` but can be replaced with a
     # `StringIO` for testing.
-    def self.run(args : Array(String), io : IO = STDOUT) : Nil
-      code = new(io).run(args)
+    def self.run(args : Array(String), io : IO = STDOUT, err : IO = STDERR) : Nil
+      code = new(io, err).run(args)
       exit(code) if code != 0
     end
 
-    # Output stream for all human-facing text (help, errors, results).
+    # Output stream for lint results (must stay machine-clean for json output).
     @io : IO
+
+    # Output stream for diagnostics: errors, usage, file-not-found reports.
+    @err : IO
 
     # Explicitly provided file paths (from positional CLI arguments).
     @paths = [] of String
@@ -102,7 +105,7 @@ module Ignorelint
     # Detects TTY status and reads the `IGNORELINT_VERBOSE` environment variable.
     # Crystal's `responds_to?(:tty?)` is a type-safe way to check if the `IO`
     # supports TTY detection (not all `IO` types do — `StringIO` does not).
-    def initialize(@io : IO)
+    def initialize(@io : IO, @err : IO = STDERR)
       @tty = @io.responds_to?(:tty?) && @io.tty?
       @verbose = env_true?("IGNORELINT_VERBOSE")
       @fix = false
@@ -183,7 +186,7 @@ module Ignorelint
         parser.on("--format=FORMAT", "Output format (#{OutputFormat.valid_values}, default: human)") do |v|
           parsed = OutputFormat.parse?(v)
           unless parsed
-            @io << "error: invalid --format value: #{v} (expected: #{OutputFormat.valid_values})\n"
+            @err << "error: invalid --format value: #{v} (expected: #{OutputFormat.valid_values})\n"
             exit(2)
           end
           @format = parsed
@@ -209,8 +212,8 @@ module Ignorelint
         end
 
         parser.invalid_option do |flag|
-          @io << "error: unknown option: #{flag}\n"
-          @io << parser
+          @err << "error: unknown option: #{flag}\n"
+          @err << parser
           exit(2)
         end
       end
@@ -228,7 +231,7 @@ module Ignorelint
       when "info"
         Severity::Info
       else
-        @io << "error: invalid --fail-on value: #{value} (expected: error|warn|info)\n"
+        @err << "error: invalid --fail-on value: #{value} (expected: error|warn|info)\n"
         exit(2)
       end
     end
@@ -276,7 +279,7 @@ module Ignorelint
     #   4. Re-label fixed issues with severity `:fixed`
     private def lint_file(path : String) : {Int32, FileResult}
       unless File.file?(path)
-        @io << "error: " << path << ": file not found\n"
+        @err << "error: " << path << ": file not found\n"
         return {1, FileResult.new(path, [] of Issue)}
       end
 
@@ -300,7 +303,7 @@ module Ignorelint
       {should_fail?(result) ? 1 : 0, FileResult.new(path, result.issues)}
     rescue ex : Exception
       # Catch-all for unexpected errors (permission denied, encoding issues, etc.)
-      @io << "error: " << path << ": " << ex.message << '\n'
+      @err << "error: " << path << ": " << ex.message << '\n'
       {1, FileResult.new(path, [] of Issue)}
     end
 
