@@ -233,4 +233,30 @@ describe Ignorelint::CLI do
       end
     end
   end
+
+  describe ".color_enabled?" do
+    it "is false without a TTY" do
+      with_env("NO_COLOR", nil) do
+        Ignorelint::CLI.color_enabled?(false).should be_false
+      end
+    end
+
+    it "is true on a TTY with NO_COLOR unset" do
+      with_env("NO_COLOR", nil) do
+        Ignorelint::CLI.color_enabled?(true).should be_true
+      end
+    end
+
+    it "treats empty NO_COLOR as color allowed" do
+      with_env("NO_COLOR", "") do
+        Ignorelint::CLI.color_enabled?(true).should be_true
+      end
+    end
+
+    it "disables color on non-empty NO_COLOR" do
+      with_env("NO_COLOR", "1") do
+        Ignorelint::CLI.color_enabled?(true).should be_false
+      end
+    end
+  end
 end

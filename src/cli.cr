@@ -207,7 +207,7 @@ module Ignorelint
 
         parser.separator("")
         parser.separator("When no PATH is given, discovers supported *ignore files in the current directory.")
-        parser.separator("Color is disabled when the NO_COLOR env var is set.")
+        parser.separator("Color is disabled when NO_COLOR is set to a non-empty value.")
         parser.separator("")
         parser.separator("Environment variables:")
         parser.separator("  IGNORELINT_VERBOSE=1       Same as --verbose")
@@ -249,16 +249,16 @@ module Ignorelint
       io << parser << '\n'
     end
 
-    # Construct the appropriate `Formatter` based on `@format` and terminal capabilities.
-    #
-    # Color is enabled when:
-    #   1. The output is a TTY (so colors will render)
-    #   2. The `NO_COLOR` environment variable is not set
-    #
-    # The `NO_COLOR` convention (https://no-color.org/) is a community standard
-    # for disabling color output across all CLI tools.
+    # TTY plus empty-or-unset NO_COLOR means color.
+    def self.color_enabled?(tty : Bool) : Bool
+      return false unless tty
+      val = ENV["NO_COLOR"]?
+      val.nil? || val.empty?
+    end
+
+    # Builds the formatter for the selected output format.
     private def build_formatter : Formatter
-      color = @tty && !ENV.has_key?("NO_COLOR")
+      color = self.class.color_enabled?(@tty)
 
       case @format
       when .human?
