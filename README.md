@@ -8,7 +8,7 @@ pf-cli-managed: yes
 
 # Ignorelint
 
-Linter for gitignore, dockerignore and other ignore files
+Linter for gitignore, dockerignore and 20+ other ignore files
 
 [![Stand with Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://damian-buho.github.io/support-ukraine/) [![Projectfile inside](https://badges.kiota.ch/static/v1?label=projectfile&message=inside&labelColor=0d0d0d&color=8c6723&style=flat-square)](https://projectfile.org) [![License](https://badges.kiota.ch/static/v1?label=license&message=MIT&color=1e5913&style=flat-square)](LICENSE) ![Commit style](https://badges.kiota.ch/static/v1?label=commits&message=conventional&color=1877aa&style=flat-square) ![Workflow](https://badges.kiota.ch/static/v1?label=workflow&message=git-flow&color=1877aa&style=flat-square) ![Versioning](https://badges.kiota.ch/static/v1?label=versioning&message=semantic&color=1877aa&style=flat-square) [![PRs welcome](https://badges.kiota.ch/static/v1?label=PRs&message=welcome&color=1e5913&style=flat-square)](CONTRIBUTING.md) [![Citation](https://badges.kiota.ch/static/v1?label=citation&message=cff&color=1877aa&style=flat-square)](CITATION.cff) [![REUSE compliance](https://api.reuse.software/badge/codeberg.org/d9t/ignorelint)](https://api.reuse.software/info/codeberg.org/d9t/ignorelint)
 
@@ -18,9 +18,11 @@ Linter for gitignore, dockerignore and other ignore files
 
 ## Features
 
-- CLI, output formats and exit codes
-- Linter rules and check pipeline
-- Supported ignore-file formats
+- Autofix that preserves file meaning
+- Dead-rule detection against the live filesystem
+- Whole-tree discovery for monorepos
+- Output pipelines can parse
+- Suppressions for intentional exceptions
 
 ### Inherited from B19/Ubuntu
 

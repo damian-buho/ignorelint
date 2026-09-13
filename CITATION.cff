@@ -10,7 +10,7 @@ cff-version: 1.2.0
 message: Please cite this software using the metadata from this file.
 type: software
 title: Ignorelint
-abstract: Linter for gitignore, dockerignore and other ignore files
+abstract: Linter for gitignore, dockerignore and 20+ other ignore files
 authors:
   - family-names: Búho
     given-names: Damián

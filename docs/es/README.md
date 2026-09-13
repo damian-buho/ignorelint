@@ -10,7 +10,7 @@ pf-cli-managed: yes
 
 # Ignorelint
 
-Linter para .gitignore, .dockerignore y otros archivos de ignorados
+Linter para .gitignore, .dockerignore y más de 20 archivos de ignorados
 
 [![Stand with Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://damian-buho.github.io/support-ukraine/) [![Projectfile inside](https://badges.kiota.ch/static/v1?label=projectfile&message=inside&labelColor=0d0d0d&color=8c6723&style=flat-square)](https://projectfile.org) [![License](https://badges.kiota.ch/static/v1?label=license&message=MIT&color=1e5913&style=flat-square)](LICENSE) ![Commit style](https://badges.kiota.ch/static/v1?label=commits&message=conventional&color=1877aa&style=flat-square) ![Workflow](https://badges.kiota.ch/static/v1?label=workflow&message=git-flow&color=1877aa&style=flat-square) ![Versioning](https://badges.kiota.ch/static/v1?label=versioning&message=semantic&color=1877aa&style=flat-square) [![PRs welcome](https://badges.kiota.ch/static/v1?label=PRs&message=welcome&color=1e5913&style=flat-square)](CONTRIBUTING.md) [![Citation](https://badges.kiota.ch/static/v1?label=citation&message=cff&color=1877aa&style=flat-square)](CITATION.cff) [![REUSE compliance](https://api.reuse.software/badge/codeberg.org/d9t/ignorelint)](https://api.reuse.software/info/codeberg.org/d9t/ignorelint)
 
@@ -19,12 +19,6 @@ Linter para .gitignore, .dockerignore y otros archivos de ignorados
 [![Publish pipeline on kiota.ch](https://kiota.ch/d9t/ignorelint/badges/workflows/published.yaml/badge.svg?style=flat-square)](https://kiota.ch/d9t/ignorelint/actions) [![Vulnerability audit on kiota.ch](https://kiota.ch/d9t/ignorelint/badges/workflows/audited.yaml/badge.svg?style=flat-square)](https://kiota.ch/d9t/ignorelint/actions) [![Dependency freshness on kiota.ch](https://kiota.ch/d9t/ignorelint/badges/workflows/check-outdated.yaml/badge.svg?style=flat-square)](https://kiota.ch/d9t/ignorelint/actions) [![Analysis sweep on kiota.ch](https://kiota.ch/d9t/ignorelint/badges/workflows/analyze.yaml/badge.svg?style=flat-square)](https://kiota.ch/d9t/ignorelint/actions)
 
 ## Características
-
-- CLI, formatos de salida y códigos de salida
-- Reglas del linter y pipeline de comprobaciones
-- Formatos de archivos ignore soportados
-
-### Heredado de B19/Ubuntu
 
 - Caché APT persistente entre compilaciones
 - Gestión de procesos de servicio con enrutado de logs (b19-exec)

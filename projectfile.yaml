@@ -7,9 +7,9 @@ identity:
   created: "2026-06-05"
   name: ignorelint
   summary:
-    en: Linter for gitignore, dockerignore and other ignore files
-    es: Linter para .gitignore, .dockerignore y otros archivos de ignorados
-    uk: Лінтер для .gitignore, .dockerignore та інших ignore-файлів
+    en: Linter for gitignore, dockerignore and 20+ other ignore files
+    es: Linter para .gitignore, .dockerignore y más de 20 archivos de ignorados
+    uk: Лінтер для .gitignore, .dockerignore та понад 20 інших ignore-файлів
   title: Ignorelint
   description:
     en: Ignorelint is a linter and auto-fixer for ignore files such as .gitignore, .dockerignore and .npmignore, written in Crystal. It recognises 25 filenames across eight format-specific glob drivers and reports 24 diagnostic rules with human, JSON, checkstyle and SARIF output.
