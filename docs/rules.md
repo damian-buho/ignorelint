@@ -42,7 +42,7 @@ Severities are `error`, `warn`, and `info`; every code is emitted in all output 
 
 ## Autofix
 
-`--fix` corrects the nine codes marked above. Same-line fixes compose in one pass, line endings (LF or CRLF) are preserved, and the file is written atomically via temp file plus rename, keeping its permissions. Sorting is skipped while any pattern is negated, since negation order decides the match. Symlinks are linted but never rewritten. Fixed findings are relabelled `fixed` and no longer affect the exit code.
+`--fix` corrects the nine codes marked above. Same-line fixes compose in one pass, line endings (LF or CRLF) are preserved, and the file is written atomically via temp file plus rename, keeping its permissions. Sorting is skipped while any pattern is negated, since negation order decides the match. Symlinks are linted but never rewritten. Fixed findings are relabelled `fixed` and no longer affect the exit code. `--diff` previews the same changes without writing: it lists each replacement as `line N: "old" → "new"`, each deletion as `line N: delete "old"`, and any reordering as `would reorder N lines`, then reports the unfixed findings with the usual exit code. It cannot be combined with `--fix`.
 
 ## Suppressions
 

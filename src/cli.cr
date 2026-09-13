@@ -94,6 +94,9 @@ module Ignorelint
     # Whether `--fix` was requested (auto-fix deterministically fixable issues).
     @fix : Bool
 
+    # Whether `--diff` was requested (preview fixes without writing).
+    @diff : Bool
+
     # Whether `--verbose` was requested (show file discovery output).
     @verbose : Bool
 
@@ -113,6 +116,7 @@ module Ignorelint
       @verbose = env_true?("IGNORELINT_VERBOSE")
       @recursive = env_true?("IGNORELINT_RECURSIVE")
       @fix = false
+      @diff = false
     end
 
     # Main execution: parse flags, discover files, lint, format.
@@ -132,6 +136,12 @@ module Ignorelint
       parser = build_option_parser
 
       parser.parse(args)
+
+      # --fix writes while --diff only previews; combining them is a usage error.
+      if @fix && @diff
+        @err << "error: --fix and --diff: use one, not both\n"
+        return 2
+      end
 
       apply_env_overrides
 
@@ -203,6 +213,9 @@ module Ignorelint
         end
         parser.on("--fix", "Auto-fix deterministically fixable issues (IG-001,002,003,008,015,018,022,023,024)") do
           @fix = true
+        end
+        parser.on("--diff", "Preview auto-fix changes without writing (cannot combine with --fix)") do
+          @diff = true
         end
 
         parser.separator("")
@@ -298,33 +311,54 @@ module Ignorelint
 
       content = File.read(path)
       result = Linter.lint(path, content)
-
-      if @fix
-        # Never write through a symlink: the link target may live outside
-        # the repo. Linting symlinks is fine; fixing them is refused.
-        if File.symlink?(path)
-          @err << "error: " << path << ": refusing --fix on symlink\n"
-          return {should_fail?(result) ? 1 : 0, FileResult.new(path, result.issues)}
-        end
-
-        # Split content preserving line endings for accurate reconstruction.
-        # `chomp: false` keeps `\n` on each line so we can detect whether
-        # the file originally ended with a newline.
-        content_lines = content.lines(chomp: false)
-        fixes, sort_fix = result.collect_fixes(content_lines)
-
-        unless fixes.empty? && sort_fix.nil?
-          new_content = Fixer.apply_fixes(content_lines, fixes, sort_fix)
-          atomic_write(path, new_content)
-          result = mark_fixed(result, fixes, sort_fix)
-        end
-      end
+      result = handle_fixes(path, content, result) if @fix || @diff
 
       {should_fail?(result) ? 1 : 0, FileResult.new(path, result.issues)}
     rescue ex : Exception
       # Catch-all for unexpected errors (permission denied, encoding issues, etc.)
       @err << "error: " << path << ": " << ex.message << '\n'
       {1, FileResult.new(path, [] of Issue)}
+    end
+
+    # Collects fixes once; writes them with --fix, previews them with --diff.
+    private def handle_fixes(path : String, content : String, result : LintResult) : LintResult
+      # Never rewrite through a symlink (target may live outside the repo).
+      if @fix && File.symlink?(path)
+        @err << "error: " << path << ": refusing --fix on symlink\n"
+        return result
+      end
+      content_lines = content.lines(chomp: false)
+      fixes, sort_fix = result.collect_fixes(content_lines)
+      return result if fixes.empty? && sort_fix.nil?
+      if @diff
+        print_diff_preview(path, fixes, sort_fix)
+        result
+      else
+        new_content = Fixer.apply_fixes(content_lines, fixes, sort_fix)
+        atomic_write(path, new_content)
+        mark_fixed(result, fixes, sort_fix)
+      end
+    end
+
+    # Prints collected fixes as a reviewable listing; writes nothing.
+    private def print_diff_preview(path : String, fixes : Array(Fix), sort_fix : Fixer::SortFix?) : Nil
+      @io << "would fix " << path << ":\n"
+      fixes.each do |fix|
+        @io << "line " << fix.line_number << ": " << preview_fix(fix) << '\n'
+      end
+      @io << "would reorder " << sort_fix.sorted_values.size << " lines\n" if sort_fix
+    end
+
+    # Renders one fix as `"old" → "new"`, or `delete "old"` for deletions.
+    private def preview_fix(fix : Fix) : String
+      old_text = preview_text(fix.original)
+      return "delete \"#{old_text}\"" if fix.deletion?
+      "\"#{old_text}\" → \"#{preview_text(fix.replacement)}\""
+    end
+
+    # Strips control characters so preview lines stay one-per-line and injection-free.
+    private def preview_text(text : String) : String
+      text.gsub(/[\x00-\x1F\x7F]/, "")
     end
 
     # Write fixed content atomically: temp file in the same directory plus

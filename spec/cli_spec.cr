@@ -133,6 +133,55 @@ describe Ignorelint::CLI do
     end
   end
 
+  describe "--diff preview" do
+    it "lists replacements, writes nothing, exits per unfixed issues" do
+      with_ignore_file("!!foo\n") do |path|
+        code, out, _ = run_cli(["--diff", path] of String)
+        code.should eq(1)
+        out.should contain("would fix #{path}:")
+        out.should contain("line 1: \"!!foo\" → \"foo\"")
+        File.read(path).should eq("!!foo\n")
+      end
+    end
+
+    it "lists deletions" do
+      with_ignore_file("*.log\n*.log\n") do |path|
+        code, out, _ = run_cli(["--diff", path] of String)
+        code.should eq(0)
+        out.should contain("would fix #{path}:")
+        out.should contain("line 2: delete \"*.log\"")
+        File.read(path).should eq("*.log\n*.log\n")
+      end
+    end
+
+    it "reports the reorder count for unsorted files" do
+      with_ignore_file("zebra\nalpha\n") do |path|
+        code, out, _ = run_cli(["--diff", path] of String)
+        code.should eq(0)
+        out.should contain("would fix #{path}:")
+        out.should contain("would reorder 2 lines")
+        File.read(path).should eq("zebra\nalpha\n")
+      end
+    end
+
+    it "rejects --fix --diff together" do
+      with_ignore_file("!!foo\n") do |path|
+        code, _, err = run_cli(["--fix", "--diff", path] of String)
+        code.should eq(2)
+        err.should contain("use one, not both")
+        File.read(path).should eq("!!foo\n")
+      end
+    end
+
+    it "prints no listing for clean files" do
+      with_ignore_file("# just a comment\n") do |path|
+        code, out, _ = run_cli(["--diff", path] of String)
+        code.should eq(0)
+        out.should_not contain("would fix")
+      end
+    end
+  end
+
   describe "IGNORLINT_VERBOSE parsing" do
     it "treats no/off as false" do
       dir = File.join("/tmp", "ignorelint-verbose-spec-#{Process.pid}-#{Random.rand(1_000_000)}")

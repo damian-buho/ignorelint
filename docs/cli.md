@@ -16,6 +16,7 @@ Synopsis: `ignorelint [OPTIONS] [PATH…]`. With no paths, known ignore files ar
 | `--fail-on=LEVEL` | `error` | Exit non-zero on `error`, `warn`, or `info` and above |
 | `--format=FORMAT` | `human` | `human`, `json`, `checkstyle`, or `sarif` |
 | `--fix` | off | Rewrite files to correct deterministic issues (see [rules](rules.md)) |
+| `--diff` | off | Preview what `--fix` would change without writing (see [rules](rules.md)) |
 | `--recursive` / `-r` | off | Search subdirectories, not just the working directory |
 | `--verbose` / `-v` | off | Print the discovery report |
 | `--version` / `-V`, `--help` / `-h` | — | Print version or help to standard output |
