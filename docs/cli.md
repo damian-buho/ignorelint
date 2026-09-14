@@ -12,7 +12,7 @@ Synopsis: `ignorelint [OPTIONS] [PATH…]`. With no paths, known ignore files ar
 ## Flags
 
 | Flag | Default | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | `--fail-on=LEVEL` | `error` | Exit non-zero on `error`, `warn`, or `info` and above |
 | `--format=FORMAT` | `human` | `human`, `json`, `checkstyle`, or `sarif` |
 | `--fix` | off | Rewrite files to correct deterministic issues (see [rules](rules.md)) |

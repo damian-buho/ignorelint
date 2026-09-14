@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 ## Matching engines
 
 | Engine | Files |
-|---|---|
+| --- | --- |
 | gitignore | `.gitignore` and all git-style files (`.claudeignore`, `.yarnignore`, `.ignore`, …) |
 | dockerignore | `.dockerignore`, `.containerignore` |
 | npmignore | `.npmignore` |

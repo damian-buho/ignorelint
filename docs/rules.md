@@ -12,7 +12,7 @@ Every file goes through the same pipeline: universal checks, format-specific che
 ## Diagnostic codes
 
 | Code | Default severity | Meaning | Autofix |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | IG-001 | warn | Trailing whitespace | ✓ |
 | IG-002 | warn | Unescaped hash | ✓ |
 | IG-003 | error | Double negation | ✓ |
