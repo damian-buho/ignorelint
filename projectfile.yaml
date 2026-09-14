@@ -33,7 +33,15 @@ keywords:
 kind: SoftwareSourceCode
 license:
   covers: project
-  spdx: "MIT"
+  spdx: ""
+links:
+  - label:
+      en: Ignorelint on kiota.ch
+      es: Ignorelint en kiota.ch
+      uk: Ignorelint на kiota.ch
+    preferred: true
+    type: source-code
+    url: https://kiota.ch/d9t/ignorelint
 org:
   projectfile:
     ci:
@@ -67,18 +75,10 @@ org:
           - url: ssh://git@kiota.ch/b19/ubuntu.git
     status: maintained
   ignorelint: {}
-technologies:
-  - crystal
 repositories:
   - branch: main
     role: origin
     type: git
     url: ssh://git@kiota.ch/d9t/ignorelint.git
-links:
-  - label:
-      en: Ignorelint on kiota.ch
-      es: Ignorelint en kiota.ch
-      uk: Ignorelint на kiota.ch
-    preferred: true
-    type: source-code
-    url: https://kiota.ch/d9t/ignorelint
+technologies:
+  - crystal
