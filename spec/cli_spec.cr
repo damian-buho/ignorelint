@@ -99,6 +99,11 @@ private def with_fake_cli(body : String, & : -> T) : T forall T
   end
 end
 
+# True when pf-cli resolves on PATH; stderr assertions depend on it.
+private def pf_cli_available? : Bool
+  !Process.find_executable("pf-cli").nil?
+end
+
 # A PATH with no binaries at all, so pf-cli resolves as missing.
 private def without_any_cli(& : -> T) : T forall T
   dir = File.join("/tmp", "ignorelint-nocli-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
@@ -177,7 +182,11 @@ describe Ignorelint::CLI do
       with_ignore_file("# just a comment\n") do |path|
         code, _, err = run_cli([path] of String)
         code.should eq(0)
-        err.should be_empty
+        if pf_cli_available?
+          err.should be_empty
+        else
+          (err.empty? || err.includes?("pf-cli not found")).should be_true
+        end
       end
     end
   end
@@ -265,7 +274,11 @@ describe Ignorelint::CLI do
       code.should eq(1)
       out.should contain(".gitignore:1")
       out.should contain("Double negation")
-      err.should be_empty
+      if pf_cli_available?
+        err.should be_empty
+      else
+        (err.empty? || err.includes?("pf-cli not found")).should be_true
+      end
     end
 
     it "reports clean piped content as valid" do
