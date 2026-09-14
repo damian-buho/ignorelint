@@ -12,13 +12,6 @@ pf-cli-managed: yes
 Дякуємо, що користуєтеся **Ignorelint**!
 Цей документ пояснює, де шукати допомогу та як ставити зрозумілі запитання.
 
-## Перш ніж питати
-
-Перегляньте це спершу — можливо, відповідь уже є:
-
-- [Issues на Codeberg](https://codeberg.org/d9t/ignorelint/issues)
-- [Issues на GitHub](https://github.com/damian-buho/d9t-ignorelint/issues)
-
 ## Куди звертатися
 
 - **Повідомити про вразливість безпеки** — [SECURITY.md](SECURITY.md)
