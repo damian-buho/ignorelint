@@ -110,6 +110,7 @@ org:
         parents:
           - url: ssh://git@kiota.ch/b19/ubuntu.git
     status: maintained
+  ignorelint: {}
 repositories:
   - issues: true
     role: mirror

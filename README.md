@@ -22,6 +22,7 @@ Linter for gitignore, dockerignore and 20+ other ignore files
 - Dead-rule detection against the live filesystem
 - Whole-tree discovery for monorepos
 - Output pipelines can parse
+- Policy lives in projectfile.yaml
 - Suppressions for intentional exceptions
 
 ### Inherited from B19/Ubuntu

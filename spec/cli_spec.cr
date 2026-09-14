@@ -43,6 +43,83 @@ private def run_cli(args : Array(String), input : String = "") : {Int32, String,
   {code, io.to_s, err.to_s}
 end
 
+# A temp dir holding a projectfile.yaml plus a .gitignore; runs the block there.
+private def with_policy_dir(ignore_content : String, & : -> T) : T forall T
+  dir = File.join("/tmp", "ignorelint-policy-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+  Dir.mkdir_p(dir)
+  begin
+    File.write(File.join(dir, "projectfile.yaml"), "$schema: https://projectfile.org/schema/v1.json\n")
+    File.write(File.join(dir, ".gitignore"), ignore_content)
+    old = Dir.current
+    begin
+      Dir.cd(dir)
+      yield
+    ensure
+      Dir.cd(old)
+    end
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+end
+
+# A bare projectfile.yaml at an arbitrary path for --config tests.
+private def with_config_file(& : String -> T) : T forall T
+  dir = File.join("/tmp", "ignorelint-config-file-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+  Dir.mkdir_p(dir)
+  begin
+    path = File.join(dir, "projectfile.yaml")
+    File.write(path, "$schema: https://projectfile.org/schema/v1.json\n")
+    yield path
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+end
+
+# A fake pf-cli on a private PATH; the body answers every invocation.
+private def with_fake_cli(body : String, & : -> T) : T forall T
+  dir = File.join("/tmp", "ignorelint-fakecli-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+  Dir.mkdir_p(dir)
+  begin
+    path = File.join(dir, "pf-cli")
+    File.write(path, "#!/bin/sh\n#{body}\n")
+    File.chmod(path, 0o755)
+    old = ENV["PATH"]?
+    ENV["PATH"] = "#{dir}:#{old}"
+    begin
+      yield
+    ensure
+      if old.nil?
+        ENV.delete("PATH")
+      else
+        ENV["PATH"] = old
+      end
+    end
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+end
+
+# A PATH with no binaries at all, so pf-cli resolves as missing.
+private def without_any_cli(& : -> T) : T forall T
+  dir = File.join("/tmp", "ignorelint-nocli-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
+  Dir.mkdir_p(dir)
+  begin
+    old = ENV["PATH"]?
+    ENV["PATH"] = dir
+    begin
+      yield
+    ensure
+      if old.nil?
+        ENV.delete("PATH")
+      else
+        ENV["PATH"] = old
+      end
+    end
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+end
+
 describe Ignorelint::CLI do
   describe "--fail-on vs IGNORELINT_FAIL_ON precedence" do
     it "defaults to fail on error" do
@@ -380,6 +457,163 @@ describe Ignorelint::CLI do
         end
       ensure
         FileUtils.rm_rf(dir)
+      end
+    end
+  end
+
+  describe "projectfile policy via pf-cli (org.ignorelint)" do
+    it "applies fail-on from the discovered projectfile" do
+      with_fake_cli(%q(echo '{"fail-on": "info"}')) do
+        with_policy_dir("foo  \n") do
+          code, _, _ = run_cli([".gitignore"] of String)
+          code.should eq(1)
+        end
+      end
+    end
+
+    it "falls back to defaults when the subtree is absent" do
+      with_fake_cli(%q(echo 'null'; exit 1)) do
+        with_policy_dir("foo  \n") do
+          code, _, err = run_cli([".gitignore"] of String)
+          code.should eq(0)
+          err.should be_empty
+        end
+      end
+    end
+
+    it "prefers the explicit flag over the projectfile" do
+      with_fake_cli(%q(echo '{"fail-on": "info"}')) do
+        with_policy_dir("foo  \n") do
+          code, _, _ = run_cli(["--fail-on=error", ".gitignore"] of String)
+          code.should eq(0)
+        end
+      end
+    end
+
+    it "prefers the env over the projectfile" do
+      with_fake_cli(%q(echo '{"fail-on": "error"}')) do
+        with_policy_dir("foo  \n") do
+          with_env("IGNORELINT_FAIL_ON", "info") do
+            code, _, _ = run_cli([".gitignore"] of String)
+            code.should eq(1)
+          end
+        end
+      end
+    end
+
+    it "applies disabled-rules from the projectfile" do
+      with_fake_cli(%q(echo '{"disabled-rules": ["IG-003"]}')) do
+        with_policy_dir("!!foo\n") do
+          code, out, _ = run_cli([".gitignore"] of String)
+          code.should eq(0)
+          out.should contain("is valid")
+        end
+      end
+    end
+
+    it "reads an explicit --config outside the working directory" do
+      with_fake_cli(%q(echo '{"fail-on": "info"}')) do
+        with_config_file do |config|
+          with_ignore_file("foo  \n") do |path|
+            code, _, _ = run_cli(["--config=#{config}", path] of String)
+            code.should eq(1)
+          end
+        end
+      end
+    end
+
+    it "exits 2 for a missing --config file" do
+      with_ignore_file("foo  \n") do |path|
+        code, _, err = run_cli(["--config=/nonexistent/pf.yaml", path] of String)
+        code.should eq(2)
+        err.should contain("not found")
+      end
+    end
+
+    it "exits 2 for an unreadable explicit document" do
+      with_fake_cli(%q(echo 'Error: parse boom' >&2; exit 1)) do
+        with_config_file do |config|
+          with_ignore_file("foo  \n") do |path|
+            code, _, err = run_cli(["--config=#{config}", path] of String)
+            code.should eq(2)
+            err.should contain("cannot read policy")
+          end
+        end
+      end
+    end
+
+    it "warns and continues for an unreadable discovered document" do
+      with_fake_cli(%q(echo 'Error: parse boom' >&2; exit 1)) do
+        with_policy_dir("!!foo\n") do
+          code, out, err = run_cli([".gitignore"] of String)
+          code.should eq(1)
+          err.should contain("policy unreadable")
+          out.should contain("Double negation")
+        end
+      end
+    end
+
+    it "honours IGNORELINT_CONFIG" do
+      with_fake_cli(%q(echo '{"fail-on": "info"}')) do
+        with_config_file do |config|
+          with_ignore_file("foo  \n") do |path|
+            with_env("IGNORELINT_CONFIG", config) do
+              code, _, _ = run_cli([path] of String)
+              code.should eq(1)
+            end
+          end
+        end
+      end
+    end
+
+    it "honours IGNORELINT_FORMAT" do
+      with_ignore_file("!!foo\n") do |path|
+        with_env("IGNORELINT_FORMAT", "json") do
+          code, out, _ = run_cli([path] of String)
+          code.should eq(1)
+          out.should contain("\"IG-003\"")
+        end
+      end
+    end
+
+    it "exits 2 for an invalid IGNORELINT_FORMAT" do
+      with_ignore_file("!!foo\n") do |path|
+        with_env("IGNORELINT_FORMAT", "bogus") do
+          code, _, err = run_cli([path] of String)
+          code.should eq(2)
+          err.should contain("invalid IGNORELINT_FORMAT")
+        end
+      end
+    end
+
+    it "honours IGNORELINT_FIX" do
+      with_ignore_file("foo  \n") do |path|
+        with_env("IGNORELINT_FIX", "1") do
+          code, _, _ = run_cli([path] of String)
+          code.should eq(0)
+          File.read(path).should eq("foo\n")
+        end
+      end
+    end
+
+    it "informs and keeps going when pf-cli is missing" do
+      without_any_cli do
+        with_policy_dir("foo  \n") do
+          code, _, err = run_cli(["--fail-on=error", ".gitignore"] of String)
+          code.should eq(0)
+          err.should contain("pf-cli not found")
+        end
+      end
+    end
+
+    it "warns on unknown policy keys but still lints" do
+      with_fake_cli(%q(echo '{"future-key": true}')) do
+        with_policy_dir("!!foo\n") do
+          code, out, err = run_cli([".gitignore"] of String)
+          code.should eq(1)
+          err.should contain("unknown ignorelint policy key")
+          out.should contain("Double negation")
+        end
       end
     end
   end

@@ -20,6 +20,15 @@ Linter para .gitignore, .dockerignore y más de 20 archivos de ignorados
 
 ## Características
 
+- Autocorrección que preserva el significado del archivo
+- Detección de reglas muertas contra el sistema de archivos
+- Descubrimiento de todo el árbol para monorepos
+- Salida que los pipelines pueden procesar
+- La política vive en projectfile.yaml
+- Supresiones para excepciones intencionales
+
+### Heredado de B19/Ubuntu
+
 - Caché APT persistente entre compilaciones
 - Gestión de procesos de servicio con enrutado de logs (b19-exec)
 - Descargas de artefactos con caché y verificación de integridad (b19-fetch)

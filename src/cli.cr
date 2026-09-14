@@ -7,7 +7,7 @@
 # This is the top-level coordinator that ties together all subsystems:
 #
 #   1. Parse command-line flags (`--format`, `--fail-on`, `--fix`, `--verbose`)
-#   2. Apply environment variable overrides (`IGNORELINT_*`, `NO_COLOR`)
+#   2. Load policy from the projectfile subtree via pf-cli, then env overrides (`IGNORELINT_*`)
 #   3. Build the appropriate output `Formatter`
 #   4. Discover ignore files (or use explicitly provided paths)
 #   5. Lint each file via `Linter.lint`
@@ -34,6 +34,7 @@ require "./formatter"
 require "./linter"
 require "./output_format"
 require "./parser"
+require "./projectfile_policy"
 require "./version"
 
 module Ignorelint
@@ -91,8 +92,14 @@ module Ignorelint
     # Output format selector. Determines which `Formatter` subclass to use.
     @format : OutputFormat = :human
 
+    # True once `--format` was passed explicitly (env and file must not override it).
+    @format_set : Bool = false
+
     # Whether `--fix` was requested (auto-fix deterministically fixable issues).
     @fix : Bool
+
+    # True once `--fix` was passed explicitly (env and file must not override it).
+    @fix_set : Bool = false
 
     # Whether `--diff` was requested (preview fixes without writing).
     @diff : Bool
@@ -112,25 +119,36 @@ module Ignorelint
     # Whether `--verbose` was requested (show file discovery output).
     @verbose : Bool
 
+    # True once `--verbose` was passed explicitly (env and file must not override it).
+    @verbose_set : Bool = false
+
     # Whether to search subdirectories for ignore files (vs cwd only).
     @recursive : Bool
+
+    # True once `--recursive` was passed explicitly (env and file must not override it).
+    @recursive_set : Bool = false
+
+    # Explicit projectfile path from `--config` (empty means undiscovered).
+    @config_path : String?
 
     # Whether the output stream is a TTY (used to decide color output).
     @tty : Bool
 
     # Initialize the CLI with an output stream.
     #
-    # Detects TTY status and reads the `IGNORELINT_VERBOSE` environment variable.
+    # Detects TTY status; option defaults resolve later in `run` so that
+    # explicit flags beat environment, which beats the projectfile subtree.
     # Crystal's `responds_to?(:tty?)` is a type-safe way to check if the `IO`
     # supports TTY detection (not all `IO` types do — `StringIO` does not).
     def initialize(@io : IO, @err : IO = STDERR)
       @tty = @io.responds_to?(:tty?) && @io.tty?
-      @verbose = env_true?("IGNORELINT_VERBOSE")
-      @recursive = env_true?("IGNORELINT_RECURSIVE")
+      @verbose = false
+      @recursive = false
       @fix = false
       @diff = false
       @stdin = false
       @stdin_file = nil
+      @config_path = nil
       @disabled = Set(String).new
     end
 
@@ -141,12 +159,13 @@ module Ignorelint
     #
     # The flow is:
     #   1. Build and parse the option parser (consumes flags from `args`)
-    #   2. Apply environment variable overrides (may change `@verbose`, `@fail_on`)
-    #   3. Build the output formatter
-    #   4. Determine which files to lint (explicit paths or auto-discovery)
-    #   5. Lint each file, collecting the exit code
-    #   6. Emit formatted output
-    #   7. Return non-zero if issues were found above the threshold
+    #   2. Load policy (explicit `--config`, else cwd projectfile discovery)
+    #   3. Apply projectfile, then environment overrides (flags always win)
+    #   4. Build the output formatter
+    #   5. Determine which files to lint (explicit paths or auto-discovery)
+    #   6. Lint each file, collecting the exit code
+    #   7. Emit formatted output
+    #   8. Return non-zero if issues were found above the threshold
     def run(args : Array(String), input : IO = STDIN) : Int32
       parser = build_option_parser
 
@@ -158,7 +177,11 @@ module Ignorelint
         return 2
       end
 
-      apply_env_overrides
+      policy = load_policy
+      return 2 if policy.nil?
+      apply_file_settings(policy)
+      env_code = apply_env_overrides
+      return env_code if env_code != 0
 
       formatter = build_formatter
       if @stdin
@@ -183,14 +206,66 @@ module Ignorelint
       exit_code
     end
 
+    # Resolve lint policy: an explicitly named projectfile, else cwd discovery.
+    #
+    # Returns nil (after reporting) when an explicitly named file cannot be used.
+    # A discovered file is best-effort: problems warn and fall back to defaults.
+    private def load_policy : PolicySettings?
+      explicit = @config_path
+      if explicit.nil?
+        explicit = ENV["IGNORELINT_CONFIG"]?
+        explicit = nil if explicit.try(&.empty?)
+      end
+      unless explicit.nil?
+        unless File.file?(explicit)
+          @err << "error: config file not found: #{explicit}\n"
+          return
+        end
+        return ProjectfilePolicy.fetch(explicit, @err, explicit: true)
+      end
+      if found = ProjectfilePolicy.discover
+        return ProjectfilePolicy.fetch(found, @err, explicit: false)
+      end
+      PolicySettings.new
+    end
+
+    # Apply projectfile-subtree values for options no explicit flag set.
+    #
+    # Environment overrides these later in `apply_env_overrides`, so the final
+    # precedence is flags, then environment, then the projectfile subtree.
+    private def apply_file_settings(policy : PolicySettings) : Nil
+      adopt_unset(@fail_on_set, policy.fail_on) { |fail_on| @fail_on = fail_on }
+      adopt_unset(@format_set, policy.format) { |format| @format = format }
+      adopt_unset(@fix_set, policy.fix) { |fix| @fix = fix }
+      adopt_unset(@recursive_set, policy.recursive) { |recursive| @recursive = recursive }
+      adopt_unset(@verbose_set, policy.verbose) { |verbose| @verbose = verbose }
+      adopt_unset(@disabled_set, policy.disabled) { |disabled| @disabled = disabled }
+    end
+
+    # Assigns a projectfile value to an option no explicit flag claimed.
+    private def adopt_unset(was_set : Bool, value : T?, & : T -> Nil) : Nil forall T
+      yield value unless was_set || value.nil?
+    end
+
     # Apply environment variable overrides for options not set via CLI flags.
     #
     # Environment variables are lower priority than explicit CLI flags — they
     # only take effect if the flag was not already set. This allows CI systems
     # to set defaults via env vars while still overriding on the command line.
-    private def apply_env_overrides : Nil
-      if !@verbose
-        @verbose = env_true?("IGNORELINT_VERBOSE")
+    #
+    # Returns 0 on success, 2 when an env value is invalid (reported on stderr).
+    private def apply_env_overrides : Int32
+      apply_env_switch("IGNORELINT_VERBOSE", @verbose_set) { |v| @verbose = v }
+      apply_env_switch("IGNORELINT_RECURSIVE", @recursive_set) { |v| @recursive = v }
+      apply_env_switch("IGNORELINT_FIX", @fix_set) { |v| @fix = v }
+
+      if !@format_set && (env_val = ENV["IGNORELINT_FORMAT"]?)
+        parsed = OutputFormat.parse?(env_val)
+        unless parsed
+          @err << "error: invalid IGNORELINT_FORMAT value: #{env_val} (expected: #{OutputFormat.valid_values})\n"
+          return 2
+        end
+        @format = parsed
       end
 
       if env_val = ENV["IGNORELINT_FAIL_ON"]?
@@ -199,6 +274,14 @@ module Ignorelint
 
       if env_val = ENV["IGNORELINT_DISABLED_RULES"]?
         @disabled = parse_disabled_rules(env_val) unless @disabled_set
+      end
+      0
+    end
+
+    # Applies a boolean env switch unless a flag claimed the option.
+    private def apply_env_switch(key : String, was_set : Bool, & : Bool -> Nil) : Nil
+      if !was_set && (raw = ENV[key]?)
+        yield env_bool?(raw)
       end
     end
 
@@ -240,15 +323,19 @@ module Ignorelint
             exit(2)
           end
           @format = parsed
+          @format_set = true
         end
         parser.on("-v", "--verbose", "Show discovery output and extra diagnostics") do
           @verbose = true
+          @verbose_set = true
         end
         parser.on("-r", "--recursive", "Search subdirectories for *ignore files (skips hidden dirs, node_modules, symlinks)") do
           @recursive = true
+          @recursive_set = true
         end
         parser.on("--fix", "Auto-fix deterministically fixable issues (IG-001,002,003,008,015,018,022,023,024)") do
           @fix = true
+          @fix_set = true
         end
         parser.on("--diff", "Preview auto-fix changes without writing (cannot combine with --fix)") do
           @diff = true
@@ -263,6 +350,9 @@ module Ignorelint
           parse_disabled_rules(v).each { |tag| @disabled << tag }
           @disabled_set = true
         end
+        parser.on("--config=PATH", "Projectfile read via pf-cli for the org.ignorelint policy subtree (default: ./projectfile.*)") do |v|
+          @config_path = v
+        end
 
         parser.separator("")
         parser.separator("When no PATH is given, discovers supported *ignore files in the current directory.")
@@ -271,8 +361,11 @@ module Ignorelint
         parser.separator("Environment variables:")
         parser.separator("  IGNORELINT_VERBOSE=1       Same as --verbose")
         parser.separator("  IGNORELINT_FAIL_ON=LEVEL   Same as --fail-on (error|warn|info)")
+        parser.separator("  IGNORELINT_FORMAT=FORMAT   Same as --format")
+        parser.separator("  IGNORELINT_FIX=1           Same as --fix")
         parser.separator("  IGNORELINT_RECURSIVE=1     Same as --recursive")
         parser.separator("  IGNORELINT_DISABLED_RULES=CODES Same as --disabled-rules")
+        parser.separator("  IGNORELINT_CONFIG=PATH     Same as --config")
         parser.separator("  NO_COLOR=1                 Disable colored output")
 
         parser.unknown_args do |remaining|
@@ -588,14 +681,12 @@ module Ignorelint
       "%-#{SEVERITY_WIDTH}s" % "info:"
     end
 
-    # Check whether an environment variable is set to a truthy value.
+    # Check whether an environment value is truthy.
     #
-    # Falsy: unset, empty, or `"0"`, `"false"`, `"no"`, `"n"`, `"off"`
+    # Falsy: empty, or `"0"`, `"false"`, `"no"`, `"n"`, `"off"`
     # (case-insensitive, surrounding whitespace ignored).
-    private def env_true?(key : String) : Bool
-      val = ENV[key]?
-      return false if val.nil?
-      !{"", "0", "false", "no", "n", "off"}.includes?(val.strip.downcase)
+    private def env_bool?(value : String) : Bool
+      !{"", "0", "false", "no", "n", "off"}.includes?(value.strip.downcase)
     end
   end
 end
