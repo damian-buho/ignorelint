@@ -11,35 +11,35 @@ Every file goes through the same pipeline: universal checks, format-specific che
 
 ## Diagnostic codes
 
-| Code | Meaning | Autofix |
-|---|---|---|
-| IG-001 | Trailing whitespace | ✓ |
-| IG-002 | Unescaped hash | ✓ |
-| IG-003 | Double negation | ✓ |
-| IG-004 | Empty pattern | — |
-| IG-005 | Consecutive asterisks | — |
-| IG-006 | Malformed brackets | — |
-| IG-007 | Space in pattern | — |
-| IG-008 | Duplicate rule | ✓ |
-| IG-009 | Invalid doublestar | — |
-| IG-010 | Rooted shallow pattern | — |
-| IG-011 | Negated rooted pattern | — |
-| IG-012 | Redundant pair | — |
-| IG-013 | Negation unsupported | — |
-| IG-014 | Path traversal | — |
-| IG-015 | Slash has no effect | ✓ |
-| IG-016 | Doublestar unsupported | — |
-| IG-017 | Unrooted non-recursive pattern | — |
-| IG-018 | Redundant built-in exclude | ✓ |
-| IG-019 | Built-in include protected | — |
-| IG-020 | Path not found | — |
-| IG-021 | Dead glob rule | — |
-| IG-022 | Double slash | ✓ |
-| IG-023 | Unsorted rule | ✓ |
-| IG-024 | Leading whitespace | ✓ |
-| IG-025 | Case mismatch | — |
+| Code | Default severity | Meaning | Autofix |
+|---|---|---|---|
+| IG-001 | warn | Trailing whitespace | ✓ |
+| IG-002 | warn | Unescaped hash | ✓ |
+| IG-003 | error | Double negation | ✓ |
+| IG-004 | error | Empty pattern | — |
+| IG-005 | error | Consecutive asterisks | — |
+| IG-006 | error | Malformed brackets | — |
+| IG-007 | warn | Space in pattern | — |
+| IG-008 | warn | Duplicate rule | ✓ |
+| IG-009 | error | Invalid doublestar | — |
+| IG-010 | warn | Rooted shallow pattern | — |
+| IG-011 | warn | Negated rooted pattern | — |
+| IG-012 | warn | Redundant pair | — |
+| IG-013 | error | Negation unsupported | — |
+| IG-014 | error | Path traversal | — |
+| IG-015 | info | Slash has no effect | ✓ |
+| IG-016 | warn | Doublestar unsupported | — |
+| IG-017 | warn | Unrooted non-recursive pattern | — |
+| IG-018 | info | Redundant built-in exclude | ✓ |
+| IG-019 | warn | Built-in include protected | — |
+| IG-020 | info | Path not found | — |
+| IG-021 | info | Dead glob rule | — |
+| IG-022 | warn | Double slash | ✓ |
+| IG-023 | info | Unsorted rule | ✓ |
+| IG-024 | warn | Leading whitespace | ✓ |
+| IG-025 | warn | Case mismatch | — |
 
-Severities are `error`, `warn`, and `info`; every code is emitted in all output formats.
+Severities are `error`, `warn`, and `info`; every code is emitted in all output formats. Any default can be changed for the whole run with `--error`, `--warning`, or `--info` (see [Severity overrides](cli.md#severity-overrides)).
 
 ## Autofix
 

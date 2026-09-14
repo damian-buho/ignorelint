@@ -68,6 +68,8 @@ module Ignorelint
     Code::CaseMismatch            => "IG-025",
   }
 
+  # Every known diagnostic tag in upper case, for override validation.
+  VALID_TAGS = CODE_TAG_MAP.values.to_set
   # Human-readable rule titles, e.g. for SARIF `shortDescription`.
   CODE_TITLE_MAP = {
     Code::TrailingWhitespace      => "Trailing whitespace",

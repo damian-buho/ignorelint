@@ -14,14 +14,19 @@ module Ignorelint
     property recursive : Bool?
     property verbose : Bool?
     property disabled : Set(String)?
+    property override_error : Set(String)?
+    property override_warning : Set(String)?
+    property override_info : Set(String)?
 
     def initialize(@fail_on = nil, @format = nil, @fix = nil,
-                   @recursive = nil, @verbose = nil, @disabled = nil)
+                   @recursive = nil, @verbose = nil, @disabled = nil,
+                   @override_error = nil, @override_warning = nil, @override_info = nil)
     end
 
     def empty? : Bool
       @fail_on.nil? && @format.nil? && @fix.nil? &&
-        @recursive.nil? && @verbose.nil? && @disabled.nil?
+        @recursive.nil? && @verbose.nil? && @disabled.nil? &&
+        @override_error.nil? && @override_warning.nil? && @override_info.nil?
     end
   end
 
@@ -96,6 +101,11 @@ module Ignorelint
         when "recursive"      then settings.recursive = parse_bool(value, document, err, name)
         when "verbose"        then settings.verbose = parse_bool(value, document, err, name)
         when "disabled-rules" then settings.disabled = parse_disabled(value, document, err)
+        when "override"
+          error, warning, info = parse_override(value, document, err)
+          settings.override_error = error
+          settings.override_warning = warning
+          settings.override_info = info
         else
           err << "warning: #{document}: unknown ignorelint policy key: #{name}\n"
         end
@@ -148,6 +158,46 @@ module Ignorelint
       end
       err << "warning: #{document}: ignoring disabled-rules value (expected a list of tags)\n"
       nil
+    end
+
+    # Reads the override map into the three severity buckets.
+    private def self.parse_override(value : JSON::Any, document : String, err : IO) : {Set(String)?, Set(String)?, Set(String)?}
+      error = nil
+      warning = nil
+      info = nil
+      unless hash = value.as_h?
+        err << "warning: #{document}: ignoring override value (expected a mapping)\n"
+        return {error, warning, info}
+      end
+      hash.each do |name, entries|
+        case name.tr("_", "-").downcase
+        when "error"
+          error = parse_override_list(entries, document, err, name)
+        when "warning", "warn"
+          warning = parse_override_list(entries, document, err, name)
+        when "info"
+          info = parse_override_list(entries, document, err, name)
+        else
+          err << "warning: #{document}: unknown override severity: #{name}\n"
+        end
+      end
+      {error, warning, info}
+    end
+
+    # Accepts a tag list or comma/space separated string; unknown tags warn.
+    private def self.parse_override_list(value : JSON::Any, document : String, err : IO, name : String) : Set(String)?
+      tags = if list = value.as_a?
+               list.map { |entry| entry.as_s? || entry.to_s }
+             elsif str = value.as_s?
+               str.split(/[\s,]+/)
+             else
+               err << "warning: #{document}: ignoring override.#{name} value (expected a list of tags)\n"
+               return
+             end
+      known = tags.map(&.strip.upcase).reject(&.empty?)
+      unknown = known.reject { |tag| VALID_TAGS.includes?(tag) }
+      unknown.each { |tag| err << "warning: #{document}: unknown override code: #{tag}\n" }
+      (known - unknown).to_set
     end
 
     # Reports an unreadable document; explicit files fail closed, discovered warn.

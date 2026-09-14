@@ -119,6 +119,55 @@ describe Ignorelint::ProjectfilePolicy do
       end
     end
 
+    it "reads the override map into severity buckets" do
+      with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
+        with_fake_path(%q(echo '{"override": {"error": ["IG-020"], "warning": ["ig-001"], "info": "IG-021, IG-023"}}')) do
+          err = IO::Memory.new
+          settings = Ignorelint::ProjectfilePolicy.fetch(doc, err, explicit: true).as(Ignorelint::PolicySettings)
+          err.to_s.should be_empty
+          settings.override_error.should eq(Set{"IG-020"})
+          settings.override_warning.should eq(Set{"IG-001"})
+          settings.override_info.should eq(Set{"IG-021", "IG-023"})
+        end
+      end
+    end
+
+    it "accepts warn as an alias of warning" do
+      with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
+        with_fake_path(%q(echo '{"override": {"warn": ["IG-001"]}}')) do
+          err = IO::Memory.new
+          settings = Ignorelint::ProjectfilePolicy.fetch(doc, err, explicit: true).as(Ignorelint::PolicySettings)
+          err.to_s.should be_empty
+          settings.override_warning.should eq(Set{"IG-001"})
+        end
+      end
+    end
+
+    it "warns on unknown override severities, codes, and bad shapes" do
+      with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
+        with_fake_path(%q(echo '{"override": {"critical": ["IG-001"], "error": ["BOGUS", "IG-020"], "info": 42}}')) do
+          err = IO::Memory.new
+          settings = Ignorelint::ProjectfilePolicy.fetch(doc, err, explicit: true).as(Ignorelint::PolicySettings)
+          err.to_s.should contain("unknown override severity: critical")
+          err.to_s.should contain("unknown override code: BOGUS")
+          err.to_s.should contain("ignoring override.info value")
+          settings.override_error.should eq(Set{"IG-020"})
+          settings.override_info.should be_nil
+        end
+      end
+    end
+
+    it "warns on a non-mapping override value" do
+      with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
+        with_fake_path(%q(echo '{"override": ["IG-001"]}')) do
+          err = IO::Memory.new
+          settings = Ignorelint::ProjectfilePolicy.fetch(doc, err, explicit: true).as(Ignorelint::PolicySettings)
+          err.to_s.should contain("ignoring override value")
+          settings.override_error.should be_nil
+        end
+      end
+    end
+
     it "treats null as an absent subtree without diagnostics" do
       with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
         with_fake_path(%q(echo 'null'; exit 1)) do

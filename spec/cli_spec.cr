@@ -618,6 +618,162 @@ describe Ignorelint::CLI do
     end
   end
 
+  describe "--error/--warning/--info severity overrides" do
+    it "promotes IG-020 to error so the default fail-on exits 1" do
+      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+        code, out, _ = run_cli(["--error=IG-020", path] of String)
+        code.should eq(1)
+        out.should contain("error:")
+        out.should contain("[IG-020]")
+      end
+    end
+
+    it "demotes IG-003 to info: still reported but exits 0" do
+      with_ignore_file("!!foo\n") do |path|
+        code, out, _ = run_cli(["--info=IG-003", path] of String)
+        code.should eq(0)
+        out.should contain("info:")
+        out.should contain("Double negation")
+      end
+    end
+
+    it "lets the last mention of a code win" do
+      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+        code, out, _ = run_cli(["--error=IG-020", "--warning=IG-020", path] of String)
+        code.should eq(0)
+        out.should contain("warn:")
+        code, out, _ = run_cli(["--warning=IG-020", "--error=IG-020", path] of String)
+        code.should eq(1)
+        out.should contain("error:")
+      end
+    end
+
+    it "takes comma/space separated tags case-insensitively and repeatably" do
+      with_ignore_file("!!foo\nnonexistent-dir-xyz/\n") do |path|
+        code, out, _ = run_cli(["--error=ig-020 ig-003", path] of String)
+        code.should eq(1)
+        out.should contain("[IG-020]")
+        out.should contain("[IG-003]")
+        code, _, _ = run_cli(["--error=IG-020", "--error=IG-003", path] of String)
+        code.should eq(1)
+      end
+    end
+
+    it "warns on unknown codes without exiting 2" do
+      with_ignore_file("!!foo\n") do |path|
+        code, out, err = run_cli(["--error=BOGUS", path] of String)
+        code.should eq(1)
+        err.should contain("unknown severity override code: BOGUS")
+        out.should contain("Double negation")
+      end
+    end
+
+    it "reads IGNORELINT_OVERRIDE_ERROR" do
+      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+        with_env("IGNORELINT_OVERRIDE_ERROR", "IG-020") do
+          code, out, _ = run_cli([path] of String)
+          code.should eq(1)
+          out.should contain("error:")
+        end
+      end
+    end
+
+    it "reads IGNORELINT_OVERRIDE_WARNING and IGNORELINT_OVERRIDE_INFO" do
+      with_ignore_file("!!foo\n") do |path|
+        with_env("IGNORELINT_OVERRIDE_WARNING", "IG-003") do
+          code, out, _ = run_cli([path] of String)
+          code.should eq(0)
+          out.should contain("warn:")
+        end
+        with_env("IGNORELINT_OVERRIDE_INFO", "ig-003") do
+          code, out, _ = run_cli([path] of String)
+          code.should eq(0)
+          out.should contain("info:")
+        end
+      end
+    end
+
+    it "prefers the flag over the environment per code" do
+      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+        with_env("IGNORELINT_OVERRIDE_ERROR", "IG-020") do
+          code, out, _ = run_cli(["--info=IG-020", path] of String)
+          code.should eq(0)
+          out.should contain("info:")
+        end
+      end
+    end
+
+    it "warns on unknown env codes without exiting 2" do
+      with_ignore_file("!!foo\n") do |path|
+        with_env("IGNORELINT_OVERRIDE_ERROR", "BOGUS") do
+          code, out, err = run_cli([path] of String)
+          code.should eq(1)
+          err.should contain("unknown severity override code: BOGUS")
+          out.should contain("Double negation")
+        end
+      end
+    end
+
+    it "applies the projectfile override map" do
+      with_fake_cli(%q(echo '{"override": {"error": ["IG-020"]}}')) do
+        with_policy_dir("nonexistent-dir-xyz/\n") do
+          code, out, _ = run_cli([".gitignore"] of String)
+          code.should eq(1)
+          out.should contain("error:")
+        end
+      end
+    end
+
+    it "prefers the env over the projectfile per code" do
+      with_fake_cli(%q(echo '{"override": {"error": ["IG-020"]}}')) do
+        with_policy_dir("nonexistent-dir-xyz/\n") do
+          with_env("IGNORELINT_OVERRIDE_INFO", "IG-020") do
+            code, out, _ = run_cli([".gitignore"] of String)
+            code.should eq(0)
+            out.should contain("info:")
+          end
+        end
+      end
+    end
+
+    it "prefers the flag over the projectfile" do
+      with_fake_cli(%q(echo '{"override": {"error": ["IG-020"]}}')) do
+        with_policy_dir("nonexistent-dir-xyz/\n") do
+          code, out, _ = run_cli(["--info=IG-020", ".gitignore"] of String)
+          code.should eq(0)
+          out.should contain("info:")
+        end
+      end
+    end
+
+    it "renders the overridden severity in every output format" do
+      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+        _, out, _ = run_cli(["--error=IG-020", "--format=json", path] of String)
+        out.should contain("\"severity\": \"error\"")
+        _, out, _ = run_cli(["--error=IG-020", "--format=checkstyle", path] of String)
+        out.should contain("severity=\"error\"")
+        _, out, _ = run_cli(["--error=IG-020", "--format=sarif", path] of String)
+        out.should contain("\"level\": \"error\"")
+      end
+      with_ignore_file("!!foo\n") do |path|
+        _, out, _ = run_cli(["--info=IG-003", "--format=json", path] of String)
+        out.should contain("\"severity\": \"info\"")
+        _, out, _ = run_cli(["--info=IG-003", "--format=checkstyle", path] of String)
+        out.should contain("severity=\"info\"")
+        _, out, _ = run_cli(["--info=IG-003", "--format=sarif", path] of String)
+        out.should contain("\"level\": \"note\"")
+      end
+    end
+
+    it "renders the overridden severity in human output" do
+      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+        _, out, _ = run_cli(["--error=IG-020", path] of String)
+        out.should contain("error:")
+        out.should contain("[IG-020]")
+      end
+    end
+  end
+
   describe ".color_enabled?" do
     it "is false without a TTY" do
       with_env("NO_COLOR", nil) do

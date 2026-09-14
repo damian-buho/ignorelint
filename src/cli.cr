@@ -116,6 +116,12 @@ module Ignorelint
     # True once `--disabled-rules` was passed explicitly (env must not override it).
     @disabled_set : Bool = false
 
+    # Per-code severity set via flags; merged last so flags beat env and file.
+    @flag_overrides : Hash(String, Severity)
+
+    # Effective per-code severity after merging file, env, then flags.
+    @overrides : Hash(String, Severity)
+
     # Whether `--verbose` was requested (show file discovery output).
     @verbose : Bool
 
@@ -150,6 +156,8 @@ module Ignorelint
       @stdin_file = nil
       @config_path = nil
       @disabled = Set(String).new
+      @flag_overrides = {} of String => Severity
+      @overrides = {} of String => Severity
     end
 
     # Main execution: parse flags, discover files, lint, format.
@@ -240,11 +248,25 @@ module Ignorelint
       adopt_unset(@recursive_set, policy.recursive) { |recursive| @recursive = recursive }
       adopt_unset(@verbose_set, policy.verbose) { |verbose| @verbose = verbose }
       adopt_unset(@disabled_set, policy.disabled) { |disabled| @disabled = disabled }
+      apply_config_overrides(policy)
     end
 
     # Assigns a projectfile value to an option no explicit flag claimed.
     private def adopt_unset(was_set : Bool, value : T?, & : T -> Nil) : Nil forall T
       yield value unless was_set || value.nil?
+    end
+
+    # Merges the config override buckets; info applied last wins on duplicates.
+    private def apply_config_overrides(policy : PolicySettings) : Nil
+      if tags = policy.override_error
+        tags.each { |tag| @overrides[tag] = Severity::Error }
+      end
+      if tags = policy.override_warning
+        tags.each { |tag| @overrides[tag] = Severity::Warn }
+      end
+      if tags = policy.override_info
+        tags.each { |tag| @overrides[tag] = Severity::Info }
+      end
     end
 
     # Apply environment variable overrides for options not set via CLI flags.
@@ -275,6 +297,10 @@ module Ignorelint
       if env_val = ENV["IGNORELINT_DISABLED_RULES"]?
         @disabled = parse_disabled_rules(env_val) unless @disabled_set
       end
+      apply_env_override("IGNORELINT_OVERRIDE_ERROR", Severity::Error)
+      apply_env_override("IGNORELINT_OVERRIDE_WARNING", Severity::Warn)
+      apply_env_override("IGNORELINT_OVERRIDE_INFO", Severity::Info)
+      @overrides.merge!(@flag_overrides)
       0
     end
 
@@ -287,7 +313,49 @@ module Ignorelint
 
     # Splits comma/space-separated rule tags, normalized for comparison.
     private def parse_disabled_rules(value : String) : Set(String)
-      value.split(/[\s,]+/).map(&.strip.upcase).reject(&.empty?).to_set
+      split_tags(value).to_set
+    end
+
+    # Splits comma/space-separated tags into normalized upper-case codes.
+    private def split_tags(value : String) : Array(String)
+      value.split(/[\s,]+/).map(&.strip.upcase).reject(&.empty?)
+    end
+
+    # Records one env override bucket; unknown codes warn and match nothing.
+    private def apply_env_override(key : String, severity : Severity) : Nil
+      raw = ENV[key]?
+      return if raw.nil?
+      split_tags(raw).each do |tag|
+        unless VALID_TAGS.includes?(tag)
+          @err << "warning: unknown severity override code: #{tag}\n"
+          next
+        end
+        @overrides[tag] = severity
+      end
+    end
+
+    # Records one flag override bucket; last mention of a code wins.
+    private def assign_flag_override(value : String, severity : Severity) : Nil
+      split_tags(value).each do |tag|
+        unless VALID_TAGS.includes?(tag)
+          @err << "warning: unknown severity override code: #{tag}\n"
+          next
+        end
+        @flag_overrides[tag] = severity
+      end
+    end
+
+    # Rewrites issue severities from the merged override map.
+    private def with_overrides(result : LintResult) : LintResult
+      return result if @overrides.empty?
+      issues = result.issues.map do |issue|
+        if severity = @overrides[issue.code.tag]?
+          Issue.new(issue.line, issue.message, severity, issue.code)
+        else
+          issue
+        end
+      end
+      LintResult.new(issues: issues, patterns: result.patterns)
     end
 
     # Drops disabled-rule issues; patterns are kept for downstream fixing.
@@ -350,6 +418,15 @@ module Ignorelint
           parse_disabled_rules(v).each { |tag| @disabled << tag }
           @disabled_set = true
         end
+        parser.on("--error=CODES", "Promote rules to error severity (comma-separated tags, e.g. IG-020)") do |v|
+          assign_flag_override(v, Severity::Error)
+        end
+        parser.on("--warning=CODES", "Set rules to warning severity (comma-separated tags)") do |v|
+          assign_flag_override(v, Severity::Warn)
+        end
+        parser.on("--info=CODES", "Demote rules to info severity (comma-separated tags)") do |v|
+          assign_flag_override(v, Severity::Info)
+        end
         parser.on("--config=PATH", "Projectfile read via pf-cli for the org.ignorelint policy subtree (default: ./projectfile.*)") do |v|
           @config_path = v
         end
@@ -365,6 +442,9 @@ module Ignorelint
         parser.separator("  IGNORELINT_FIX=1           Same as --fix")
         parser.separator("  IGNORELINT_RECURSIVE=1     Same as --recursive")
         parser.separator("  IGNORELINT_DISABLED_RULES=CODES Same as --disabled-rules")
+        parser.separator("  IGNORELINT_OVERRIDE_ERROR=CODES Same as --error")
+        parser.separator("  IGNORELINT_OVERRIDE_WARNING=CODES Same as --warning")
+        parser.separator("  IGNORELINT_OVERRIDE_INFO=CODES Same as --info")
         parser.separator("  IGNORELINT_CONFIG=PATH     Same as --config")
         parser.separator("  NO_COLOR=1                 Disable colored output")
 
@@ -446,6 +526,7 @@ module Ignorelint
       content = read_input(input)
       result = Linter.lint(name, content)
       result = without_disabled(result)
+      result = with_overrides(result)
       if @fix
         content_lines = content.lines(chomp: false)
         fixes, sort_fix = result.collect_fixes(content_lines)
@@ -489,6 +570,7 @@ module Ignorelint
       content = File.read(path)
       result = Linter.lint(path, content)
       result = without_disabled(result)
+      result = with_overrides(result)
       result = handle_fixes(path, content, result) if @fix || @diff
 
       {should_fail?(result) ? 1 : 0, FileResult.new(path, result.issues)}

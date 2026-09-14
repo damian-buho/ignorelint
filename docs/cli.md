@@ -23,6 +23,7 @@ Synopsis: `ignorelint [OPTIONS] [PATH…]`. With no paths, known ignore files ar
 | `--stdin` | off | Lint piped content instead of files (requires `--file`) |
 | `--file=NAME` | — | Filename for `--stdin` input; drives format detection and display |
 | `--disabled-rules=CODES` | — | Skip rules entirely; comma-separated tags like `IG-001,IG-020` |
+| `--error=CODES`, `--warning=CODES`, `--info=CODES` | — | Promote or demote listed rules to that severity; repeatable, last mention wins (see [Severity overrides](#severity-overrides)) |
 | `--config=PATH` | `./projectfile.*` | Projectfile read via pf-cli for the `org.ignorelint` policy subtree (see [Configuration](#configuration)) |
 
 ## Configuration
@@ -39,15 +40,29 @@ org:
     verbose: false           # print the discovery report
     disabled-rules:          # skip these codes for the whole run
       - IG-020
+    override:                # per-rule severity, applied before --fail-on
+      error: [IG-020]
+      warning: [IG-001]
+      info: [IG-003]
 ```
 
-`disabled-rules` also accepts one comma-separated string, and `fail_on` / `disabled_rules` spellings work. Unknown keys warn instead of failing, so newer policy never breaks older binaries. Without `pf-cli` on `PATH`, an info notice is printed and only flags plus environment apply — the run never fails for a missing reader.
+`disabled-rules` also accepts one comma-separated string, and `fail_on` / `disabled_rules` spellings work. `override` buckets accept a list or one comma-separated string each, and `warn` works as an alias of `warning`. Unknown keys warn instead of failing, so newer policy never breaks older binaries. Without `pf-cli` on `PATH`, an info notice is printed and only flags plus environment apply — the run never fails for a missing reader.
 
-Precedence is explicit flags, then environment, then the projectfile subtree, then built-in defaults. `--disabled-rules` on the command line replaces the file list entirely. Every option is available on all three planes except `--diff`, which stays per-invocation by design.
+Precedence is explicit flags, then environment, then the projectfile subtree, then built-in defaults. `--disabled-rules` on the command line replaces the file list entirely. Overrides merge per code — a flag beats the environment for that code, the environment beats the file — so mixed planes compose instead of colliding. Every option is available on all three planes except `--diff`, which stays per-invocation by design.
+
+## Severity overrides
+
+Each rule has a [default severity](rules.md); overrides change it for the whole run before `--fail-on` is evaluated and before rendering, so the new severity shows in every output format. Tags are case-insensitive and comma- or space-separated; flags are repeatable and the last mention of a code wins. Unknown codes match nothing and produce a standard-error warning — a typo never silently greens a build, and never breaks it with exit `2` either.
+
+```sh
+ignorelint --error=IG-020            # a dead literal now fails the default --fail-on=error
+ignorelint --info=IG-003             # double negation still reported, no longer failing
+IGNORELINT_OVERRIDE_WARNING=IG-001 ignorelint
+```
 
 ## Environment
 
-`IGNORELINT_VERBOSE`, `IGNORELINT_FAIL_ON`, `IGNORELINT_FORMAT`, `IGNORELINT_FIX`, `IGNORELINT_RECURSIVE`, `IGNORELINT_DISABLED_RULES`, and `IGNORELINT_CONFIG` mirror their flags for CI systems that set policy once. Explicit flags always win over environment, which wins over the [projectfile subtree](#configuration). `IGNORELINT_VERBOSE`, `IGNORELINT_RECURSIVE`, and `IGNORELINT_FIX` accept `1`/`true`-style values; `0`, `false`, `no`, `n`, and `off` disable. Disabled rules take comma-separated tags (`IG-001,IG-020`, case-insensitive); unknown codes match nothing. `NO_COLOR` disables colour following the no-color.org convention; colour also requires a terminal.
+`IGNORELINT_VERBOSE`, `IGNORELINT_FAIL_ON`, `IGNORELINT_FORMAT`, `IGNORELINT_FIX`, `IGNORELINT_RECURSIVE`, `IGNORELINT_DISABLED_RULES`, `IGNORELINT_OVERRIDE_ERROR`, `IGNORELINT_OVERRIDE_WARNING`, `IGNORELINT_OVERRIDE_INFO`, and `IGNORELINT_CONFIG` mirror their flags for CI systems that set policy once. Explicit flags always win over environment, which wins over the [projectfile subtree](#configuration). `IGNORELINT_VERBOSE`, `IGNORELINT_RECURSIVE`, and `IGNORELINT_FIX` accept `1`/`true`-style values; `0`, `false`, `no`, `n`, and `off` disable. Disabled rules take comma-separated tags (`IG-001,IG-020`, case-insensitive); unknown codes match nothing. `NO_COLOR` disables colour following the no-color.org convention; colour also requires a terminal.
 
 ## Discovery
 
