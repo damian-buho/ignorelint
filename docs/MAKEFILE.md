@@ -917,7 +917,7 @@ Check ignore files for issues
 
 `ignorelint`
 
-> Image: D9T_IGNORELINT_IMAGE
+> Image: IGNORELINT_IMAGE
 
 ### `ignorelint-fix`
 
@@ -925,7 +925,7 @@ Autofix ignore-file issues
 
 `ignorelint --fix`
 
-> Image: D9T_IGNORELINT_IMAGE
+> Image: IGNORELINT_IMAGE
 
 ### `leasot`
 
