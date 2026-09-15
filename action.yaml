@@ -1,0 +1,163 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+name: 'Ignorelint'
+description: 'Lint gitignore, dockerignore and 20+ other ignore files'
+author: 'Damián Búho'
+branding:
+  icon: shield
+  color: green
+inputs:
+  paths:
+    description: 'Newline-separated ignore files to lint. Empty enables auto-discovery.'
+    required: false
+    default: ''
+  recursive:
+    description: 'Search subdirectories for ignore files (skips hidden dirs, node_modules, symlinks).'
+    required: false
+    default: 'false'
+  config_file:
+    description: 'Projectfile path read via pf-cli for the org.ignorelint policy subtree.'
+    required: false
+    default: ''
+  fail_on:
+    description: 'Severity threshold that fails the job: none | error | warn | info'
+    required: false
+    default: 'error'
+  fix:
+    description: 'Auto-fix deterministically fixable issues (workspace will be modified).'
+    required: false
+    default: 'false'
+  disabled_rules:
+    description: 'Comma-separated rule tags to skip entirely (e.g. IG-001,IG-020).'
+    required: false
+    default: ''
+  error:
+    description: 'Comma-separated rule tags to promote to error severity.'
+    required: false
+    default: ''
+  warning:
+    description: 'Comma-separated rule tags to set to warning severity.'
+    required: false
+    default: ''
+  info:
+    description: 'Comma-separated rule tags to demote to info severity.'
+    required: false
+    default: ''
+  sarif:
+    description: 'Also emit SARIF for github/codeql-action/upload-sarif.'
+    required: false
+    default: 'false'
+  comment:
+    description: 'Post the human report as a sticky comment on the triggering pull request.'
+    required: false
+    default: 'false'
+  version:
+    description: 'Image tag to pull (e.g. latest, 1.2.3).'
+    required: false
+    default: 'latest'
+  image:
+    description: 'Override the full image reference. Takes precedence over `version`.'
+    required: false
+    default: ''
+  github_token:
+    description: 'Token used to post PR comments. Defaults to the workflow github.token when empty.'
+    required: false
+    default: ''
+outputs:
+  result:
+    description: 'pass | fail (after applying fail_on threshold)'
+    value: ${{ steps.summary.outputs.result }}
+  errors:
+    description: 'Count of error-severity issues'
+    value: ${{ steps.summary.outputs.errors }}
+  warnings:
+    description: 'Count of warning-severity issues'
+    value: ${{ steps.summary.outputs.warnings }}
+  infos:
+    description: 'Count of info-severity issues'
+    value: ${{ steps.summary.outputs.infos }}
+  fixed:
+    description: 'Count of issues auto-fixed in this run (0 unless fix is true)'
+    value: ${{ steps.summary.outputs.fixed }}
+  total:
+    description: 'Total issue count across all severities'
+    value: ${{ steps.summary.outputs.total }}
+  report_path:
+    description: 'Path on the runner to the generated human-readable report'
+    value: ${{ steps.lint.outputs.report_path }}
+  sarif_path:
+    description: 'Path on the runner to the generated SARIF report (empty unless sarif is true)'
+    value: ${{ steps.lint.outputs.sarif_path }}
+runs:
+  using: composite
+  steps:
+    - name: Resolve image reference
+      id: image
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        IMAGE_OVERRIDE: ${{ inputs.image }}
+      run: ${{ github.action_path }}/.scripts/action/resolve-image.sh
+    - name: Pull image
+      shell: bash
+      env:
+        IMAGE: ${{ steps.image.outputs.ref }}
+      run: ${{ github.action_path }}/.scripts/action/pull-image.sh
+    - name: Lint
+      id: lint
+      shell: bash
+      env:
+        IMAGE: ${{ steps.image.outputs.ref }}
+        PATHS: ${{ inputs.paths }}
+        RECURSIVE: ${{ inputs.recursive }}
+        CONFIG_FILE: ${{ inputs.config_file }}
+        FIX: ${{ inputs.fix }}
+        DISABLED_RULES: ${{ inputs.disabled_rules }}
+        OVERRIDE_ERROR: ${{ inputs.error }}
+        OVERRIDE_WARNING: ${{ inputs.warning }}
+        OVERRIDE_INFO: ${{ inputs.info }}
+        EMIT_SARIF: ${{ inputs.sarif }}
+      run: ${{ github.action_path }}/.scripts/action/lint.sh
+    - name: Summarize
+      id: summary
+      shell: bash
+      env:
+        REPORT_JSON: ${{ steps.lint.outputs.report_json }}
+        REPORT_HUMAN: ${{ steps.lint.outputs.report_path }}
+        FAIL_ON: ${{ inputs.fail_on }}
+      run: ${{ github.action_path }}/.scripts/action/summarize.sh
+    - name: Post sticky PR comment
+      if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      env:
+        REPORT_MD: ${{ steps.lint.outputs.report_path }}
+        RESULT: ${{ steps.summary.outputs.result }}
+      with:
+        github-token: ${{ inputs.github_token || github.token }}
+        script: |
+          const fs = require('fs');
+          const marker = '<!-- ignorelint-action-comment -->';
+          const report = fs.readFileSync(process.env.REPORT_MD, 'utf8');
+          const clean = report.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+          const body = `${marker}\n## Ignorelint — ${process.env.RESULT}\n\n` +
+            (clean.trim()
+              ? `\`\`\`\n${clean.trim()}\n\`\`\``
+              : '_No issues reported._');
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+          const comments = await github.paginate(github.rest.issues.listComments, {
+            owner, repo, issue_number, per_page: 100,
+          });
+          const existing = comments.find(c => c.body && c.body.includes(marker));
+          if (existing) {
+            await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+          } else {
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
+          }
+    - name: Apply fail_on threshold
+      shell: bash
+      env:
+        FAIL: ${{ steps.summary.outputs.fail }}
+        FAIL_ON: ${{ inputs.fail_on }}
+      run: ${{ github.action_path }}/.scripts/action/apply-threshold.sh
