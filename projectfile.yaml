@@ -86,6 +86,7 @@ org:
             axes:
               TARGET_ARCH:
                 - amd64
+                - arm64
               TARGET_OS:
                 - linux
         binaries-are-released:
@@ -93,6 +94,7 @@ org:
             axes:
               TARGET_ARCH:
                 - amd64
+                - arm64
               TARGET_OS:
                 - linux
     image:

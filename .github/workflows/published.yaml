@@ -64,11 +64,16 @@ jobs:
     steps:
       - run: echo artifacts-are-ok
   binaries-are-built:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.M6E_RUNNER }}
     strategy:
       matrix:
-        TARGET_ARCH: ["amd64"]
+        TARGET_ARCH: ["amd64", "arm64"]
         TARGET_OS: ["linux"]
+        include:
+          - TARGET_ARCH: "amd64"
+            M6E_RUNNER: "ubuntu-latest"
+          - TARGET_ARCH: "arm64"
+            M6E_RUNNER: "ubuntu-24.04-arm"
     env:
       TARGET_ARCH: ${{ matrix.TARGET_ARCH }}
       TARGET_OS: ${{ matrix.TARGET_OS }}
@@ -89,6 +94,7 @@ jobs:
         with:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
+          platform: ${{ matrix.TARGET_ARCH }}
           run: .makefile/library/scripts/crystal-build.sh ignorelint
           env: |-
             TARGET_ARCH=${{ matrix.TARGET_ARCH }}
@@ -120,7 +126,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
-        TARGET_ARCH: ["amd64"]
+        TARGET_ARCH: ["amd64", "arm64"]
         TARGET_OS: ["linux"]
     env:
       TARGET_ARCH: ${{ matrix.TARGET_ARCH }}
@@ -293,6 +299,10 @@ jobs:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: crystal-build-amd64-linux-${{ github.run_id }}
+          path: dist
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: crystal-build-arm64-linux-${{ github.run_id }}
           path: dist
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
