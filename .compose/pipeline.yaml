@@ -2,9 +2,9 @@
 #
 # SPDX-License-Identifier: MIT
 ---
-name: dev-d9t-ignorelint
+name: ${M6E_COMPOSE_PROJECT_NAME}
 services:
-  d9t-ignorelint:
+  ignorelint:
     container_name: ${M6E_CONTAINER_INSTANCE}
     image: ${M6E_IMAGE_FULLNAME}
     # Preset: large (2.0c, 4g) — CI build/test container. Bounded so it can't starve the shared host.
@@ -14,10 +14,10 @@ services:
           cpus: "2.0"
           memory: 4g
     networks:
-      - dev-d9t-network
+      - dev-network
     environment:
       - LANG
       - TZ
 networks:
-  dev-d9t-network:
-    name: dev-d9t-network
+  dev-network:
+    name: ${M6E_COMPOSE_PROJECT_NAME}-network

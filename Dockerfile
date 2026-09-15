@@ -6,7 +6,7 @@ ARG B19_CRYSTAL_BASE_IMAGE=registry.invalid/b19/crystal:latest
 ARG B19_UBUNTU_BASE_IMAGE=registry.invalid/b19/ubuntu/resolute:latest
 ARG B19_UBUNTU_SERIES=resolute
 
-FROM ${B19_CRYSTAL_BASE_IMAGE} AS d9t-ignorelint-builder
+FROM ${B19_CRYSTAL_BASE_IMAGE} AS ignorelint-builder
 
 ARG B19_COLOR
 ARG B19_FETCH_DOCKER_CACHE
@@ -44,7 +44,7 @@ RUN --mount=type=bind,from=fetch,source=.,target=/fetch                         
 # hadolint ignore=DL3066 # B19_UID comes from the root
 USER ${B19_UID}
 
-FROM ${B19_UBUNTU_BASE_IMAGE} AS d9t-ignorelint
+FROM ${B19_UBUNTU_BASE_IMAGE} AS ignorelint
 
 ARG B19_COLOR
 ARG B19_FETCH_DOCKER_CACHE
@@ -63,7 +63,7 @@ ARG M6E_VERSION
 ARG TARGETARCH
 
 COPY --chown=${B19_UID}:${B19_GID} .container/base/ /
-COPY --from=d9t-ignorelint-builder /export /
+COPY --from=ignorelint-builder /export /
 
 USER 0
 

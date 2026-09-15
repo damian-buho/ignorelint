@@ -88,7 +88,7 @@ module Ignorelint
                       json.object do
                         json.field "name", "ignorelint"
                         json.field "version", VERSION
-                        json.field "informationUri", "https://github.com/damian-buho/d9t-ignorelint"
+                        json.field "informationUri", "https://github.com/damian-buho/ignorelint"
                         json.field "rules" do
                           json.array do
                             rules.each_value do |rule|
