@@ -54,22 +54,22 @@ Pin an exact tag for reproducible runs.
 
 ## Inputs
 
-| Name             | Default        | Description                                                                          |
-| ---------------- | -------------- | ------------------------------------------------------------------------------------ |
-| `paths`          | *(empty)*      | Newline-separated ignore files to lint. Empty enables auto-discovery.                |
-| `recursive`      | `false`        | Search subdirectories for ignore files.                                              |
-| `config_file`    | *(empty)*      | Projectfile path for the `org.ignorelint` policy subtree (read via `--config`).      |
-| `fail_on`        | `error`        | Severity threshold that fails the job: `none`, `error`, `warn`, or `info`.           |
-| `fix`            | `false`        | Auto-fix deterministically fixable issues. The workspace will be modified.           |
-| `disabled_rules` | *(empty)*      | Comma-separated rule tags to skip entirely (e.g. `IG-001,IG-020`).                   |
-| `error`          | *(empty)*      | Comma-separated rule tags to promote to error severity.                              |
-| `warning`        | *(empty)*      | Comma-separated rule tags to set to warning severity.                                |
-| `info`           | *(empty)*      | Comma-separated rule tags to demote to info severity.                                |
-| `sarif`          | `false`        | Also emit a SARIF report for `github/codeql-action/upload-sarif`.                    |
-| `comment`        | `false`        | Post the human report as a sticky comment on the triggering pull request.            |
-| `version`        | `latest`       | Image tag to pull (e.g. `latest`, `1.2.3`). Ignored when `image` is set.             |
+| Name             | Default        | Description                                                                               |
+| ---------------- | -------------- | ----------------------------------------------------------------------------------------- |
+| `paths`          | *(empty)*      | Newline-separated ignore files to lint. Empty enables auto-discovery.                     |
+| `recursive`      | `false`        | Search subdirectories for ignore files.                                                   |
+| `config_file`    | *(empty)*      | Projectfile path for the `org.ignorelint` policy subtree (read via `--config`).           |
+| `fail_on`        | `error`        | Severity threshold that fails the job: `none`, `error`, `warn`, or `info`.                |
+| `fix`            | `false`        | Autofix deterministically fixable issues. The workspace will be modified.                 |
+| `disabled_rules` | *(empty)*      | Comma-separated rule tags to skip entirely (e.g. `IG-001,IG-020`).                        |
+| `error`          | *(empty)*      | Comma-separated rule tags to promote to error severity.                                   |
+| `warning`        | *(empty)*      | Comma-separated rule tags to set to warning severity.                                     |
+| `info`           | *(empty)*      | Comma-separated rule tags to demote to info severity.                                     |
+| `sarif`          | `false`        | Also emit a SARIF report for `github/codeql-action/upload-sarif`.                         |
+| `comment`        | `false`        | Post the human report as a sticky comment on the triggering pull request.                 |
+| `version`        | `latest`       | Image tag to pull (e.g. `latest`, `1.2.3`). Ignored when `image` is set.                  |
 | `image`          | *(empty)*      | Full image reference override (e.g. for testing a locally-built image). Takes precedence. |
-| `github_token`   | `github.token` | Token used to post PR comments. The default uses the workflow token.                 |
+| `github_token`   | `github.token` | Token used to post PR comments. The default uses the workflow token.                      |
 
 Policy precedence inside the run is flags (these inputs), then
 environment, then the projectfile subtree, then built-in defaults.
@@ -79,15 +79,15 @@ info notice.
 
 ## Outputs
 
-| Name          | Description                                                        |
-| ------------- | ------------------------------------------------------------------ |
-| `result`      | `pass` or `fail` after applying the `fail_on` rule.                |
-| `errors`      | Count of error-severity issues.                                    |
-| `warnings`    | Count of warning-severity issues.                                  |
-| `infos`       | Count of info-severity issues.                                     |
-| `fixed`       | Count of auto-fixed issues (`0` unless `fix: true`).               |
-| `total`       | Total issue count across all severities.                           |
-| `report_path` | Path on the runner to the generated human-readable report.         |
+| Name          | Description                                                          |
+| ------------- | -------------------------------------------------------------------- |
+| `result`      | `pass` or `fail` after applying the `fail_on` rule.                  |
+| `errors`      | Count of error-severity issues.                                      |
+| `warnings`    | Count of warning-severity issues.                                    |
+| `infos`       | Count of info-severity issues.                                       |
+| `fixed`       | Count of auto-fixed issues (`0` unless `fix: true`).                 |
+| `total`       | Total issue count across all severities.                             |
+| `report_path` | Path on the runner to the generated human-readable report.           |
 | `sarif_path`  | Path on the runner to the SARIF report (empty unless `sarif: true`). |
 
 ## Common recipes
@@ -180,11 +180,11 @@ the report still renders to the Actions run summary.
 
 ## Permissions
 
-| Permission             | Required when                          |
-| ---------------------- | -------------------------------------- |
-| `contents: read`       | Always (for `actions/checkout`).       |
-| `pull-requests: write` | `comment: true` on a `pull_request`.   |
-| `security-events: write` | Uploading SARIF to code scanning.    |
+| Permission               | Required when                          |
+| ------------------------ | -------------------------------------- |
+| `contents: read`         | Always (for `actions/checkout`).       |
+| `pull-requests: write`   | `comment: true` on a `pull_request`.   |
+| `security-events: write` | Uploading SARIF to code scanning.      |
 
 ## Reporting
 
@@ -207,6 +207,6 @@ errors, `warning` for warnings, `notice` for infos).
 ## Development
 
 Step logic lives in [`.scripts/action/`](.scripts/action/) (one script per
-step, invoked via `github.action_path`) and is covered by the repo
+step, invoked via `github.action_path`) and is covered by the repository
 `auto-shellcheck` gate — `action.yaml` itself holds only inputs, outputs
 and step wiring.
