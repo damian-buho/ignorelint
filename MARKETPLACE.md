@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: damian-buho/ignorelint@1.2.3
+      - uses: damian-buho/ignorelint@1.3.0
         with:
           recursive: true
           comment:   ${{ github.event_name == 'pull_request' }}
@@ -47,7 +47,7 @@ working directory; `recursive: true` walks the whole tree instead
 
 | Ref       | Selects               | Recommended for             |
 | --------- | --------------------- | --------------------------- |
-| `@1.2.3`  | Exact release         | All consumers               |
+| `@1.3.0`  | Exact release         | All consumers               |
 | `@main`   | Bleeding edge         | Not recommended             |
 
 Pin an exact tag for reproducible runs.
@@ -95,7 +95,7 @@ info notice.
 ### Lint specific files only
 
 ```yaml
-- uses: damian-buho/ignorelint@1.2.3
+- uses: damian-buho/ignorelint@1.3.0
   with:
     paths: |
       .gitignore
@@ -105,7 +105,7 @@ info notice.
 ### Monorepo sweep, warnings fail the job
 
 ```yaml
-- uses: damian-buho/ignorelint@1.2.3
+- uses: damian-buho/ignorelint@1.3.0
   with:
     recursive: true
     fail_on:   warn
@@ -114,7 +114,7 @@ info notice.
 ### Autofix and commit the result back
 
 ```yaml
-- uses: damian-buho/ignorelint@1.2.3
+- uses: damian-buho/ignorelint@1.3.0
   with:
     recursive: true
     fix:       true
@@ -130,7 +130,7 @@ the post-fix workspace.
 ### Code scanning alerts via SARIF
 
 ```yaml
-- uses: damian-buho/ignorelint@1.2.3
+- uses: damian-buho/ignorelint@1.3.0
   id: ignorelint
   with:
     recursive: true
@@ -143,7 +143,7 @@ the post-fix workspace.
 ### Sticky PR comment on every pull request
 
 ```yaml
-- uses: damian-buho/ignorelint@1.2.3
+- uses: damian-buho/ignorelint@1.3.0
   with:
     recursive: true
     comment:   ${{ github.event_name == 'pull_request' }}
@@ -156,7 +156,7 @@ the report still renders to the Actions run summary.
 ### Warn-only (advisory mode)
 
 ```yaml
-- uses: damian-buho/ignorelint@1.2.3
+- uses: damian-buho/ignorelint@1.3.0
   with:
     fail_on: none  # or `warn` to fail on warnings + errors, `info` for everything
 ```
@@ -164,7 +164,7 @@ the report still renders to the Actions run summary.
 ### Tune rule severities without a projectfile
 
 ```yaml
-- uses: damian-buho/ignorelint@1.2.3
+- uses: damian-buho/ignorelint@1.3.0
   with:
     error:          IG-020
     disabled_rules: IG-003
@@ -173,7 +173,7 @@ the report still renders to the Actions run summary.
 ### Pin a specific image, e.g. for an air-gapped runner
 
 ```yaml
-- uses: damian-buho/ignorelint@1.2.3
+- uses: damian-buho/ignorelint@1.3.0
   with:
     image: my-registry.internal/ignorelint:1.2.3
 ```
