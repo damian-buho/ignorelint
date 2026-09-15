@@ -146,10 +146,14 @@ jobs:
   container-is-verified:
     runs-on: ubuntu-latest
     needs: ["container-ready-to-test"]
+    strategy:
+      matrix:
+        M6E_ARCH: ["amd64"]
     env:
-      M6E_IMAGE_FULLNAME: damian-buho/ignorelint:${{ vars.BASE_IMAGE_DEFAULT_VERSION || 'latest' }}-${{ github.run_id }}
-      M6E_COMPOSE_PROJECT_NAME: ci-damian-buho-ignorelint-${{ github.run_id }}-${{ github.run_attempt }}
-      M6E_CONTAINER_INSTANCE: ci-damian-buho-ignorelint-${{ github.run_id }}-${{ github.run_attempt }}
+      M6E_ARCH: ${{ matrix.M6E_ARCH }}
+      M6E_IMAGE_FULLNAME: damian-buho/ignorelint:${{ vars.BASE_IMAGE_DEFAULT_VERSION || 'latest' }}-${{ github.run_id }}-${{ matrix.M6E_ARCH }}
+      M6E_COMPOSE_PROJECT_NAME: ci-damian-buho-ignorelint-${{ matrix.M6E_ARCH }}-${{ github.run_id }}-${{ github.run_attempt }}
+      M6E_CONTAINER_INSTANCE: ci-damian-buho-ignorelint-${{ matrix.M6E_ARCH }}-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -157,14 +161,14 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: image-${{ github.run_id }}
+          name: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
       # The archive enters the runner's SHARED image store, where a sibling job's reap
       # can delete a layer record mid-copy — podman then buries the real cause under a
       # four-transport probe that claims the tar matches no supported format. The retry
       # for that class lives in the pinned action, not inline (Law 2).
       - uses: projectfile-org/actions/container-load@8773d4ee49269c26354a3b93df4479ab03efb4d6 # v1
         with:
-          archive: image-${{ github.run_id }}.tar
+          archive: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}.tar
       - name: dc-pull
         run: M6E_COMPOSE_FILE=.compose/pipeline.yaml .makefile/container/scripts/compose-pull.sh
       - name: dc-up-d
@@ -187,8 +191,8 @@ jobs:
       - if: ${{ always() }}
         uses: projectfile-org/actions/docker-cleanup@8773d4ee49269c26354a3b93df4479ab03efb4d6 # v1
         with:
-          image: damian-buho/ignorelint:${{ env.M6E_TAG }}-${{ github.run_id }}
-          network: ci-damian-buho-ignorelint-${{ env.M6E_RUN_SCOPE }}-network
+          image: damian-buho/ignorelint:${{ env.M6E_TAG }}-${{ github.run_id }}-${{ matrix.M6E_ARCH }}
+          network: ci-damian-buho-ignorelint-${{ matrix.M6E_ARCH }}-${{ env.M6E_RUN_SCOPE }}-network
   container-ready-to-test:
     runs-on: ubuntu-latest
     needs: ["container-is-ok"]
@@ -226,8 +230,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: ["image-is-built"]
     if: startsWith(github.ref, 'refs/tags/')
+    strategy:
+      matrix:
+        M6E_ARCH: ["amd64", "arm64"]
     env:
-      M6E_IMAGE_ARCHIVE: image-${{ github.run_id }}.tar
+      M6E_ARCH: ${{ matrix.M6E_ARCH }}
+      M6E_IMAGE_ARCHIVE: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}.tar
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -235,7 +243,7 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: image-${{ github.run_id }}
+          name: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
       - name: syft-sbom-tar
         uses: projectfile-org/actions/run-tool@8773d4ee49269c26354a3b93df4479ab03efb4d6 # v1
         with:
@@ -243,10 +251,11 @@ jobs:
           version: ${{ env.M6E_TAG }}
           run: auto-syft image
           env: |-
-            M6E_IMAGE_ARCHIVE=image-${{ github.run_id }}.tar
+            M6E_ARCH=${{ matrix.M6E_ARCH }}
+            M6E_IMAGE_ARCHIVE=image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}.tar
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: syft-sbom-tar-${{ github.run_id }}
+          name: syft-sbom-tar-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
           path: reports
           overwrite: true
   image-is-attested:
@@ -258,8 +267,10 @@ jobs:
     if: (startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main') || (startsWith(github.ref, 'refs/tags/'))
     strategy:
       matrix:
+        M6E_ARCH: ["amd64", "arm64"]
         M6E_PUBLISH_SINK: ["ghcr"]
     env:
+      M6E_ARCH: ${{ matrix.M6E_ARCH }}
       COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
       COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
       DOCKERHUB_REGISTRY_PASSWORD: ${{ secrets.DOCKERHUB_REGISTRY_PASSWORD }}
@@ -275,14 +286,17 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: image-${{ github.run_id }}
+          name: image-amd64-${{ github.run_id }}
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: image-arm64-${{ github.run_id }}
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: crystal-build-amd64-linux-${{ github.run_id }}
           path: dist
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: syft-sbom-tar-${{ github.run_id }}
+          name: syft-sbom-tar-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
           path: reports
       - name: oci-push
         # This cell's destination gate — on the STEP because a job `if:` may not read
@@ -290,7 +304,12 @@ jobs:
         if: vars.CI_PUBLISH_SINKS == '' || contains(format(',{0},', vars.CI_PUBLISH_SINKS), format(',{0},', matrix.M6E_PUBLISH_SINK))
         uses: projectfile-org/actions/oci-push@8773d4ee49269c26354a3b93df4479ab03efb4d6 # v1
         with:
-          artifact-name: image-${{ github.run_id }}
+          # One tar per DECLARED architecture, published together as a manifest list at
+          # each cascade tag. Per-arch TAGS are deliberately not published: they are
+          # scaffolding, and a registry that cannot delete a tag keeps them forever.
+          archives: |
+            amd64 image-amd64-${{ github.run_id }}
+            arm64 image-arm64-${{ github.run_id }}
           image: damian-buho/ignorelint:${{ env.M6E_TAG }}-${{ github.run_id }}
           version: ${{ github.ref_name }}
           # The branch this run is on, empty on a tag. Non-empty collapses the cascade to
@@ -322,6 +341,7 @@ jobs:
           version: ${{ env.M6E_TAG }}
           run: auto-cosign sign
           env: |-
+            M6E_ARCH=${{ matrix.M6E_ARCH }}
             COSIGN_PASSWORD=${{ secrets.COSIGN_PASSWORD }}
       - name: cosign-attest
         if: vars.CI_PUBLISH_SINKS == '' || contains(format(',{0},', vars.CI_PUBLISH_SINKS), format(',{0},', matrix.M6E_PUBLISH_SINK))
@@ -331,14 +351,25 @@ jobs:
           version: ${{ env.M6E_TAG }}
           run: auto-cosign attest
           env: |-
+            M6E_ARCH=${{ matrix.M6E_ARCH }}
             COSIGN_PASSWORD=${{ secrets.COSIGN_PASSWORD }}
   image-is-built:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.M6E_RUNNER }}
     needs: ["fetched", "inputs-are-ok"]
     concurrency:
       group: build-${{ github.repository }}-${{ toJSON(matrix) }}
       cancel-in-progress: false
+    strategy:
+      max-parallel: 2
+      matrix:
+        M6E_ARCH: ["amd64", "arm64"]
+        include:
+          - M6E_ARCH: "amd64"
+            M6E_RUNNER: "ubuntu-latest"
+          - M6E_ARCH: "arm64"
+            M6E_RUNNER: "ubuntu-24.04-arm"
     env:
+      M6E_ARCH: ${{ matrix.M6E_ARCH }}
       M6E_NAMESPACE: damian-buho
       M6E_PROJECT: ignorelint
       B19_COLOR: ${{ inputs.B19_COLOR || vars.B19_COLOR || '1' }}
@@ -369,8 +400,8 @@ jobs:
       - name: container-build
         uses: projectfile-org/actions/container-build/buildx@8773d4ee49269c26354a3b93df4479ab03efb4d6 # v1
         with:
-          artifact-name: image-${{ github.run_id }}
-          image: damian-buho/ignorelint:${{ env.M6E_TAG }}-${{ github.run_id }}
+          artifact-name: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
+          image: damian-buho/ignorelint:${{ env.M6E_TAG }}-${{ github.run_id }}-${{ matrix.M6E_ARCH }}
           build-args: |-
             B19_COLOR=${{ inputs.B19_COLOR || vars.B19_COLOR || '1' }}
             B19_CRYSTAL_BASE_IMAGE=${{ vars.B19_CRYSTAL_BASE_IMAGE || format('{0}/b19/crystal:{1}', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho', env.M6E_TAG) }}
@@ -385,6 +416,7 @@ jobs:
             LANG=${{ inputs.LANG || vars.LANG }}
             M6E_APT_CACHE_HOST=${{ inputs.M6E_APT_CACHE_HOST || vars.M6E_APT_CACHE_HOST }}
             M6E_APT_CACHE_PORT=${{ inputs.M6E_APT_CACHE_PORT || vars.M6E_APT_CACHE_PORT }}
+            M6E_ARCH=${{ matrix.M6E_ARCH }}
             M6E_BUILD_DEBUG=${{ inputs.M6E_BUILD_DEBUG || vars.M6E_BUILD_DEBUG }}
             M6E_NAMESPACE=damian-buho
             M6E_NEAR_CACHE_HOST=${{ inputs.M6E_NEAR_CACHE_HOST || vars.M6E_NEAR_CACHE_HOST }}
@@ -393,6 +425,9 @@ jobs:
             SOURCE_DOCKER_REGISTRY=${{ inputs.SOURCE_DOCKER_REGISTRY || vars.SOURCE_DOCKER_REGISTRY }}
           mounts: fetch=/fetch
           pf-cli-image: ${{ vars.PF_CLI_IMAGE || format('{0}/projectfile/cli:{1}', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho', env.M6E_TAG) }}
+          # This CELL's architecture, off the arch axis derived from the declared set.
+          # One arch per call: the single-image archive is what every consumer reads.
+          platform: ${{ matrix.M6E_ARCH }}
   image-is-ready:
     runs-on: ubuntu-latest
     needs: ["container-is-verified", "image-is-secure"]
@@ -401,8 +436,12 @@ jobs:
   image-is-secure:
     runs-on: ubuntu-latest
     needs: ["image-is-built"]
+    strategy:
+      matrix:
+        M6E_ARCH: ["amd64", "arm64"]
     env:
-      M6E_IMAGE_ARCHIVE: image-${{ github.run_id }}.tar
+      M6E_ARCH: ${{ matrix.M6E_ARCH }}
+      M6E_IMAGE_ARCHIVE: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}.tar
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -410,7 +449,7 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: image-${{ github.run_id }}
+          name: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
       - name: restore grype-db
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
@@ -425,7 +464,8 @@ jobs:
           version: ${{ env.M6E_TAG }}
           run: auto-grype image
           env: |-
-            M6E_IMAGE_ARCHIVE=image-${{ github.run_id }}.tar
+            M6E_ARCH=${{ matrix.M6E_ARCH }}
+            M6E_IMAGE_ARCHIVE=image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}.tar
             M6E_SHARED_CACHE=N
           mounts: ${{ runner.temp }}/ci-cache/grype-db:/app/.cache/grype:rw
       - name: save grype-db
@@ -447,7 +487,8 @@ jobs:
           version: ${{ env.M6E_TAG }}
           run: auto-trivy image
           env: |-
-            M6E_IMAGE_ARCHIVE=image-${{ github.run_id }}.tar
+            M6E_ARCH=${{ matrix.M6E_ARCH }}
+            M6E_IMAGE_ARCHIVE=image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}.tar
             M6E_SHARED_CACHE=N
             TRIVY_CACHE_BACKEND
           mounts: ${{ runner.temp }}/ci-cache/trivy-db:/app/.cache/trivy:rw
@@ -459,7 +500,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ always() }}
         with:
-          name: reports-image-is-secure-${{ github.run_id }}
+          name: reports-image-is-secure-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
           path: reports/
           if-no-files-found: warn
           overwrite: true

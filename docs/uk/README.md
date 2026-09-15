@@ -66,6 +66,11 @@ pf-cli-managed: yes
 - **Виконуваний файл** `ignorelint`
 - **Образ контейнера** `ghcr.io/damian-buho/ignorelint:latest`
 
+## Підтримувані платформи
+
+- `linux/amd64`
+- `linux/arm64`
+
 ## Встановлення
 
 Завантажте опублікований образ контейнера:

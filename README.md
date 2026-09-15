@@ -64,6 +64,11 @@ See [FEATURES.md](FEATURES.md) for the full list.
 - **Executable** `ignorelint`
 - **Container image** `ghcr.io/damian-buho/ignorelint:latest`
 
+## Supported platforms
+
+- `linux/amd64`
+- `linux/arm64`
+
 ## Installation
 
 Pull the published container image:

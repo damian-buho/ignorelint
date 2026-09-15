@@ -73,6 +73,9 @@ links:
     url: https://github.com/damian-buho/ignorelint/pkgs/container/ignorelint
 org:
   projectfile:
+    architecture:
+      - amd64
+      - arm64
     ci:
       env:
         TARGET_ARCH: amd64
@@ -103,6 +106,8 @@ org:
       fragments:
         parents:
           - url: ssh://git@kiota.ch/b19/ubuntu.git
+    operating-system:
+      - linux
     status: maintained
   ignorelint: {}
 repositories:
