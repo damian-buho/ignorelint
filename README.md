@@ -62,7 +62,7 @@ See [FEATURES.md](FEATURES.md) for the full list.
 ## What this provides
 
 - **Executable** `ignorelint`
-- **Container image** `ghcr.io/damian-buho/damian-buho/ignorelint:latest`
+- **Container image** `ghcr.io/damian-buho/ignorelint:latest`
 
 ## Installation
 
@@ -71,7 +71,7 @@ Pull the published container image:
 ### Pull from GHCR
 
 ```sh
-docker pull ghcr.io/damian-buho/damian-buho/ignorelint:latest
+docker pull ghcr.io/damian-buho/ignorelint:latest
 ```
 
 Stable releases also publish `X.Y.Z`, `X.Y` and `X` tags — pull the precision you want to pin.
@@ -91,7 +91,7 @@ Run a tool from the image against the current directory:
 ### From GHCR
 
 ```sh
-docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/damian-buho/ignorelint:latest <tool> [args]
+docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/ignorelint:latest <tool> [args]
 ```
 
 ## Building

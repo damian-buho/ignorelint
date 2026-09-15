@@ -6,6 +6,7 @@ $schema: https://projectfile.org/schema/v1.json
 identity:
   created: "2026-06-05"
   name: ignorelint
+  namespace: me.dbuho
   summary:
     en: Linter for gitignore, dockerignore and 20+ other ignore files
     es: Linter para .gitignore, .dockerignore y más de 20 archivos de ignorados
@@ -22,10 +23,10 @@ includes:
   - .makefile/b19/images/crystal.yaml
   - .makefile/b19/images/ubuntu.yaml
   - .makefile/b19/traits/supplychain.yaml
+  - .makefile/container/traits/readme-tool-image.yaml
   - .makefile/library/languages/crystal.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/ghcr.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/github.yaml
-  - https://kiota.ch/d9t/metadata/raw/branch/main/include.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/include.yaml
 keywords:
   - ignorelint
@@ -69,7 +70,7 @@ links:
       es: Paquetes en GHCR
       uk: Пакунки на GHCR
     type: package-registry
-    url: https://github.com/damian-buho/ignorelint/pkgs/container/damian-buho%2Fignorelint
+    url: https://github.com/damian-buho/ignorelint/pkgs/container/ignorelint
 org:
   projectfile:
     ci:
@@ -94,6 +95,10 @@ org:
     image:
       org: damian-buho
       flatpath: ${name}
+    # The org is the GHCR account, so the artifact drops the repeat; foreign pulls keep nesting
+    sinks:
+      ghcr:
+        selfref: ghcr.io/damian-buho/${name}:${tag}
     conventions:
       fragments:
         parents:

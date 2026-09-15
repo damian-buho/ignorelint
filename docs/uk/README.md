@@ -64,7 +64,7 @@ pf-cli-managed: yes
 ## Що надає цей проєкт
 
 - **Виконуваний файл** `ignorelint`
-- **Образ контейнера** `ghcr.io/damian-buho/damian-buho/ignorelint:latest`
+- **Образ контейнера** `ghcr.io/damian-buho/ignorelint:latest`
 
 ## Встановлення
 
@@ -73,7 +73,7 @@ pf-cli-managed: yes
 ### Завантажити з GHCR
 
 ```sh
-docker pull ghcr.io/damian-buho/damian-buho/ignorelint:latest
+docker pull ghcr.io/damian-buho/ignorelint:latest
 ```
 
 Стабільні випуски також публікують теґи `X.Y.Z`, `X.Y` і `X` — завантажте той рівень точності, який хочете зафіксувати.
@@ -93,7 +93,7 @@ docker pull kiota.ch/damian-buho/ignorelint:latest
 ### З GHCR
 
 ```sh
-docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/damian-buho/ignorelint:latest <tool> [args]
+docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/ignorelint:latest <tool> [args]
 ```
 
 ## Збирання

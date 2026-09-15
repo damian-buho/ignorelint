@@ -64,7 +64,7 @@ Consulta [FEATURES.md](FEATURES.md) para ver la lista completa.
 ## Qué entrega este proyecto
 
 - **Ejecutable** `ignorelint`
-- **Imagen de contenedor** `ghcr.io/damian-buho/damian-buho/ignorelint:latest`
+- **Imagen de contenedor** `ghcr.io/damian-buho/ignorelint:latest`
 
 ## Instalación
 
@@ -73,7 +73,7 @@ Descarga la imagen de contenedor publicada:
 ### Descargar de GHCR
 
 ```sh
-docker pull ghcr.io/damian-buho/damian-buho/ignorelint:latest
+docker pull ghcr.io/damian-buho/ignorelint:latest
 ```
 
 Las versiones estables también publican las etiquetas `X.Y.Z`, `X.Y` y `X`: descarga el nivel de precisión que quieras fijar.
@@ -93,7 +93,7 @@ Ejecuta una herramienta de la imagen sobre el directorio actual:
 ### Desde GHCR
 
 ```sh
-docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/damian-buho/ignorelint:latest <tool> [args]
+docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/ignorelint:latest <tool> [args]
 ```
 
 ## Compilación
