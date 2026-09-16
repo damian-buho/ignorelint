@@ -16,6 +16,7 @@ This document explains where to get help and how to ask effective questions.
 Please check these first — your question may already be answered:
 
 - [Issues on GitHub](https://github.com/damian-buho/ignorelint/issues)
+- [Issues on Codeberg](https://codeberg.org/damian-buho/ignorelint/issues)
 
 ## Where to Ask
 
