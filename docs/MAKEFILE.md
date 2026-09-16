@@ -343,6 +343,22 @@ Build the host-native binary and install it into ~/.local/bin
 
 > Image: host runner
 
+### `pf-bridge-shard-yml-check`
+
+Verify shard.yml and the projectfile agree
+
+`pf-bridge shard --check`
+
+> Image: PF_BRIDGE_IMAGE
+
+### `pf-bridge-shard-yml-sync`
+
+Sync shard.yml with the projectfile
+
+`pf-bridge shard`
+
+> Image: PF_BRIDGE_IMAGE
+
 ## Dependencies
 
 ### `apt-pin`
