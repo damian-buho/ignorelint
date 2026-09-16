@@ -71,6 +71,24 @@ links:
       uk: Пакунки на GHCR
     type: package-registry
     url: https://github.com/damian-buho/ignorelint/pkgs/container/ignorelint
+  - label:
+      en: Ignorelint on Codeberg
+      es: Ignorelint en Codeberg
+      uk: Ignorelint на Codeberg
+    tags:
+      - public
+      - badges
+      - badges-gitea
+    type: source-code
+    url: https://codeberg.org/damian-buho/ignorelint
+  - label:
+      en: Issues on Codeberg
+      es: Incidencias en Codeberg
+      uk: Задачі на Codeberg
+    tags:
+      - support
+    type: bugs
+    url: https://codeberg.org/damian-buho/ignorelint/issues
 org:
   projectfile:
     architecture:
@@ -120,6 +138,9 @@ repositories:
     role: origin
     type: git
     url: ssh://git@kiota.ch/damian-buho/ignorelint.git
+  - role: mirror
+    type: git
+    url: ssh://git@codeberg.org/damian-buho/ignorelint.git
 requirements:
   runtime:
     crystal: '>= 1.13.0'
