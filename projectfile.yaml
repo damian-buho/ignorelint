@@ -122,3 +122,6 @@ repositories:
     url: ssh://git@kiota.ch/damian-buho/ignorelint.git
 technologies:
   - crystal
+requirements:
+  runtime:
+    crystal: '>= 1.13.0'

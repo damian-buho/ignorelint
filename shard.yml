@@ -1,20 +1,15 @@
+---
 # SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
 #
 # SPDX-License-Identifier: MIT
----
 name: ignorelint
-version: 0.1.0
-
+version: 1.4.0
 authors:
   - Damián Búho <damian.buho@proton.me>
-
-description: |
-  Linter for all *ignore files (.gitignore, .dockerignore, .eslintignore, etc.)
-
+description: Linter for gitignore, dockerignore and 20+ other ignore files
 targets:
   ignorelint:
     main: src/ignorelint.cr
-
-crystal: ">= 1.13.0"
-
+crystal: '>= 1.13.0'
 license: MIT
+repository: ssh://git@kiota.ch/damian-buho/ignorelint.git
