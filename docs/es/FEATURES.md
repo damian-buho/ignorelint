@@ -54,7 +54,7 @@ SPDX-License-Identifier: MIT
 - Los hallazgos suprimidos nunca llegan a la autocorrección ni a los códigos de salida.
 - `--disabled-rules` (o `IGNORELINT_DISABLED_RULES`) omite los códigos listados en toda la ejecución, para que una comprobación con la que el equipo no está de acuerdo deje de fallar compilaciones sin directivas por línea. Ver la [referencia CLI](docs/cli.md).
 
-## Heredado de B19/Ubuntu
+## Heredado de B19 / Ubuntu
 
 ### Caché APT persistente entre compilaciones
 
