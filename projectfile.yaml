@@ -25,8 +25,8 @@ includes:
   - .makefile/b19/traits/supplychain.yaml
   - .makefile/container/traits/readme-tool-image.yaml
   - .makefile/library/languages/crystal.yaml
-  - https://kiota.ch/damian-buho/metadata/raw/branch/main/ghcr.yaml
-  - https://kiota.ch/damian-buho/metadata/raw/branch/main/github.yaml
+  - https://kiota.ch/damian-buho/metadata/raw/branch/main/registry/ghcr.yaml
+  - https://kiota.ch/damian-buho/metadata/raw/branch/main/forge/github.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/include.yaml
 keywords:
   - ignorelint
