@@ -52,7 +52,7 @@ SPDX-License-Identifier: MIT
 - Suppressed findings never reach autofix or exit codes.
 - `--disabled-rules` (or `IGNORELINT_DISABLED_RULES`) skips listed codes for the whole run, so a check the team disagrees with stops failing builds without per-line directives. See the [CLI reference](docs/cli.md).
 
-## Inherited from B19/Ubuntu
+## Inherited from B19 / Ubuntu
 
 ### Persistent APT cache across builds
 
