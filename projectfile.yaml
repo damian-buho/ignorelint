@@ -25,9 +25,10 @@ includes:
   - .makefile/b19/traits/supplychain.yaml
   - .makefile/container/traits/readme-tool-image.yaml
   - .makefile/library/languages/crystal.yaml
-  - https://kiota.ch/damian-buho/metadata/raw/branch/main/registry/ghcr.yaml
+  - https://kiota.ch/damian-buho/metadata/raw/branch/main/forge/codeberg.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/forge/github.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/include.yaml
+  - https://kiota.ch/damian-buho/metadata/raw/branch/main/registry/ghcr.yaml
 keywords:
   - ignorelint
   - linter
@@ -44,6 +45,7 @@ links:
       en: Ignorelint on GitHub
       es: Ignorelint en GitHub
       uk: Ignorelint на GitHub
+    priority: 80
     tags:
       - public
       - badges
@@ -54,6 +56,7 @@ links:
       en: Issues on GitHub
       es: Incidencias en GitHub
       uk: Задачі на GitHub
+    priority: 80
     tags:
       - support
     type: bugs
@@ -63,18 +66,14 @@ links:
       es: Ignorelint en kiota.ch
       uk: Ignorelint на kiota.ch
     preferred: true
+    priority: 10
     type: source-code
     url: https://kiota.ch/damian-buho/ignorelint
-  - label:
-      en: Packages on GHCR
-      es: Paquetes en GHCR
-      uk: Пакунки на GHCR
-    type: package-registry
-    url: https://github.com/damian-buho/ignorelint/pkgs/container/ignorelint
   - label:
       en: Ignorelint on Codeberg
       es: Ignorelint en Codeberg
       uk: Ignorelint на Codeberg
+    priority: 90
     tags:
       - public
       - badges
@@ -85,10 +84,18 @@ links:
       en: Issues on Codeberg
       es: Incidencias en Codeberg
       uk: Задачі на Codeberg
+    priority: 90
     tags:
       - support
     type: bugs
     url: https://codeberg.org/damian-buho/ignorelint/issues
+  - derived: true
+    label:
+      en: Packages on GHCR
+      es: Paquetes en GHCR
+      uk: Пакунки на GHCR
+    type: package-registry
+    url: https://github.com/damian-buho/ignorelint/pkgs/container/ignorelint
 org:
   projectfile:
     architecture:
@@ -144,9 +151,9 @@ repositories:
     url: ssh://git@kiota.ch/damian-buho/ignorelint.git
   - role: mirror
     type: git
-    url: ssh://git@codeberg.org/damian-buho/ignorelint.git
+    url: git@codeberg.org:damian-buho/ignorelint.git
+technologies:
+  - crystal
 requirements:
   runtime:
     crystal: '>= 1.13.0'
-technologies:
-  - crystal
