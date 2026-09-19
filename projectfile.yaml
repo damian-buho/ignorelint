@@ -22,7 +22,8 @@ includes:
   - .makefile/b19/ci.yaml
   - .makefile/b19/images/crystal.yaml
   - .makefile/b19/images/ubuntu.yaml
-  - .makefile/b19/traits/supplychain.yaml
+  - .makefile/b19/traits/signed-images.yaml
+  - .makefile/b19/traits/attested-images.yaml
   - .makefile/container/traits/readme-tool-image.yaml
   - .makefile/library/languages/crystal.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/forge/codeberg.yaml
