@@ -65,6 +65,7 @@ Consulta [FEATURES.md](FEATURES.md) para ver la lista completa.
 
 - **Ejecutable** `ignorelint`
 - **Imagen de contenedor** `ghcr.io/damian-buho/ignorelint:latest`
+- **Imagen de contenedor** `docker.io/damianbuho/ignorelint:latest`
 
 ## Plataformas admitidas
 
@@ -79,6 +80,12 @@ Descarga la imagen de contenedor publicada:
 
 ```sh
 docker pull ghcr.io/damian-buho/ignorelint:latest
+```
+
+### Descargar de DockerHub
+
+```sh
+docker pull docker.io/damianbuho/ignorelint:latest
 ```
 
 Las versiones estables también publican las etiquetas `X.Y.Z`, `X.Y` y `X`: descarga el nivel de precisión que quieras fijar.
@@ -99,6 +106,12 @@ Ejecuta una herramienta de la imagen sobre el directorio actual:
 
 ```sh
 docker run --rm --volume "$PWD:/work" --workdir /work ghcr.io/damian-buho/ignorelint:latest <tool> [args]
+```
+
+### Desde DockerHub
+
+```sh
+docker run --rm --volume "$PWD:/work" --workdir /work docker.io/damianbuho/ignorelint:latest <tool> [args]
 ```
 
 ## Compilación
