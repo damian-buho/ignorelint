@@ -84,10 +84,20 @@ module Ignorelint
     # Minimum severity level that triggers a non-zero exit code.
     # Default: `:error` — only errors cause failure. Use `--fail-on=warn`
     # to fail on warnings too, or `--fail-on=info` to fail on anything.
-    @fail_on : Severity = :error
+    # Nil means `none`: findings are reported but never fail the run.
+    @fail_on : Severity? = :error
 
     # True once `--fail-on` was passed explicitly (env must not override it).
     @fail_on_set : Bool = false
+
+    # Whether `--no-fail` was requested; beats every `--fail-on` source.
+    @no_fail : Bool = false
+
+    # True once `--no-fail` was passed explicitly (env must not override it).
+    @no_fail_set : Bool = false
+
+    # Color choice from `--colors`/`--no-color`; nil means auto.
+    @colors : Bool? = nil
 
     # Output format selector. Determines which `Formatter` subclass to use.
     @format : OutputFormat = :human
@@ -178,6 +188,7 @@ module Ignorelint
       parser = build_option_parser
 
       parser.parse(args)
+      return 2 unless claim_stdin_dash
 
       # --fix writes while --diff only previews; combining them is a usage error.
       if @fix && @diff
@@ -197,7 +208,7 @@ module Ignorelint
         return 2 if name.nil?
         return lint_stdin(input, formatter, name)
       end
-      paths = @paths.empty? ? find_ignore_files(formatter) : @paths
+      paths = @paths.empty? ? find_ignore_files : @paths
       exit_code = 0
 
       # Three-phase formatter lifecycle: start → format each file → finish
@@ -212,6 +223,17 @@ module Ignorelint
       formatter.finish(@io)
 
       exit_code
+    end
+
+    # Turns a lone `-` path into stdin mode; false (after reporting) when mixed with paths.
+    private def claim_stdin_dash : Bool
+      return true unless @paths.includes?("-")
+      if @paths.size > 1
+        @err << "error: - (stdin) cannot be combined with PATH arguments\n"
+        return false
+      end
+      @paths.clear
+      @stdin = true
     end
 
     # Resolve lint policy: an explicitly named projectfile, else cwd discovery.
@@ -243,6 +265,7 @@ module Ignorelint
     # precedence is flags, then environment, then the projectfile subtree.
     private def apply_file_settings(policy : PolicySettings) : Nil
       adopt_unset(@fail_on_set, policy.fail_on) { |fail_on| @fail_on = fail_on }
+      adopt_unset(@fail_on_set, policy.no_fail) { |no_fail| @fail_on = nil if no_fail }
       adopt_unset(@format_set, policy.format) { |format| @format = format }
       adopt_unset(@fix_set, policy.fix) { |fix| @fix = fix }
       adopt_unset(@recursive_set, policy.recursive) { |recursive| @recursive = recursive }
@@ -280,6 +303,7 @@ module Ignorelint
       apply_env_switch("IGNORELINT_VERBOSE", @verbose_set) { |v| @verbose = v }
       apply_env_switch("IGNORELINT_RECURSIVE", @recursive_set) { |v| @recursive = v }
       apply_env_switch("IGNORELINT_FIX", @fix_set) { |v| @fix = v }
+      apply_env_switch("IGNORELINT_NOFAIL", @no_fail_set) { |v| @no_fail = v }
 
       if !@format_set && (env_val = ENV["IGNORELINT_FORMAT"]?)
         parsed = OutputFormat.parse?(env_val)
@@ -307,7 +331,7 @@ module Ignorelint
     # Applies a boolean env switch unless a flag claimed the option.
     private def apply_env_switch(key : String, was_set : Bool, & : Bool -> Nil) : Nil
       if !was_set && (raw = ENV[key]?)
-        yield env_bool?(raw)
+        yield self.class.env_bool?(raw)
       end
     end
 
@@ -380,9 +404,19 @@ module Ignorelint
 
         parser.on("-h", "--help", "Show this help") { print_help(parser, @io); exit }
         parser.on("-V", "--version", "Show version") { @io << "ignorelint " << VERSION << '\n'; exit }
-        parser.on("--fail-on=LEVEL", "Exit non-zero on LEVEL or worse (error|warn|info, default: error)") do |v|
+        parser.on("--fail-on=LEVEL", "Exit non-zero on LEVEL or worse (error|warn|info|none, default: error)") do |v|
           @fail_on = parse_severity(v)
           @fail_on_set = true
+        end
+        parser.on("--no-fail", "Report every finding but always exit 0 (beats --fail-on)") do
+          @no_fail = true
+          @no_fail_set = true
+        end
+        parser.on("--colors=WHEN", "Color human output (auto|on|off, default: auto)") do |v|
+          @colors = parse_colors(v)
+        end
+        parser.on("--no-color", "Same as --colors=off") do
+          @colors = false
         end
         parser.on("--format=FORMAT", "Output format (#{OutputFormat.valid_values}, default: human)") do |v|
           parsed = OutputFormat.parse?(v)
@@ -408,7 +442,7 @@ module Ignorelint
         parser.on("--diff", "Preview auto-fix changes without writing (cannot combine with --fix)") do
           @diff = true
         end
-        parser.on("--stdin", "Lint piped content instead of files (requires --file)") do
+        parser.on("--stdin", "Lint piped content instead of files (requires --file; a lone - PATH does the same)") do
           @stdin = true
         end
         parser.on("--file=NAME", "Filename for --stdin input (drives format detection)") do |v|
@@ -433,11 +467,12 @@ module Ignorelint
 
         parser.separator("")
         parser.separator("When no PATH is given, discovers supported *ignore files in the current directory.")
-        parser.separator("Color is disabled when NO_COLOR is set to a non-empty value.")
+        parser.separator("Discovery and diagnostics go to stderr; stdout carries only the report.")
         parser.separator("")
         parser.separator("Environment variables:")
         parser.separator("  IGNORELINT_VERBOSE=1       Same as --verbose")
-        parser.separator("  IGNORELINT_FAIL_ON=LEVEL   Same as --fail-on (error|warn|info)")
+        parser.separator("  IGNORELINT_FAIL_ON=LEVEL   Same as --fail-on (error|warn|info|none)")
+        parser.separator("  IGNORELINT_NOFAIL=1        Same as --no-fail")
         parser.separator("  IGNORELINT_FORMAT=FORMAT   Same as --format")
         parser.separator("  IGNORELINT_FIX=1           Same as --fix")
         parser.separator("  IGNORELINT_RECURSIVE=1     Same as --recursive")
@@ -446,7 +481,8 @@ module Ignorelint
         parser.separator("  IGNORELINT_OVERRIDE_WARNING=CODES Same as --warning")
         parser.separator("  IGNORELINT_OVERRIDE_INFO=CODES Same as --info")
         parser.separator("  IGNORELINT_CONFIG=PATH     Same as --config")
-        parser.separator("  NO_COLOR=1                 Disable colored output")
+        parser.separator("  NO_COLOR=1                 Disable colored output (also IGNORELINT_NO_COLOR=1, TERM=dumb)")
+        parser.separator("  FORCE_COLOR=1              Color even when piped (--colors beats it)")
 
         parser.unknown_args do |remaining|
           @paths = remaining
@@ -463,16 +499,30 @@ module Ignorelint
     # Parse a severity level string from CLI input.
     #
     # Exits with code 2 and an error message for invalid values.
-    private def parse_severity(value : String) : Severity
+    private def parse_severity(value : String) : Severity?
       case value.downcase
       when "error"
         Severity::Error
-      when "warn"
+      when "warn", "warning"
         Severity::Warn
       when "info"
         Severity::Info
+      when "none"
+        nil
       else
-        @err << "error: invalid --fail-on value: #{value} (expected: error|warn|info)\n"
+        @err << "error: invalid --fail-on value: #{value} (expected: error|warn|info|none)\n"
+        exit(2)
+      end
+    end
+
+    # Maps auto|on|off to a forced choice; auto yields nil, anything else exits 2.
+    private def parse_colors(value : String) : Bool?
+      case value.downcase
+      when "auto" then nil
+      when "on"   then true
+      when "off"  then false
+      else
+        @err << "error: invalid --colors value: #{value} (expected: auto|on|off)\n"
         exit(2)
       end
     end
@@ -482,16 +532,18 @@ module Ignorelint
       io << parser << '\n'
     end
 
-    # TTY plus empty-or-unset NO_COLOR means color.
-    def self.color_enabled?(tty : Bool) : Bool
-      return false unless tty
-      val = ENV["NO_COLOR"]?
-      val.nil? || val.empty?
+    # Resolves color: flag, then FORCE_COLOR, then NO_COLOR/IGNORELINT_NO_COLOR/TERM=dumb, then TTY.
+    def self.color_enabled?(tty : Bool, forced : Bool? = nil) : Bool
+      return forced unless forced.nil?
+      return true if env_bool?(ENV["FORCE_COLOR"]? || "")
+      return false if {"NO_COLOR", "IGNORELINT_NO_COLOR"}.any? { |key| !ENV[key]?.to_s.empty? }
+      return false if ENV["TERM"]? == "dumb"
+      tty
     end
 
     # Builds the formatter for the selected output format.
     private def build_formatter : Formatter
-      color = self.class.color_enabled?(@tty)
+      color = self.class.color_enabled?(@tty, @colors)
 
       case @format
       when .human?
@@ -511,7 +563,7 @@ module Ignorelint
     private def stdin_name : String?
       file = @stdin_file
       if file.nil?
-        @err << "error: --stdin requires --file=NAME (e.g. --file=.gitignore)\n"
+        @err << "error: stdin input (--stdin or -) requires --file=NAME (e.g. --file=.gitignore)\n"
         return
       end
       if !@paths.empty?
@@ -672,20 +724,21 @@ module Ignorelint
     #
     # Fixed issues are excluded from this check — they were already corrected.
     private def should_fail?(result : LintResult) : Bool
+      threshold = @fail_on
+      return false if @no_fail || threshold.nil?
       result.issues.any? do |issue|
         next false if issue.severity.fixed?
-        issue.severity.value <= @fail_on.value
+        issue.severity.value <= threshold.value
       end
     end
 
     # Auto-discover supported *ignore files in the current directory.
     #
     # Checks each filename in `KNOWN_FILES` for existence. Returns all found
-    # files as absolute or relative paths. When `--verbose` is active and the
-    # formatter is human-readable, prints a discovery list showing which files
-    # were found and which were not.
-    private def find_ignore_files(formatter : Formatter) : Array(String)
-      return find_ignore_files_recursive(formatter) if @recursive
+    # files as absolute or relative paths. With `--verbose`, prints a discovery
+    # list to stderr showing which files were found and which were not.
+    private def find_ignore_files : Array(String)
+      return find_ignore_files_recursive if @recursive
       found = [] of String
 
       Ignorelint::KNOWN_FILES.each_key do |name|
@@ -694,7 +747,7 @@ module Ignorelint
         end
       end
 
-      print_discovery_list(found) if @verbose && formatter.is_a?(HumanFormatter)
+      print_discovery_list(found) if @verbose
 
       found
     end
@@ -703,17 +756,17 @@ module Ignorelint
     # paths, sorted for deterministic output. Hidden directories (`.git`),
     # `node_modules`, and symlinks are skipped: the first two are not user
     # code, the last avoids cycles and double-linting linked files.
-    private def find_ignore_files_recursive(formatter : Formatter) : Array(String)
+    private def find_ignore_files_recursive : Array(String)
       found = [] of String
       collect_ignore_files(Dir.current, Dir.current, found)
       found.sort!
 
-      if @verbose && formatter.is_a?(HumanFormatter)
+      if @verbose
         if found.empty?
-          @io << info_label << " no *ignore files found\n\n"
+          @err << info_label << " no *ignore files found\n\n"
         else
-          found.each { |path| @io << info_label << ' ' << path << " found\n" }
-          @io << '\n'
+          found.each { |path| @err << info_label << ' ' << path << " found\n" }
+          @err << '\n'
         end
       end
 
@@ -742,17 +795,17 @@ module Ignorelint
 
     # Print a verbose discovery report showing which *ignore files were found.
     #
-    # Only called when `--verbose` is active and the output format is human.
+    # Only called when `--verbose` is active; writes to stderr in every format.
     # Each known filename is listed as either "found" or "not found".
     private def print_discovery_list(found : Array(String)) : Nil
       Ignorelint::KNOWN_FILES.each_key do |name|
         if found.includes?(name)
-          @io << info_label << ' ' << name << " found\n"
+          @err << info_label << ' ' << name << " found\n"
         else
-          @io << info_label << ' ' << name << " not found\n"
+          @err << info_label << ' ' << name << " not found\n"
         end
       end
-      @io << '\n'
+      @err << '\n'
     end
 
     # Format the "info:" label for discovery output.
@@ -767,7 +820,7 @@ module Ignorelint
     #
     # Falsy: empty, or `"0"`, `"false"`, `"no"`, `"n"`, `"off"`
     # (case-insensitive, surrounding whitespace ignored).
-    private def env_bool?(value : String) : Bool
+    def self.env_bool?(value : String) : Bool
       !{"", "0", "false", "no", "n", "off"}.includes?(value.strip.downcase)
     end
   end

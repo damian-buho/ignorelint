@@ -9,6 +9,7 @@ module Ignorelint
   # Policy values read from a projectfile document; nil means unset.
   struct PolicySettings
     property fail_on : Severity?
+    property no_fail : Bool?
     property format : OutputFormat?
     property fix : Bool?
     property recursive : Bool?
@@ -24,7 +25,7 @@ module Ignorelint
     end
 
     def empty? : Bool
-      @fail_on.nil? && @format.nil? && @fix.nil? &&
+      @fail_on.nil? && @no_fail.nil? && @format.nil? && @fix.nil? &&
         @recursive.nil? && @verbose.nil? && @disabled.nil? &&
         @override_error.nil? && @override_warning.nil? && @override_info.nil?
     end
@@ -95,7 +96,12 @@ module Ignorelint
       settings = PolicySettings.new
       node.each do |name, value|
         case name.tr("_", "-")
-        when "fail-on"        then settings.fail_on = parse_severity(value, document, err)
+        when "fail-on"
+          if value.as_s?.try(&.downcase) == "none"
+            settings.no_fail = true
+          else
+            settings.fail_on = parse_severity(value, document, err)
+          end
         when "format"         then settings.format = parse_format(value, document, err)
         when "fix"            then settings.fix = parse_bool(value, document, err, name)
         when "recursive"      then settings.recursive = parse_bool(value, document, err, name)
@@ -113,14 +119,14 @@ module Ignorelint
       settings
     end
 
-    # Maps error|warn|info to Severity; anything else warns and yields nil.
+    # Maps error|warn|warning|info to Severity; anything else warns and yields nil.
     private def self.parse_severity(value : JSON::Any, document : String, err : IO) : Severity?
       case value.as_s?.try(&.downcase)
-      when "error" then Severity::Error
-      when "warn"  then Severity::Warn
-      when "info"  then Severity::Info
+      when "error"           then Severity::Error
+      when "warn", "warning" then Severity::Warn
+      when "info"            then Severity::Info
       else
-        err << "warning: #{document}: ignoring fail-on value (expected: error|warn|info)\n"
+        err << "warning: #{document}: ignoring fail-on value (expected: error|warn|info|none)\n"
         nil
       end
     end

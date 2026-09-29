@@ -36,6 +36,19 @@ private def with_env(key : String, value : String?, & : -> T) : T forall T
   end
 end
 
+# Clears every color-deciding variable, then sets one; the block sees only that.
+private def with_color_env(key : String? = nil, value : String? = nil, & : -> T) : T forall T
+  with_env("FORCE_COLOR", nil) do
+    with_env("NO_COLOR", nil) do
+      with_env("IGNORELINT_NO_COLOR", nil) do
+        with_env("TERM", "xterm") do
+          key.nil? ? yield : with_env(key, value) { yield }
+        end
+      end
+    end
+  end
+end
+
 private def run_cli(args : Array(String), input : String = "") : {Int32, String, String}
   io = IO::Memory.new
   err = IO::Memory.new
@@ -314,6 +327,81 @@ describe Ignorelint::CLI do
         err.should contain("PATH")
       end
     end
+
+    it "treats a lone - PATH as --stdin" do
+      dash = run_cli(["-", "--file=.gitignore"] of String, "!!foo\n")
+      flag = run_cli(["--stdin", "--file=.gitignore"] of String, "!!foo\n")
+      dash.should eq(flag)
+    end
+
+    it "requires --file with -" do
+      code, _, err = run_cli(["-"] of String, "!!foo\n")
+      code.should eq(2)
+      err.should contain("--file")
+    end
+
+    it "rejects - mixed with PATH arguments" do
+      with_ignore_file("!!foo\n") do |path|
+        code, _, err = run_cli(["-", "--file=.gitignore", path] of String, "!!foo\n")
+        code.should eq(2)
+        err.should contain("PATH")
+      end
+    end
+  end
+
+  describe "--no-fail and --fail-on=none" do
+    it "exits 0 with byte-identical stdout" do
+      with_ignore_file("!!foo\n") do |path|
+        with_env("IGNORELINT_NOFAIL", nil) do
+          failing = run_cli([path] of String)
+          passing = run_cli(["--no-fail", path] of String)
+          failing[0].should eq(1)
+          passing[0].should eq(0)
+          passing[1].should eq(failing[1])
+        end
+      end
+    end
+
+    it "beats an explicit --fail-on" do
+      with_ignore_file("!!foo\n") do |path|
+        code, _, _ = run_cli(["--fail-on=info", "--no-fail", path] of String)
+        code.should eq(0)
+      end
+    end
+
+    it "honors IGNORELINT_NOFAIL" do
+      with_ignore_file("!!foo\n") do |path|
+        with_env("IGNORELINT_NOFAIL", "1") do
+          code, _, _ = run_cli([path] of String)
+          code.should eq(0)
+        end
+      end
+    end
+
+    it "accepts none as a threshold, from flag and env" do
+      with_ignore_file("!!foo\n") do |path|
+        run_cli(["--fail-on=none", path] of String)[0].should eq(0)
+        with_env("IGNORELINT_FAIL_ON", "none") do
+          run_cli([path] of String)[0].should eq(0)
+        end
+      end
+    end
+
+    it "accepts warning as a spelling of warn" do
+      with_ignore_file("foo  \n") do |path|
+        run_cli(["--fail-on=warning", path] of String)[0].should eq(run_cli(["--fail-on=warn", path] of String)[0])
+      end
+    end
+  end
+
+  describe "--verbose stream contract" do
+    it "keeps --format=json stdout parseable" do
+      with_policy_dir("!!foo\n") do
+        _, report, err = run_cli(["--format=json", "--verbose"] of String)
+        JSON.parse(report)
+        err.should contain(".gitignore found")
+      end
+    end
   end
 
   describe "--disabled-rules" do
@@ -384,15 +472,17 @@ describe Ignorelint::CLI do
           Dir.cd(dir)
           {"no", "off", "0", "false"}.each do |value|
             with_env("IGNORELINT_VERBOSE", value) do
-              code, out, _ = run_cli([] of String)
+              code, out, err = run_cli([] of String)
               code.should eq(0)
+              err.should_not contain(".gitignore found")
               out.should_not contain("found")
             end
           end
           with_env("IGNORELINT_VERBOSE", "1") do
-            code, out, _ = run_cli([] of String)
+            code, out, err = run_cli([] of String)
             code.should eq(0)
-            out.should contain("found")
+            err.should contain(".gitignore found")
+            out.should_not contain("found")
           end
         ensure
           Dir.cd(old)
@@ -789,26 +879,66 @@ describe Ignorelint::CLI do
 
   describe ".color_enabled?" do
     it "is false without a TTY" do
-      with_env("NO_COLOR", nil) do
+      with_color_env do
         Ignorelint::CLI.color_enabled?(false).should be_false
       end
     end
 
     it "is true on a TTY with NO_COLOR unset" do
-      with_env("NO_COLOR", nil) do
+      with_color_env do
         Ignorelint::CLI.color_enabled?(true).should be_true
       end
     end
 
     it "treats empty NO_COLOR as color allowed" do
-      with_env("NO_COLOR", "") do
+      with_color_env("NO_COLOR", "") do
         Ignorelint::CLI.color_enabled?(true).should be_true
       end
     end
 
     it "disables color on non-empty NO_COLOR" do
-      with_env("NO_COLOR", "1") do
+      with_color_env("NO_COLOR", "1") do
         Ignorelint::CLI.color_enabled?(true).should be_false
+      end
+    end
+
+    it "disables color on IGNORELINT_NO_COLOR" do
+      with_color_env("IGNORELINT_NO_COLOR", "1") do
+        Ignorelint::CLI.color_enabled?(true).should be_false
+      end
+    end
+
+    it "disables color on TERM=dumb" do
+      with_color_env("TERM", "dumb") do
+        Ignorelint::CLI.color_enabled?(true).should be_false
+      end
+    end
+
+    it "forces color on a pipe with FORCE_COLOR, even over NO_COLOR" do
+      with_color_env("FORCE_COLOR", "1") do
+        with_env("NO_COLOR", "1") do
+          Ignorelint::CLI.color_enabled?(false).should be_true
+        end
+      end
+    end
+
+    it "lets --colors beat every environment variable" do
+      with_color_env("FORCE_COLOR", "1") do
+        Ignorelint::CLI.color_enabled?(true, false).should be_false
+      end
+      with_color_env("NO_COLOR", "1") do
+        Ignorelint::CLI.color_enabled?(false, true).should be_true
+      end
+    end
+  end
+
+  describe "--colors and --no-color" do
+    it "applies the last color flag" do
+      with_color_env do
+        with_ignore_file("!!foo\n") do |path|
+          run_cli(["--colors=off", "--colors=on", path] of String)[1].should contain("\e[")
+          run_cli(["--colors=on", "--no-color", path] of String)[1].should_not contain("\e[")
+        end
       end
     end
   end

@@ -119,6 +119,20 @@ describe Ignorelint::ProjectfilePolicy do
       end
     end
 
+    it "reads fail-on none as no-fail and warning as warn" do
+      with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
+        with_fake_path(%q(echo '{"fail-on": "none"}')) do
+          settings = Ignorelint::ProjectfilePolicy.fetch(doc, IO::Memory.new, explicit: true).as(Ignorelint::PolicySettings)
+          settings.no_fail.should be_true
+          settings.fail_on.should be_nil
+        end
+        with_fake_path(%q(echo '{"fail-on": "WARNING"}')) do
+          settings = Ignorelint::ProjectfilePolicy.fetch(doc, IO::Memory.new, explicit: true).as(Ignorelint::PolicySettings)
+          settings.fail_on.should eq(Ignorelint::Severity::Warn)
+        end
+      end
+    end
+
     it "reads the override map into severity buckets" do
       with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
         with_fake_path(%q(echo '{"override": {"error": ["IG-020"], "warning": ["ig-001"], "info": "IG-021, IG-023"}}')) do
