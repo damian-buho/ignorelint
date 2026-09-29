@@ -53,9 +53,9 @@ inputs:
     required: false
     default: 'false'
   version:
-    description: 'Image tag to pull (e.g. latest, 1.2.3).'
+    description: 'Image tag to pull (e.g. latest, 1.2.3). Empty follows the release the action is pinned to, else latest.'
     required: false
-    default: 'latest'
+    default: ''
   image:
     description: 'Override the full image reference. Takes precedence over `version`.'
     required: false
@@ -97,6 +97,7 @@ runs:
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
+        ACTION_REF: ${{ github.action_ref }}
         IMAGE_OVERRIDE: ${{ inputs.image }}
       run: ${{ github.action_path }}/.scripts/action/resolve-image.sh
     - name: Pull image
