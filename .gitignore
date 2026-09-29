@@ -13,6 +13,7 @@
 .fetch
 .makefile/bootstrap
 .secrets/
+.worktrees/
 /.shards/
 /bin/
 /dist/
