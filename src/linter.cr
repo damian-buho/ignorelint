@@ -24,8 +24,9 @@
 #
 #   4. **Sort** — issues are sorted by line number for deterministic output
 #
-# Suppression directives (`# ignorelint: disable-next-line IG-020`) are
-# applied after all phases: matching issues never reach the result.
+# Suppression directives (`# ignorelint: disable-next-line IG-020`, and the
+# file-wide `# ignorelint: global disable=IG-020`) are applied after all
+# phases: matching issues never reach the result.
 #
 # ## Crystal note: `module` with `extend self`
 #
@@ -340,28 +341,37 @@ module Ignorelint
     # comments in between are skipped). Unknown codes match nothing, so a
     # typo fails safe: the issue is still reported. Runs after every check,
     # so any code — universal, format-specific, or filesystem — is covered.
+    # A `# ignorelint: global disable=IG-020` comment anywhere suppresses its codes file-wide.
     private def apply_suppressions(patterns : Array(Pattern), issues : Array(Issue)) : Array(Issue)
       pending = [] of String
+      global = Set(String).new
       suppressed = {} of Int32 => Set(String)
       patterns.each do |pat|
         if pat.blank?
           next
         elsif pat.comment?
-          pending.concat(parse_suppression(pat.raw))
+          pending.concat(parse_suppression(pat.raw, NEXT_LINE_DIRECTIVE))
+          global.concat(parse_suppression(pat.raw, GLOBAL_DIRECTIVE))
         elsif !pending.empty?
           suppressed[pat.line] = Set(String).new(pending)
           pending = [] of String
         end
       end
-      return issues if suppressed.empty?
+      return issues if suppressed.empty? && global.empty?
       issues.reject do |issue|
-        suppressed[issue.line]?.try(&.includes?(issue.code.tag)) || false
+        global.includes?(issue.code.tag) || suppressed[issue.line]?.try(&.includes?(issue.code.tag)) || false
       end
     end
 
-    # Parse suppression codes from a comment line (empty when not a directive).
-    private def parse_suppression(raw : String) : Array(String)
-      match = raw.match(/#\s*ignorelint:\s*disable-next-line\s+(.+)/i)
+    # Directive suppressing the next pattern line.
+    private NEXT_LINE_DIRECTIVE = /#\s*ignorelint:\s*disable-next-line\s+(.+)/i
+
+    # Directive suppressing the whole file; `=` after `disable` is optional.
+    private GLOBAL_DIRECTIVE = /#\s*ignorelint:\s*global\s+disable\s*[=\s]\s*(.+)/i
+
+    # Parse suppression codes from a comment line (empty when not that directive).
+    private def parse_suppression(raw : String, directive : Regex) : Array(String)
+      match = raw.match(directive)
       return [] of String unless match
       match[1].split(/[\s,]+/).map(&.strip.upcase).reject(&.empty?)
     end

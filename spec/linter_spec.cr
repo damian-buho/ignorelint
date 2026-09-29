@@ -276,6 +276,41 @@ describe Ignorelint::Linter do
     end
   end
 
+  describe "suppressions: global disable" do
+    it "suppresses listed codes on every pattern and keeps unlisted ones" do
+      content = "# ignorelint: global disable=IG-001, IG-020\nfoo  \nbar  \n!!baz\n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.select(&.code.trailing_whitespace?).should be_empty
+      result.issues.select(&.code.path_not_found?).should be_empty
+      result.issues.count(&.code.double_negation?).should eq(1)
+    end
+
+    it "applies from below the patterns too" do
+      content = "foo  \nbar  \n# ignorelint: global disable=IG-001\n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.select(&.code.trailing_whitespace?).should be_empty
+    end
+
+    it "accepts a space instead of = and any case" do
+      content = "# IGNORELINT: Global Disable ig-001\nfoo  \n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.select(&.code.trailing_whitespace?).should be_empty
+    end
+
+    it "combines with disable-next-line and fails safe on unknown codes" do
+      content = "# ignorelint: global disable=IG-999\n# ignorelint: disable-next-line IG-001\nfoo  \nbar  \n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      result.issues.select(&.code.trailing_whitespace?).map(&.line).should eq([4])
+    end
+
+    it "keeps suppressed issues away from autofix" do
+      content = "# ignorelint: global disable=IG-001\nfoo  \n"
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      fixes, _ = result.collect_fixes(content.lines(chomp: false))
+      fixes.select { |fix| fix.line_number == 2 }.should be_empty
+    end
+  end
+
   # -- .gitignore-specific rules ------------------------------------------
 
   describe "gitignore: negated rooted pattern" do
