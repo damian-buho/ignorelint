@@ -311,6 +311,35 @@ describe Ignorelint::Linter do
     end
   end
 
+  describe "suppressions: IG-026 audit and --disable-ignore-pragma" do
+    content = "# ignorelint: global disable=IG-003\n# ignorelint: disable-next-line IG-001\nfoo  \n!!bar\n"
+
+    it "reports each directive as info while its suppressions hold" do
+      result = Ignorelint::Linter.lint("test.gitignore", content)
+      audit = result.issues.select(&.code.suppression_directive?)
+      audit.map(&.line).should eq([1, 2])
+      audit.all?(&.severity.info?).should be_true
+      result.issues.select(&.code.trailing_whitespace?).should be_empty
+      result.issues.select(&.code.double_negation?).should be_empty
+    end
+
+    it "resurfaces suppressed issues and keeps the audit when pragmas are off" do
+      result = Ignorelint::Linter.lint("test.gitignore", content, honor_pragmas: false)
+      result.issues.count(&.code.suppression_directive?).should eq(2)
+      result.issues.count(&.code.trailing_whitespace?).should eq(1)
+      result.issues.count(&.code.double_negation?).should eq(1)
+    end
+
+    it "cannot be silenced by a directive naming IG-026" do
+      result = Ignorelint::Linter.lint("test.gitignore", "# ignorelint: global disable=IG-026\nfoo\n")
+      result.issues.count(&.code.suppression_directive?).should eq(1)
+    end
+
+    it "is not autofixable, so --fix never deletes a directive" do
+      Ignorelint::Fixer.fixable?(Ignorelint::Code::SuppressionDirective).should be_false
+    end
+  end
+
   # -- .gitignore-specific rules ------------------------------------------
 
   describe "gitignore: negated rooted pattern" do

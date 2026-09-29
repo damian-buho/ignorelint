@@ -108,6 +108,12 @@ module Ignorelint
     # Path recorded in machine-readable reports instead of the linted one.
     @report_path : String? = nil
 
+    # Whether `--disable-ignore-pragma` was requested (directives parsed, never applied).
+    @no_pragmas : Bool = false
+
+    # True once `--disable-ignore-pragma` was passed explicitly (env and file must not override it).
+    @no_pragmas_set : Bool = false
+
     # Output format selector. Determines which `Formatter` subclass to use.
     @format : OutputFormat = :human
 
@@ -283,6 +289,7 @@ module Ignorelint
       adopt_unset(@fix_set, policy.fix) { |fix| @fix = fix }
       adopt_unset(@recursive_set, policy.recursive) { |recursive| @recursive = recursive }
       adopt_unset(@verbose_set, policy.verbose) { |verbose| @verbose = verbose }
+      adopt_unset(@no_pragmas_set, policy.disable_ignore_pragma) { |off| @no_pragmas = off }
       adopt_unset(@disabled_set, policy.disabled) { |disabled| @disabled = disabled }
       apply_config_overrides(policy)
     end
@@ -317,6 +324,7 @@ module Ignorelint
       apply_env_switch("IGNORELINT_RECURSIVE", @recursive_set) { |v| @recursive = v }
       apply_env_switch("IGNORELINT_FIX", @fix_set) { |v| @fix = v }
       apply_env_switch("IGNORELINT_NOFAIL", @no_fail_set) { |v| @no_fail = v }
+      apply_env_switch("IGNORELINT_DISABLE_IGNORE_PRAGMA", @no_pragmas_set) { |v| @no_pragmas = v }
 
       if !@format_set && (env_val = ENV["IGNORELINT_FORMAT"]?)
         parsed = OutputFormat.parse?(env_val)
@@ -485,6 +493,10 @@ module Ignorelint
         parser.on("--info=CODES", "Demote rules to info severity (comma-separated tags)") do |v|
           assign_flag_override(v, Severity::Info)
         end
+        parser.on("--disable-ignore-pragma", "Parse suppression directives but apply none; IG-026 still lists them") do
+          @no_pragmas = true
+          @no_pragmas_set = true
+        end
         parser.on("--config=PATH", "Projectfile read via pf-cli for the org.ignorelint policy subtree (default: ./projectfile.*)") do |v|
           @config_path = v
         end
@@ -505,6 +517,7 @@ module Ignorelint
         parser.separator("  IGNORELINT_OVERRIDE_WARNING=CODES Same as --warning")
         parser.separator("  IGNORELINT_OVERRIDE_INFO=CODES Same as --info")
         parser.separator("  IGNORELINT_CONFIG=PATH     Same as --config")
+        parser.separator("  IGNORELINT_DISABLE_IGNORE_PRAGMA=1 Same as --disable-ignore-pragma")
         parser.separator("  IGNORELINT_FILE_PATH_IN_REPORT=PATH Same as --file-path-in-report")
         parser.separator("  NO_COLOR=1                 Disable colored output (also IGNORELINT_NO_COLOR=1, TERM=dumb)")
         parser.separator("  FORCE_COLOR=1              Color even when piped (--colors beats it)")
@@ -608,7 +621,7 @@ module Ignorelint
     # Lints piped content under the --file name; discovery is skipped.
     private def lint_stdin(input : IO, formatter : Formatter, name : String) : Int32
       content = read_input(input)
-      result = Linter.lint(name, content)
+      result = Linter.lint(name, content, honor_pragmas: !@no_pragmas)
       result = without_disabled(result)
       result = with_overrides(result)
       if @fix
@@ -652,7 +665,7 @@ module Ignorelint
       end
 
       content = File.read(path)
-      result = Linter.lint(path, content)
+      result = Linter.lint(path, content, honor_pragmas: !@no_pragmas)
       result = without_disabled(result)
       result = with_overrides(result)
       result = handle_fixes(path, content, result) if @fix || @diff

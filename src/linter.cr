@@ -90,7 +90,7 @@ module Ignorelint
     #
     # The method never raises — all errors are represented as `Issue` values
     # with appropriate severity levels.
-    def lint(path : String, content : String) : LintResult
+    def lint(path : String, content : String, honor_pragmas : Bool = true) : LintResult
       # Phase 0: Parse the file into Pattern structs
       patterns = Parser.parse(content)
       file_type = Ignorelint.file_type_from_path(path)
@@ -134,7 +134,7 @@ module Ignorelint
       end
 
       # Sort issues by line number for deterministic, editor-friendly output
-      issues = apply_suppressions(patterns, issues)
+      issues = apply_suppressions(patterns, issues, honor_pragmas)
       LintResult.new(issues: issues.sort_by(&.line), patterns: patterns)
     end
 
@@ -342,25 +342,36 @@ module Ignorelint
     # typo fails safe: the issue is still reported. Runs after every check,
     # so any code — universal, format-specific, or filesystem — is covered.
     # A `# ignorelint: global disable=IG-020` comment anywhere suppresses its codes file-wide.
-    private def apply_suppressions(patterns : Array(Pattern), issues : Array(Issue)) : Array(Issue)
+    # Every directive is reported as IG-026 after filtering, so no directive can hide that audit.
+    private def apply_suppressions(patterns : Array(Pattern), issues : Array(Issue), honor_pragmas : Bool) : Array(Issue)
       pending = [] of String
       global = Set(String).new
       suppressed = {} of Int32 => Set(String)
+      audit = [] of Issue
       patterns.each do |pat|
         if pat.blank?
           next
         elsif pat.comment?
-          pending.concat(parse_suppression(pat.raw, NEXT_LINE_DIRECTIVE))
-          global.concat(parse_suppression(pat.raw, GLOBAL_DIRECTIVE))
+          next_line = parse_suppression(pat.raw, NEXT_LINE_DIRECTIVE)
+          file_wide = parse_suppression(pat.raw, GLOBAL_DIRECTIVE)
+          pending.concat(next_line)
+          global.concat(file_wide)
+          audit << directive_issue(pat.line, next_line + file_wide) unless next_line.empty? && file_wide.empty?
         elsif !pending.empty?
           suppressed[pat.line] = Set(String).new(pending)
           pending = [] of String
         end
       end
-      return issues if suppressed.empty? && global.empty?
-      issues.reject do |issue|
+      return issues + audit unless honor_pragmas
+      kept = issues.reject do |issue|
         global.includes?(issue.code.tag) || suppressed[issue.line]?.try(&.includes?(issue.code.tag)) || false
       end
+      kept + audit
+    end
+
+    # Builds the IG-026 audit finding for one directive line.
+    private def directive_issue(line : Int32, codes : Array(String)) : Issue
+      Issue.new(line, "Suppression directive disables #{codes.join(", ")}", :info, :suppression_directive)
     end
 
     # Directive suppressing the next pattern line.

@@ -14,6 +14,7 @@ module Ignorelint
     property fix : Bool?
     property recursive : Bool?
     property verbose : Bool?
+    property disable_ignore_pragma : Bool?
     property disabled : Set(String)?
     property override_error : Set(String)?
     property override_warning : Set(String)?
@@ -26,7 +27,7 @@ module Ignorelint
 
     def empty? : Bool
       @fail_on.nil? && @no_fail.nil? && @format.nil? && @fix.nil? &&
-        @recursive.nil? && @verbose.nil? && @disabled.nil? &&
+        @recursive.nil? && @verbose.nil? && @disable_ignore_pragma.nil? && @disabled.nil? &&
         @override_error.nil? && @override_warning.nil? && @override_info.nil?
     end
   end
@@ -102,10 +103,12 @@ module Ignorelint
           else
             settings.fail_on = parse_severity(value, document, err)
           end
-        when "format"         then settings.format = parse_format(value, document, err)
-        when "fix"            then settings.fix = parse_bool(value, document, err, name)
-        when "recursive"      then settings.recursive = parse_bool(value, document, err, name)
-        when "verbose"        then settings.verbose = parse_bool(value, document, err, name)
+        when "format"    then settings.format = parse_format(value, document, err)
+        when "fix"       then settings.fix = parse_bool(value, document, err, name)
+        when "recursive" then settings.recursive = parse_bool(value, document, err, name)
+        when "verbose"   then settings.verbose = parse_bool(value, document, err, name)
+        when "disable-ignore-pragma"
+          settings.disable_ignore_pragma = parse_bool(value, document, err, name)
         when "disabled-rules" then settings.disabled = parse_disabled(value, document, err)
         when "override"
           error, warning, info = parse_override(value, document, err)

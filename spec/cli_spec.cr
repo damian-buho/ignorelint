@@ -453,6 +453,34 @@ describe Ignorelint::CLI do
     end
   end
 
+  describe "--disable-ignore-pragma" do
+    fixture = "# ignorelint: disable-next-line IG-003\n!!foo\n# ignorelint: disable-next-line IG-003\n!!bar\n"
+
+    it "is clean but for two IG-026 findings by default" do
+      code, report, _ = run_cli(["--stdin", "--file=.gitignore", "--format=json"] of String, fixture)
+      code.should eq(0)
+      JSON.parse(report)["issues"].as_a.map(&.["code"].as_s).should eq(["IG-026", "IG-026"])
+    end
+
+    it "resurfaces the suppressed issues from flag, env and projectfile" do
+      run_cli(["--stdin", "--file=.gitignore", "--disable-ignore-pragma"] of String, fixture)[0].should eq(1)
+      with_env("IGNORELINT_DISABLE_IGNORE_PRAGMA", "1") do
+        run_cli(["--stdin", "--file=.gitignore"] of String, fixture)[0].should eq(1)
+      end
+      with_policy_dir(fixture) do
+        with_fake_cli(%q(echo '{"disable-ignore-pragma": true}')) do
+          run_cli([".gitignore"] of String)[0].should eq(1)
+        end
+      end
+    end
+
+    it "is fully clean with --disabled-rules=IG-026" do
+      code, report, _ = run_cli(["--stdin", "--file=.gitignore", "--format=json", "--disabled-rules=IG-026"] of String, fixture)
+      code.should eq(0)
+      JSON.parse(report)["issues"].as_a.should be_empty
+    end
+  end
+
   describe "--verbose stream contract" do
     it "keeps --format=json stdout parseable" do
       with_policy_dir("!!foo\n") do
