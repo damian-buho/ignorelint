@@ -52,12 +52,12 @@ module Ignorelint
     # Never raises: an absent pf-cli yields an info notice plus empty settings,
     # an absent subtree is silently empty, and an unreadable document returns
     # nil after reporting (exit 2 for explicit files, warning for discovered).
-    def self.fetch(document : String, err : IO, explicit : Bool) : PolicySettings?
+    def self.fetch(document : String, err : IO, explicit : Bool, quiet : Bool = false) : PolicySettings?
       fetched = IO::Memory.new
       capture = IO::Memory.new
       status = run_pf_cli(document, fetched, capture)
       if status.nil?
-        err << "info: pf-cli not found, skipping projectfile policy\n"
+        err << "info: pf-cli not found, skipping projectfile policy\n" unless quiet
         return PolicySettings.new
       end
       if status.success?

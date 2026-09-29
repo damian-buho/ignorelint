@@ -35,7 +35,14 @@ module Ignorelint
 
     @color : Bool
 
-    def initialize(@color : Bool)
+    # Plain mode: no color, symbol or padding, one `path:line [CODE] severity: message` record per line.
+    @plain : Bool
+
+    # Quiet mode: clean files print nothing, so only issues reach the stream.
+    @quiet : Bool
+
+    def initialize(color : Bool, @plain : Bool = false, @quiet : Bool = false)
+      @color = color && !@plain
     end
 
     # No-op for human output — no header needed before file processing.
@@ -50,10 +57,14 @@ module Ignorelint
     # optionally colored (when `@color` is true).
     def format_file(result : FileResult, io : IO) : Nil
       if result.issues.empty?
+        return if @quiet
+        return io << sanitize(result.path) << " is valid\n" if @plain
         check = @color ? "\e[32m✔\e[0m" : "✔"
         io << check << ' ' << sanitize(result.path) << " is valid\n"
         return
       end
+
+      return result.issues.each { |issue| format_plain(result.path, issue, io) } if @plain
 
       result.issues.each do |issue|
         label = format_severity(issue.severity)
@@ -64,6 +75,12 @@ module Ignorelint
 
     # No-op for human output — no footer needed after file processing.
     def finish(io : IO) : Nil
+    end
+
+    # Writes one undecorated `path:line [CODE] severity: message` record.
+    private def format_plain(path : String, issue : Issue, io : IO) : Nil
+      io << sanitize(path) << ':' << issue.line << " [" << issue.code.tag << "] " \
+                                                                              << issue.severity.to_s.downcase << ": " << sanitize(issue.message) << '\n'
     end
 
     # Strip control characters so hostile pattern text cannot inject

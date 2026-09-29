@@ -394,6 +394,65 @@ describe Ignorelint::CLI do
     end
   end
 
+  describe "--file-path-in-report" do
+    it "rewrites the path in json and checkstyle, never in human output" do
+      args = ["--stdin", "--file=.gitignore", "--file-path-in-report=sub/dir/.gitignore"]
+      run_cli(args + ["--format=json"], "!!foo\n")[1].should contain(%("file": "sub/dir/.gitignore"))
+      run_cli(args + ["--format=checkstyle"], "!!foo\n")[1].should contain(%(name="sub/dir/.gitignore"))
+      human = run_cli(args, "!!foo\n")[1]
+      human.should contain(".gitignore:1")
+      human.should_not contain("sub/dir")
+    end
+
+    it "honors IGNORELINT_FILE_PATH_IN_REPORT below the flag" do
+      with_env("IGNORELINT_FILE_PATH_IN_REPORT", "env/.gitignore") do
+        run_cli(["--stdin", "--file=.gitignore", "--format=json"] of String, "!!foo\n")[1].should contain("env/.gitignore")
+        flagged = run_cli(["--stdin", "--file=.gitignore", "--format=json", "--file-path-in-report=flag/.gitignore"] of String, "!!foo\n")[1]
+        flagged.should contain("flag/.gitignore")
+        flagged.should_not contain("env/.gitignore")
+      end
+    end
+  end
+
+  describe "--plain and --quiet" do
+    it "prints one undecorated record per issue with --plain" do
+      with_color_env do
+        with_ignore_file("!!foo\n") do |path|
+          _, report, _ = run_cli(["--plain", "--colors=on", path] of String)
+          report.should_not contain("\e[")
+          report.should_not contain("✔")
+          report.should eq(report.lines.map { |line| "#{line}\n" }.join)
+          report.should match(/\A#{Regex.escape(path)}:1 \[IG-\d{3}\] error: /)
+        end
+      end
+    end
+
+    it "prints nothing for a clean file with --quiet" do
+      with_ignore_file("# clean\n") do |path|
+        code, report, _ = run_cli(["--quiet", path] of String)
+        code.should eq(0)
+        report.should be_empty
+      end
+    end
+
+    it "keeps issue lines and drops the pf-cli notice with --quiet" do
+      with_policy_dir("!!foo\n") do
+        without_any_cli do
+          code, report, err = run_cli(["--quiet", ".gitignore"] of String)
+          code.should eq(1)
+          report.should contain(".gitignore:1")
+          err.should be_empty
+        end
+      end
+    end
+
+    it "rejects --verbose with --quiet" do
+      code, _, err = run_cli(["--verbose", "--quiet"] of String)
+      code.should eq(2)
+      err.should contain("--quiet")
+    end
+  end
+
   describe "--verbose stream contract" do
     it "keeps --format=json stdout parseable" do
       with_policy_dir("!!foo\n") do

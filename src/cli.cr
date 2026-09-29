@@ -99,6 +99,15 @@ module Ignorelint
     # Color choice from `--colors`/`--no-color`; nil means auto.
     @colors : Bool? = nil
 
+    # Whether `--plain` was requested (undecorated one-record-per-line human output).
+    @plain : Bool = false
+
+    # Whether `--quiet` was requested (issues only, no notices or valid-file lines).
+    @quiet : Bool = false
+
+    # Path recorded in machine-readable reports instead of the linted one.
+    @report_path : String? = nil
+
     # Output format selector. Determines which `Formatter` subclass to use.
     @format : OutputFormat = :human
 
@@ -189,6 +198,10 @@ module Ignorelint
 
       parser.parse(args)
       return 2 unless claim_stdin_dash
+      if @verbose && @quiet
+        @err << "error: --verbose and --quiet: use one, not both\n"
+        return 2
+      end
 
       # --fix writes while --diff only previews; combining them is a usage error.
       if @fix && @diff
@@ -217,7 +230,7 @@ module Ignorelint
       paths.each do |path|
         code, result = lint_file(path)
         exit_code |= code # Bitwise OR: any non-zero code makes the final code non-zero
-        formatter.format_file(result, @io)
+        formatter.format_file(for_report(result, formatter), @io)
       end
 
       formatter.finish(@io)
@@ -251,10 +264,10 @@ module Ignorelint
           @err << "error: config file not found: #{explicit}\n"
           return
         end
-        return ProjectfilePolicy.fetch(explicit, @err, explicit: true)
+        return ProjectfilePolicy.fetch(explicit, @err, explicit: true, quiet: @quiet)
       end
       if found = ProjectfilePolicy.discover
-        return ProjectfilePolicy.fetch(found, @err, explicit: false)
+        return ProjectfilePolicy.fetch(found, @err, explicit: false, quiet: @quiet)
       end
       PolicySettings.new
     end
@@ -324,6 +337,8 @@ module Ignorelint
       apply_env_override("IGNORELINT_OVERRIDE_ERROR", Severity::Error)
       apply_env_override("IGNORELINT_OVERRIDE_WARNING", Severity::Warn)
       apply_env_override("IGNORELINT_OVERRIDE_INFO", Severity::Info)
+      @report_path ||= ENV["IGNORELINT_FILE_PATH_IN_REPORT"]?.presence
+      @verbose = false if @quiet
       @overrides.merge!(@flag_overrides)
       0
     end
@@ -418,6 +433,15 @@ module Ignorelint
         parser.on("--no-color", "Same as --colors=off") do
           @colors = false
         end
+        parser.on("--plain", "Human output as one undecorated path:line [CODE] severity: message record per line") do
+          @plain = true
+        end
+        parser.on("-q", "--quiet", "Print only issues: no valid-file lines or info notices (cannot combine with --verbose)") do
+          @quiet = true
+        end
+        parser.on("--file-path-in-report=PATH", "Record PATH instead of the linted path in machine-readable reports") do |v|
+          @report_path = v
+        end
         parser.on("--format=FORMAT", "Output format (#{OutputFormat.valid_values}, default: human)") do |v|
           parsed = OutputFormat.parse?(v)
           unless parsed
@@ -481,6 +505,7 @@ module Ignorelint
         parser.separator("  IGNORELINT_OVERRIDE_WARNING=CODES Same as --warning")
         parser.separator("  IGNORELINT_OVERRIDE_INFO=CODES Same as --info")
         parser.separator("  IGNORELINT_CONFIG=PATH     Same as --config")
+        parser.separator("  IGNORELINT_FILE_PATH_IN_REPORT=PATH Same as --file-path-in-report")
         parser.separator("  NO_COLOR=1                 Disable colored output (also IGNORELINT_NO_COLOR=1, TERM=dumb)")
         parser.separator("  FORCE_COLOR=1              Color even when piped (--colors beats it)")
 
@@ -547,7 +572,7 @@ module Ignorelint
 
       case @format
       when .human?
-        HumanFormatter.new(color)
+        HumanFormatter.new(color, @plain, @quiet)
       when .json?
         JsonFormatter.new
       when .checkstyle?
@@ -555,8 +580,15 @@ module Ignorelint
       when .sarif?
         SarifFormatter.new
       else
-        HumanFormatter.new(color)
+        HumanFormatter.new(color, @plain, @quiet)
       end
+    end
+
+    # Swaps in `--file-path-in-report` for every machine-readable format; human output keeps the real path.
+    private def for_report(result : FileResult, formatter : Formatter) : FileResult
+      path = @report_path
+      return result if path.nil? || formatter.is_a?(HumanFormatter)
+      FileResult.new(path, result.issues)
     end
 
     # Validates --stdin usage; reports and returns nil on conflict.
@@ -587,7 +619,7 @@ module Ignorelint
       end
       output = @fix ? @err : @io
       formatter.start(output)
-      formatter.format_file(FileResult.new(name, result.issues), output)
+      formatter.format_file(for_report(FileResult.new(name, result.issues), formatter), output)
       formatter.finish(output)
       should_fail?(result) ? 1 : 0
     end
