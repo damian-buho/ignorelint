@@ -18,6 +18,7 @@
 .makefile
 .secrets
 .shards
+.worktrees
 CITATION.cff
 CODEOWNERS
 LICENSE
