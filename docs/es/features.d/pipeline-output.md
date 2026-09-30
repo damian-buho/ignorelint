@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 
 # Salida que los pipelines pueden procesar
 
-- Versiones legibles, JSON, Checkstyle y SARIF, para alimentar terminales y escaneo de código por igual. Ver la [guía de uso](USAGE.md).
+- Diez renderizados — legible, GNU, JSON, Checkstyle, JUnit, Code Climate, Codacy, SonarQube, SARIF y el alias `tty` de la salida legible — para que los resultados alimenten terminales, todas las grandes plataformas de revisión y el escaneo de código por igual. Ver la [referencia de formatos](docs/how-to/formats.md).
 - Los diagnósticos van al error estándar, para que la salida estándar procesable siga siendo válida.
 - Los umbrales de severidad deciden el código de salida, para que las advertencias solo rompan una compilación cuando se pida.
 

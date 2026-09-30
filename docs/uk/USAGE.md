@@ -21,7 +21,7 @@ Options:
     -h, --help                       Show this help
     -V, --version                    Show version
         --fail-on=LEVEL              Exit non-zero on LEVEL or worse (error|warn|info, default: error)
-        --format=FORMAT              Output format (human|json|checkstyle|sarif, default: human)
+        --format=FORMAT              Output format (human|tty|gnu|json|checkstyle|junit|gitlab_codeclimate|codacy|sonarqube|sarif, default: human)
     -v, --verbose                    Show discovery output and extra diagnostics
     -r, --recursive                  Search subdirectories for *ignore files (skips hidden dirs, node_modules, symlinks)
         --fix                        Auto-fix deterministically fixable issues (IG-001,002,003,008,015,018,022,023,024)

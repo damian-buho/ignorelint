@@ -13,7 +13,7 @@ Lint policy lives in the `org.ignorelint` subtree of `projectfile.yaml` — no s
 org:
   ignorelint:
     fail-on: warn            # error | warn | info
-    format: json             # human | json | checkstyle | sarif
+    format: json             # human | gnu | json | checkstyle | junit | gitlab_codeclimate | codacy | sonarqube | sarif (tty = human)
     fix: false               # rewrite files in place
     recursive: true          # walk subdirectories
     verbose: false           # print the discovery report

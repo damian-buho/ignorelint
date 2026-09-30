@@ -10,7 +10,7 @@ pf-cli-managed: yes
 
 # Ignorelint
 
-Ignorelint es un linter y corrector automático para archivos de ignorados como .gitignore, .dockerignore y .npmignore, escrito en Crystal. Reconoce 25 nombres de archivo a través de ocho controladores de globs específicos de formato e informa 25 reglas de diagnóstico con salida humana, JSON, checkstyle y SARIF.
+Ignorelint es un linter y corrector automático para archivos de ignorados como .gitignore, .dockerignore y .npmignore, escrito en Crystal. Reconoce 25 nombres de archivo a través de ocho controladores de globs específicos de formato e informa 25 reglas de diagnóstico con diez formatos de salida, desde el legible y GNU hasta JUnit, Code Climate, Codacy, SonarQube y SARIF.
 
 [![Stand with Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://damian-buho.github.io/support-ukraine/) [![Projectfile inside](https://badges.kiota.ch/static/v1?label=projectfile&message=inside&labelColor=0d0d0d&color=8c6723&style=flat-square)](https://projectfile.org) [![License](https://badges.kiota.ch/static/v1?label=license&message=MIT&color=1e5913&style=flat-square)](LICENSE) [![Cosign](https://badges.kiota.ch/static/v1?label=cosign&message=enabled&color=1e5913&style=flat-square)](https://docs.sigstore.dev/cosign/verifying/verify/) [![PRs welcome](https://badges.kiota.ch/static/v1?label=PRs&message=welcome&color=1e5913&style=flat-square)](CONTRIBUTING.md) [![REUSE compliance](https://api.reuse.software/badge/codeberg.org/damian-buho/ignorelint)](https://api.reuse.software/info/codeberg.org/damian-buho/ignorelint)
 
@@ -125,7 +125,7 @@ Options:
     -h, --help                       Show this help
     -V, --version                    Show version
         --fail-on=LEVEL              Exit non-zero on LEVEL or worse (error|warn|info, default: error)
-        --format=FORMAT              Output format (human|json|checkstyle|sarif, default: human)
+        --format=FORMAT              Output format (human|tty|gnu|json|checkstyle|junit|gitlab_codeclimate|codacy|sonarqube|sarif, default: human)
     -v, --verbose                    Show discovery output and extra diagnostics
     -r, --recursive                  Search subdirectories for *ignore files (skips hidden dirs, node_modules, symlinks)
         --fix                        Auto-fix deterministically fixable issues (IG-001,002,003,008,015,018,022,023,024)
@@ -193,7 +193,7 @@ Puntos de entrada de la canalización:
 ## Documentación
 
 - [Configuration](../how-to/configuration.md)
-- [Formats reference](../how-to/formats.md)
+- [Output formats reference](../how-to/formats.md)
 - [Rules reference](../how-to/rules.md)
 
 ## Políticas

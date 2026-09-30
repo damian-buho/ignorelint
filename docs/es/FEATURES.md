@@ -34,7 +34,7 @@ SPDX-License-Identifier: MIT
 
 ### Salida que los pipelines pueden procesar
 
-- Versiones legibles, JSON, Checkstyle y SARIF, para alimentar terminales y escaneo de código por igual. Ver la [guía de uso](USAGE.md).
+- Diez renderizados — legible, GNU, JSON, Checkstyle, JUnit, Code Climate, Codacy, SonarQube, SARIF y el alias `tty` de la salida legible — para que los resultados alimenten terminales, todas las grandes plataformas de revisión y el escaneo de código por igual. Ver la [referencia de formatos](docs/how-to/formats.md).
 - Los diagnósticos van al error estándar, para que la salida estándar procesable siga siendo válida.
 - Los umbrales de severidad deciden el código de salida, para que las advertencias solo rompan una compilación cuando se pida.
 
@@ -130,6 +130,7 @@ SPDX-License-Identifier: MIT
 - Las comprobaciones de salida son opcionales: un contenedor que nunca llega a internet no lleva ninguna comprobación que un tercero pueda hacer fallar, mientras que uno cuyo trabajo es internet se marca como no disponible en cuanto el exterior desaparece.
 - Funciona igual sin conexión que en línea: las comprobaciones de salida se retiran automáticamente en modo offgrid.
 - Añadir una comprobación es dejar caer un script en un directorio, no escribir configuración de Docker.
+- Las comprobaciones pesadas o con límite de peticiones se ejecutan cada hora en segundo plano, de modo que un escaneo lento nunca agota el tiempo del healthcheck ni consume un límite de peticiones.
 
 Consulte [use-healthcheck.d](../how-to/use-healthcheck.d.md) para la lista de comprobaciones, la numeración de slots y la configuración.
 
@@ -226,6 +227,15 @@ Consulte [use-healthcheck.d](../how-to/use-healthcheck.d.md) para la lista de co
 - Sin dependencia de ningún framework de tests: los tests son scripts de shell simples con códigos de salida.
 - Admite plantillas Jinja2 en los tests, útil para afirmar en runtime valores fijados en compilación.
 - Continúa ante fallos e informa del recuento total; nunca oculta resultados parciales.
+
+### Nada se cuelga para siempre
+
+- Cada paso de arranque, prueba y comando puntual tiene un límite de tiempo, así que una herramienta bloqueada falla de forma visible en lugar de detener un despliegue o una ejecución de CI.
+- Las descargas estancadas se abortan, mientras que las lentas de cualquier tamaño se completan.
+- Una llamada inestable puede reintentarse con espera progresiva con una sola opción, sin escribir un bucle a mano.
+- Un reinicio opcional convierte un servicio atascado en estado no saludable en un contenedor que la política de reinicio recupera.
+
+Consulta [use-timeouts](../how-to/use-timeouts.md) para las opciones, los valores por defecto y cómo cambiarlos.
 
 ### Herramientas de utilidad preinstaladas
 
