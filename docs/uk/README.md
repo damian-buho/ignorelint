@@ -34,71 +34,40 @@ Ignorelint — лінтер і автокоректор для ignore-файлі
 ## Що надає цей проєкт
 
 - **CI-дія** `damian-buho/ignorelint@1.4.0`
-- **Виконуваний файл** `ignorelint`
+- **Виконуваний файл** `ignorelint` — команда `ignorelint`
 - **Образ контейнера** `ghcr.io/damian-buho/ignorelint:latest`
 - **Образ контейнера** `damianbuho/ignorelint:latest`
 
-## Підтримувані платформи
-
-- `linux/amd64`
-- `linux/arm64`
-
 ## Встановлення
+
+### Образ контейнера
 
 Завантажте опублікований образ контейнера:
 
-### Завантажити з GHCR
+Створіть псевдонім команди на образ, щоб кожен приклад працював як написано в поточному каталозі:
+
+#### Завантажити з GHCR — linux/amd64, linux/arm64
 
 ```sh
 docker pull ghcr.io/damian-buho/ignorelint:latest
+alias ignorelint='docker run --rm --user "$(id -u):$(id -g)" --group-add 0 --volume "$PWD:/app/ws" --workdir /app/ws ghcr.io/damian-buho/ignorelint:latest ignorelint'
 ```
 
-### Завантажити з DockerHub
+#### Завантажити з DockerHub — linux/amd64
 
 ```sh
 docker pull damianbuho/ignorelint:latest
+alias ignorelint='docker run --rm --user "$(id -u):$(id -g)" --group-add 0 --volume "$PWD:/app/ws" --workdir /app/ws damianbuho/ignorelint:latest ignorelint'
 ```
 
 Стабільні випуски також публікують теґи `X.Y.Z`, `X.Y` і `X` — завантажте той рівень точності, який хочете зафіксувати.
 
 Якщо наведені вище реєстри недоступні, завантажте з джерела:
 
-### Завантажити з Kiota
+#### Завантажити з Kiota — linux/amd64
 
 ```sh
 docker pull kiota.ch/damian-buho/ignorelint:latest
-```
-
-Завантажте готовий бінарний файл для своєї платформи з останнього випуску на GitHub:
-
-### Завантажити для linux/amd64
-
-```sh
-curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-amd64 && chmod +x ignorelint
-./ignorelint --help
-```
-
-### Завантажити для linux/arm64
-
-```sh
-curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-arm64 && chmod +x ignorelint
-./ignorelint --help
-```
-
-## Використання
-
-Створіть псевдонім команди на образ, щоб кожен приклад працював як написано в поточному каталозі:
-
-### З GHCR
-
-```sh
-alias ignorelint='docker run --rm --user "$(id -u):$(id -g)" --group-add 0 --volume "$PWD:/app/ws" --workdir /app/ws ghcr.io/damian-buho/ignorelint:latest ignorelint'
-```
-
-### З DockerHub
-
-```sh
-alias ignorelint='docker run --rm --user "$(id -u):$(id -g)" --group-add 0 --volume "$PWD:/app/ws" --workdir /app/ws damianbuho/ignorelint:latest ignorelint'
 ```
 
 Потім запускайте його так, ніби його встановлено:
@@ -107,7 +76,27 @@ alias ignorelint='docker run --rm --user "$(id -u):$(id -g)" --group-add 0 --vol
 ignorelint --help
 ```
 
-Або запускайте його як крок робочого процесу GitHub Actions:
+### Готовий бінарний файл
+
+Завантажте готовий бінарний файл для своєї платформи з останнього випуску на GitHub:
+
+#### Завантажити для linux/amd64
+
+```sh
+curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-amd64 && chmod +x ignorelint
+./ignorelint --help
+```
+
+#### Завантажити для linux/arm64
+
+```sh
+curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-arm64 && chmod +x ignorelint
+./ignorelint --help
+```
+
+## Використання
+
+Запускайте його як крок робочого процесу GitHub Actions:
 
 ```yaml
 - uses: damian-buho/ignorelint@1.4.0
@@ -174,23 +163,7 @@ Environment variables:
   NO_COLOR=1                 Disable colored output
 ```
 
-### Перевірте ignore-файли в каталозі
-
-Без шляхів ignorelint перевіряє кожен відомий йому ignore-файл у робочому каталозі; `--recursive` обходить усе дерево, пропускаючи приховані каталоги, `node_modules` і символьні посилання. Код виходу `0` означає, що нічого на рівні `--fail-on` чи вище немає, `1` — знайдено проблеми, `2` — неприпустимі аргументи.
-
-```console
-$ printf 'node_modules/\n*.log\nnode_modules/\n!!keep.log\n' > .gitignore
-$ ignorelint
-info:  .gitignore:1 [IG-020] Directory "node_modules" does not exist
-info:  .gitignore:2 [IG-021] Glob "*.log" matches no files (dead rule)
-warn:  .gitignore:3 [IG-008] Duplicate of line 1: "node_modules/"
-info:  .gitignore:3 [IG-020] Directory "node_modules" does not exist
-error: .gitignore:4 [IG-003] Double negation "!!keep.log" cancels out
-$ echo $?
-1
-```
-
-Усі команди й більше прикладів — у [USAGE.md](USAGE.md).
+Приклади й довідка кожної команди — у [USAGE.md](USAGE.md).
 
 ## Збирання
 
@@ -200,10 +173,16 @@ $ echo $?
 git clone --recurse-submodules https://codeberg.org/damian-buho/ignorelint ignorelint && cd ignorelint
 ```
 
-Зберіть бінарний файл із вихідного коду в `bin/`:
+Зберіть бінарний файл із вихідного коду в `dist/`:
 
 ```sh
-shards build --release --production ignorelint
+make crystal-build
+```
+
+Зберіть образ контейнера локально:
+
+```sh
+make container-build
 ```
 
 - [Довідник із Makefile](../how-to/MAKEFILE.md)

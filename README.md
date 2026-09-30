@@ -32,71 +32,40 @@ It also inherits the features of Inherited from B19 / Ubuntu — see [FEATURES.m
 ## What this provides
 
 - **CI action** `damian-buho/ignorelint@1.4.0`
-- **Executable** `ignorelint`
+- **Executable** `ignorelint` — command `ignorelint`
 - **Container image** `ghcr.io/damian-buho/ignorelint:latest`
 - **Container image** `damianbuho/ignorelint:latest`
 
-## Supported platforms
-
-- `linux/amd64`
-- `linux/arm64`
-
 ## Installation
+
+### Container image
 
 Pull the published container image:
 
-### Pull from GHCR
+Alias the command to the image, so every example runs as written against the current directory:
+
+#### Pull from GHCR — linux/amd64, linux/arm64
 
 ```sh
 docker pull ghcr.io/damian-buho/ignorelint:latest
+alias ignorelint='docker run --rm --user "$(id -u):$(id -g)" --group-add 0 --volume "$PWD:/app/ws" --workdir /app/ws ghcr.io/damian-buho/ignorelint:latest ignorelint'
 ```
 
-### Pull from DockerHub
+#### Pull from DockerHub — linux/amd64
 
 ```sh
 docker pull damianbuho/ignorelint:latest
+alias ignorelint='docker run --rm --user "$(id -u):$(id -g)" --group-add 0 --volume "$PWD:/app/ws" --workdir /app/ws damianbuho/ignorelint:latest ignorelint'
 ```
 
 Stable releases also publish `X.Y.Z`, `X.Y` and `X` tags — pull the precision you want to pin.
 
 If the registries above are unreachable, pull from the origin instead:
 
-### Pull from Kiota
+#### Pull from Kiota — linux/amd64
 
 ```sh
 docker pull kiota.ch/damian-buho/ignorelint:latest
-```
-
-Download the prebuilt binary for your platform from the latest GitHub release:
-
-### Download for linux/amd64
-
-```sh
-curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-amd64 && chmod +x ignorelint
-./ignorelint --help
-```
-
-### Download for linux/arm64
-
-```sh
-curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-arm64 && chmod +x ignorelint
-./ignorelint --help
-```
-
-## Usage
-
-Alias the command to the image, so every example runs as written against the current directory:
-
-### From GHCR
-
-```sh
-alias ignorelint='docker run --rm --user "$(id -u):$(id -g)" --group-add 0 --volume "$PWD:/app/ws" --workdir /app/ws ghcr.io/damian-buho/ignorelint:latest ignorelint'
-```
-
-### From DockerHub
-
-```sh
-alias ignorelint='docker run --rm --user "$(id -u):$(id -g)" --group-add 0 --volume "$PWD:/app/ws" --workdir /app/ws damianbuho/ignorelint:latest ignorelint'
 ```
 
 Then run it as if it were installed:
@@ -105,7 +74,27 @@ Then run it as if it were installed:
 ignorelint --help
 ```
 
-Or run it as a step in a GitHub Actions workflow:
+### Prebuilt binary
+
+Download the prebuilt binary for your platform from the latest GitHub release:
+
+#### Download for linux/amd64
+
+```sh
+curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-amd64 && chmod +x ignorelint
+./ignorelint --help
+```
+
+#### Download for linux/arm64
+
+```sh
+curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-arm64 && chmod +x ignorelint
+./ignorelint --help
+```
+
+## Usage
+
+Run it as a step in a GitHub Actions workflow:
 
 ```yaml
 - uses: damian-buho/ignorelint@1.4.0
@@ -172,23 +161,7 @@ Environment variables:
   NO_COLOR=1                 Disable colored output
 ```
 
-### Lint the ignore files in a directory
-
-With no path, ignorelint lints every ignore file it recognises in the working directory; `--recursive` walks the whole tree, skipping hidden directories, `node_modules` and symlinks. Exit `0` means nothing at or above `--fail-on`, `1` means issues found, `2` means invalid arguments.
-
-```console
-$ printf 'node_modules/\n*.log\nnode_modules/\n!!keep.log\n' > .gitignore
-$ ignorelint
-info:  .gitignore:1 [IG-020] Directory "node_modules" does not exist
-info:  .gitignore:2 [IG-021] Glob "*.log" matches no files (dead rule)
-warn:  .gitignore:3 [IG-008] Duplicate of line 1: "node_modules/"
-info:  .gitignore:3 [IG-020] Directory "node_modules" does not exist
-error: .gitignore:4 [IG-003] Double negation "!!keep.log" cancels out
-$ echo $?
-1
-```
-
-Every command and more examples are in [USAGE.md](USAGE.md).
+Examples and every command’s help are in [USAGE.md](USAGE.md).
 
 ## Building
 
@@ -198,10 +171,16 @@ Clone the repository with its submodules:
 git clone --recurse-submodules https://codeberg.org/damian-buho/ignorelint ignorelint && cd ignorelint
 ```
 
-Build the binary from source into `bin/`:
+Build the binary from source into `dist/`:
 
 ```sh
-shards build --release --production ignorelint
+make crystal-build
+```
+
+Build the container image locally:
+
+```sh
+make container-build
 ```
 
 - [Makefile reference](docs/how-to/MAKEFILE.md)
