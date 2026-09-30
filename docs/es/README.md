@@ -29,7 +29,7 @@ Ignorelint es un linter y corrector automático para archivos de ignorados como 
 - La política vive en projectfile.yaml
 - Supresiones para excepciones intencionales
 
-También hereda las características de Heredado de B19 / Ubuntu; consulta [FEATURES.md](FEATURES.md) para ver la lista completa.
+También hereda las características de B19 / Ubuntu; consulta [Características](FEATURES.md) para ver la lista completa.
 
 ## Qué entrega este proyecto
 
@@ -163,7 +163,7 @@ Environment variables:
   NO_COLOR=1                 Disable colored output
 ```
 
-Los ejemplos y la ayuda de cada comando están en [USAGE.md](USAGE.md).
+Los ejemplos y la ayuda de cada comando están en [Uso](USAGE.md).
 
 ## Compilación
 

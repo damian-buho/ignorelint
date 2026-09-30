@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 
 <!-- textlint-disable terminology,common-misspellings -->
 
-[English](../../USAGE.md) · [Українська](../uk/USAGE.md)
+[English](../USAGE.md) · [Українська](../uk/USAGE.md)
 
 # Uso
 

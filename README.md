@@ -27,7 +27,7 @@ Ignorelint is a linter and auto-fixer for ignore files such as .gitignore, .dock
 - Policy lives in projectfile.yaml
 - Suppressions for intentional exceptions
 
-It also inherits the features of Inherited from B19 / Ubuntu — see [FEATURES.md](FEATURES.md) for the full list.
+It also inherits the features of B19 / Ubuntu — see [Features](docs/FEATURES.md) for the full list.
 
 ## What this provides
 
@@ -161,7 +161,7 @@ Environment variables:
   NO_COLOR=1                 Disable colored output
 ```
 
-Examples and every command’s help are in [USAGE.md](USAGE.md).
+Examples and every command’s help are in [Usage](docs/USAGE.md).
 
 ## Building
 
