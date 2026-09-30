@@ -30,6 +30,7 @@ jobs:
     if: (github.event_name == 'workflow_dispatch') || (github.event_name == 'schedule')
     env:
       M6E_IMAGE_PUBLISHED: kiota.ch/damian-buho/ignorelint:latest
+      CI_IGNORE_VULNERABILITIES: ${{ vars.CI_IGNORE_VULNERABILITIES }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -44,6 +45,7 @@ jobs:
           run: auto-grype image
           env: |-
             M6E_IMAGE_PUBLISHED=kiota.ch/damian-buho/ignorelint:latest
+            CI_IGNORE_VULNERABILITIES=${{ vars.CI_IGNORE_VULNERABILITIES }}
             M6E_SHARED_CACHE=Y
           mounts: /app/data/ci-cache/grype-db:/app/.cache/grype:rw
       - name: trivy-scan-registry
@@ -55,6 +57,7 @@ jobs:
           run: auto-trivy image
           env: |-
             M6E_IMAGE_PUBLISHED=kiota.ch/damian-buho/ignorelint:latest
+            CI_IGNORE_VULNERABILITIES=${{ vars.CI_IGNORE_VULNERABILITIES }}
             M6E_SHARED_CACHE=Y
             TRIVY_CACHE_BACKEND
           mounts: /app/data/ci-cache/trivy-db:/app/.cache/trivy:rw
@@ -72,6 +75,8 @@ jobs:
       - run: echo source-is-audited
   source-is-secure:
     runs-on: docker
+    env:
+      CI_IGNORE_VULNERABILITIES: ${{ vars.CI_IGNORE_VULNERABILITIES }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -85,6 +90,7 @@ jobs:
           version: ${{ env.M6E_TAG }}
           run: auto-grype
           env: |-
+            CI_IGNORE_VULNERABILITIES=${{ vars.CI_IGNORE_VULNERABILITIES }}
             M6E_SHARED_CACHE=Y
           mounts: /app/data/ci-cache/grype-db:/app/.cache/grype:rw
       - name: trivy-scan-source
@@ -95,6 +101,7 @@ jobs:
           version: ${{ env.M6E_TAG }}
           run: auto-trivy fs
           env: |-
+            CI_IGNORE_VULNERABILITIES=${{ vars.CI_IGNORE_VULNERABILITIES }}
             M6E_SHARED_CACHE=Y
             TRIVY_CACHE_BACKEND
           mounts: /app/data/ci-cache/trivy-db:/app/.cache/trivy:rw
