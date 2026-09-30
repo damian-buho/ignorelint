@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 
 # Autofix that preserves file meaning
 
-- `--fix` corrects deterministic issues in place, so cleanups apply without hand-editing. See the [rules reference](docs/rules.md).
+- `--fix` corrects deterministic issues in place, so cleanups apply without hand-editing. See the [rules reference](docs/how-to/rules.md).
 - Corrections on one line compose in a single pass, so one run converges.
 - Files are rewritten atomically with permissions kept, so an interrupted run never leaves a truncated file.
 - Negations are never reordered and symlinks never rewritten, so a fix cannot change what the file ignores.

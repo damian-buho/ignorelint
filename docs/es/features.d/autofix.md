@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 
 # Autocorrección que preserva el significado del archivo
 
-- `--fix` corrige problemas deterministas en el lugar, para limpiar sin editar a mano. Ver la [referencia de reglas](docs/rules.md).
+- `--fix` corrige problemas deterministas en el lugar, para limpiar sin editar a mano. Ver la [referencia de reglas](docs/how-to/rules.md).
 - Las correcciones de una misma línea se combinan en una sola pasada, para converger en una ejecución.
 - Los archivos se reescriben de forma atómica conservando los permisos, para que una interrupción nunca deje un archivo truncado.
 - Las negaciones nunca se reordenan y los enlaces simbólicos nunca se reescriben, para que una corrección no cambie lo que el archivo ignora.

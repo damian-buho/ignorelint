@@ -25,6 +25,7 @@ includes:
   - .makefile/b19/traits/signed-images.yaml
   - .makefile/b19/traits/attested-images.yaml
   - .makefile/container/traits/readme-tool-image.yaml
+  - .makefile/core/traits/github-action.yaml
   - .makefile/library/languages/crystal.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/forge/codeberg.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/forge/github.yaml
@@ -105,6 +106,9 @@ links:
     url: https://hub.docker.com/r/damianbuho/ignorelint
 org:
   projectfile:
+    artifacts:
+      crystal-binary:
+        help: [""]
     architecture:
       - amd64
       - arm64

@@ -25,7 +25,7 @@ inputs:
     required: false
     default: 'error'
   fix:
-    description: 'Auto-fix deterministically fixable issues (workspace will be modified).'
+    description: 'Autofix deterministically fixable issues (workspace will be modified).'
     required: false
     default: 'false'
   disabled_rules:

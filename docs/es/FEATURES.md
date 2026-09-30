@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 
 ### Autocorrección que preserva el significado del archivo
 
-- `--fix` corrige problemas deterministas en el lugar, para limpiar sin editar a mano. Ver la [referencia de reglas](docs/rules.md).
+- `--fix` corrige problemas deterministas en el lugar, para limpiar sin editar a mano. Ver la [referencia de reglas](docs/how-to/rules.md).
 - Las correcciones de una misma línea se combinan en una sola pasada, para converger en una ejecución.
 - Los archivos se reescriben de forma atómica conservando los permisos, para que una interrupción nunca deje un archivo truncado.
 - Las negaciones nunca se reordenan y los enlaces simbólicos nunca se reescriben, para que una corrección no cambie lo que el archivo ignora.
@@ -21,26 +21,26 @@ SPDX-License-Identifier: MIT
 
 ### Detección de reglas muertas contra el sistema de archivos
 
-- Los patrones literales se comprueban por existencia y los globs por al menos una coincidencia, para que las rutas eliminadas aparezcan como reglas obsoletas. Ver la [referencia de reglas](docs/rules.md).
+- Los patrones literales se comprueban por existencia y los globs por al menos una coincidencia, para que las rutas eliminadas aparezcan como reglas obsoletas. Ver la [referencia de reglas](docs/how-to/rules.md).
 - Los patrones negados se omiten, ya que reincluyen en lugar de ignorar.
 - Los patrones que salen del árbol se omiten en lugar de explorarse.
 
 ### Descubrimiento de todo el árbol para monorepos
 
-- Sin rutas, los archivos ignore se encuentran solos: un directorio, o todo el árbol con `--recursive`. Ver la [referencia CLI](docs/cli.md).
+- Sin rutas, los archivos ignore se encuentran solos: un directorio, o todo el árbol con `--recursive`. Ver la [guía de uso](USAGE.md).
 - Los hallazgos usan rutas relativas al directorio de trabajo en orden, para una salida estable entre ejecuciones.
 - Los directorios ocultos, `node_modules` y los enlaces simbólicos se omiten, para no revisar nunca internos, dependencias ni ciclos de enlaces.
 - Las rutas explícitas reemplazan al descubrimiento.
 
 ### Salida que los pipelines pueden procesar
 
-- Versiones legibles, JSON, Checkstyle y SARIF, para alimentar terminales y escaneo de código por igual. Ver la [referencia CLI](docs/cli.md).
+- Versiones legibles, JSON, Checkstyle y SARIF, para alimentar terminales y escaneo de código por igual. Ver la [guía de uso](USAGE.md).
 - Los diagnósticos van al error estándar, para que la salida estándar procesable siga siendo válida.
 - Los umbrales de severidad deciden el código de salida, para que las advertencias solo rompan una compilación cuando se pida.
 
 ### La política vive en projectfile.yaml
 
-- La política de lint (`fail-on`, `format`, `fix`, `disabled-rules`, `override`) vive en el subárbol `org.ignorelint` de `projectfile.yaml`, así un solo archivo lleva la identidad del proyecto y sus reglas. Ver la [referencia CLI](docs/cli.md).
+- La política de lint (`fail-on`, `format`, `fix`, `disabled-rules`, `override`) vive en el subárbol `org.ignorelint` de `projectfile.yaml`, así un solo archivo lleva la identidad del proyecto y sus reglas. Ver la [guía de configuración](docs/how-to/configuration.md).
 - El subárbol se lee vía pf-cli, así los documentos TOML y JSON más los fragmentos include compartidos funcionan sin código extra; sin pf-cli en el `PATH`, las banderas y el entorno siguen valiendo.
 - Cada opción se configura de tres formas — bandera, entorno `IGNORELINT_*`, subárbol projectfile — con las banderas sobre el entorno y este sobre el archivo, así los valores de CI y los locales se combinan en vez de chocar.
 - `--config` apunta a otro projectfile cuando una copia revisa otra, e `IGNORELINT_CONFIG` hace lo mismo para sistemas que solo configuran por entorno.
@@ -48,11 +48,11 @@ SPDX-License-Identifier: MIT
 
 ### Supresiones para excepciones intencionales
 
-- Una directiva en un comentario silencia los códigos listados en el siguiente patrón, para que las entradas correctas dejen de fallar ejecuciones. Ver la [referencia de reglas](docs/rules.md).
+- Una directiva en un comentario silencia los códigos listados en el siguiente patrón, para que las entradas correctas dejen de fallar ejecuciones. Ver la [referencia de reglas](docs/how-to/rules.md).
 - Las directivas cubren todos los códigos, incluidos los hallazgos de reglas muertas del sistema de archivos.
 - Los códigos desconocidos no coinciden con nada, para que una directiva mal escrita falle de forma segura y el hallazgo siga apareciendo.
 - Los hallazgos suprimidos nunca llegan a la autocorrección ni a los códigos de salida.
-- `--disabled-rules` (o `IGNORELINT_DISABLED_RULES`) omite los códigos listados en toda la ejecución, para que una comprobación con la que el equipo no está de acuerdo deje de fallar compilaciones sin directivas por línea. Ver la [referencia CLI](docs/cli.md).
+- `--disabled-rules` (o `IGNORELINT_DISABLED_RULES`) omite los códigos listados en toda la ejecución, para que una comprobación con la que el equipo no está de acuerdo deje de fallar compilaciones sin directivas por línea. Ver la [guía de configuración](docs/how-to/configuration.md).
 
 ## Heredado de B19 / Ubuntu
 
@@ -157,7 +157,7 @@ Consulte [use-healthcheck.d](../how-to/use-healthcheck.d.md) para la lista de co
 
 - El contenedor se ejecuta como usuario sin privilegios de root (`ubuntu`, UID/GID 1000) con todos los archivos de runtime en propiedad de ese usuario.
 - Una compilación en dos etapas separa la instalación del sistema a nivel root de la configuración del runtime a nivel de usuario.
-- La identidad del usuario es configurable en tiempo de compilación.
+- La identidad del usuario es configurable en tiempo de compilación, y un arranque opcional como root la reasigna al usuario del host para que los montajes bind conserven su propietario.
 
 ### Soporte de compilación y runtime aislados de internet (air-gapped/offline)
 

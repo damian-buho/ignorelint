@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 
 ### Autofix that preserves file meaning
 
-- `--fix` corrects deterministic issues in place, so cleanups apply without hand-editing. See the [rules reference](docs/rules.md).
+- `--fix` corrects deterministic issues in place, so cleanups apply without hand-editing. See the [rules reference](docs/how-to/rules.md).
 - Corrections on one line compose in a single pass, so one run converges.
 - Files are rewritten atomically with permissions kept, so an interrupted run never leaves a truncated file.
 - Negations are never reordered and symlinks never rewritten, so a fix cannot change what the file ignores.
@@ -19,26 +19,26 @@ SPDX-License-Identifier: MIT
 
 ### Dead-rule detection against the live filesystem
 
-- Literal patterns are checked for existence and globs for at least one match, so removed paths surface as stale rules. See the [rules reference](docs/rules.md).
+- Literal patterns are checked for existence and globs for at least one match, so removed paths surface as stale rules. See the [rules reference](docs/how-to/rules.md).
 - Negated patterns are skipped, since they re-include rather than ignore.
 - Patterns reaching outside the tree are skipped instead of probed.
 
 ### Whole-tree discovery for monorepos
 
-- With no paths given, ignore files are found automatically: one directory, or the whole tree with `--recursive`. See the [CLI reference](docs/cli.md).
+- With no paths given, ignore files are found automatically: one directory, or the whole tree with `--recursive`. See the [usage guide](USAGE.md).
 - Findings report working-directory-relative paths in sorted order, so output is stable across runs.
 - Hidden directories, `node_modules`, and symlinks are skipped, so internals, dependencies, and link cycles are never linted.
 - Explicit paths override discovery entirely.
 
 ### Output pipelines can parse
 
-- Human, JSON, Checkstyle, and SARIF renderings, so results feed terminals and code scanning alike. See the [CLI reference](docs/cli.md).
+- Human, JSON, Checkstyle, and SARIF renderings, so results feed terminals and code scanning alike. See the [usage guide](USAGE.md).
 - Diagnostics go to standard error, so machine-readable standard output stays parseable.
 - Severity thresholds decide the exit code, so warnings break a build only when asked.
 
 ### Policy lives in projectfile.yaml
 
-- Lint policy (`fail-on`, `format`, `fix`, `disabled-rules`, `override`) lives in the `org.ignorelint` subtree of `projectfile.yaml`, so one file carries project identity and linter rules together. See the [CLI reference](docs/cli.md).
+- Lint policy (`fail-on`, `format`, `fix`, `disabled-rules`, `override`) lives in the `org.ignorelint` subtree of `projectfile.yaml`, so one file carries project identity and linter rules together. See the [configuration guide](docs/how-to/configuration.md).
 - The subtree is read through pf-cli, so TOML and JSON documents plus shared include fragments work with no extra code; without pf-cli on `PATH`, flags and environment still apply.
 - Every option is settable three ways — flag, `IGNORELINT_*` environment, projectfile subtree — with flags beating environment and environment beating file, so CI defaults and local overrides compose instead of colliding.
 - `--config` points at another projectfile when one checkout lints another, and `IGNORELINT_CONFIG` does the same for systems that configure through environment only.
@@ -46,11 +46,11 @@ SPDX-License-Identifier: MIT
 
 ### Suppressions for intentional exceptions
 
-- A comment directive silences listed codes on the next pattern, so known-good entries stop failing runs. See the [rules reference](docs/rules.md).
+- A comment directive silences listed codes on the next pattern, so known-good entries stop failing runs. See the [rules reference](docs/how-to/rules.md).
 - Directives cover every code, including dead-rule findings from the filesystem.
 - Unknown codes match nothing, so a mistyped directive fails safe and the finding still appears.
 - Suppressed findings never reach autofix or exit codes.
-- `--disabled-rules` (or `IGNORELINT_DISABLED_RULES`) skips listed codes for the whole run, so a check the team disagrees with stops failing builds without per-line directives. See the [CLI reference](docs/cli.md).
+- `--disabled-rules` (or `IGNORELINT_DISABLED_RULES`) skips listed codes for the whole run, so a check the team disagrees with stops failing builds without per-line directives. See the [configuration guide](docs/how-to/configuration.md).
 
 ## Inherited from B19 / Ubuntu
 
@@ -154,7 +154,7 @@ See [use-healthcheck.d](../how-to/use-healthcheck.d.md) for the check list, slot
 
 - The container runs as a non-root user (`ubuntu`, UID/GID 1000) with all runtime files owned by that user.
 - A two-stage build separates root-level system installation from user-level runtime setup.
-- User identity is configurable at build time.
+- User identity is configurable at build time, and an opt-in root start remaps it to the host user so bind mounts keep their ownership.
 
 ### Air-gapped / offline build and runtime support
 

@@ -39,7 +39,7 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | IG-024 | warn | Leading whitespace | ✓ |
 | IG-025 | warn | Case mismatch | — |
 
-Severities are `error`, `warn`, and `info`; every code is emitted in all output formats. Any default can be changed for the whole run with `--error`, `--warning`, or `--info` (see [Severity overrides](cli.md#severity-overrides)).
+Severities are `error`, `warn`, and `info`; every code is emitted in all output formats. Any default can be changed for the whole run with `--error`, `--warning`, or `--info` (see [USAGE.md](../../USAGE.md)).
 
 ## Autofix
 
@@ -54,7 +54,7 @@ A comment silences codes on the next pattern line:
 legacy-path/
 ```
 
-Blank lines and other comments between the directive and the pattern are skipped; several codes may be listed separated by commas or spaces. Unknown codes match nothing, so a mistyped code fails safe and the finding is still reported. Suppressed findings never reach autofix or the exit code. To silence a rule for the whole run instead of one line, use `--disabled-rules` (see [CLI reference](cli.md)).
+Blank lines and other comments between the directive and the pattern are skipped; several codes may be listed separated by commas or spaces. Unknown codes match nothing, so a mistyped code fails safe and the finding is still reported. Suppressed findings never reach autofix or the exit code. To silence a rule for the whole run instead of one line, use `--disabled-rules` (see the [configuration guide](configuration.md)).
 
 ## Filesystem checks
 
