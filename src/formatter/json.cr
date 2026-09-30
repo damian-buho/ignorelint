@@ -36,33 +36,13 @@
 require "json"
 
 module Ignorelint
-  class JsonFormatter < Formatter
-    # Collected results from all processed files. Emitted in `finish`.
-    @results = [] of FileResult
-
-    # No-op — the JSON header is written in `finish`.
-    def start(io : IO) : Nil
-    end
-
-    # Collect the file result for later emission in `finish`.
-    #
-    # Does NOT write to `io` immediately — the complete JSON structure is
-    # built in `finish` so the `"total"` count is accurate.
-    def format_file(result : FileResult, io : IO) : Nil
-      @results << result
-    end
-
+  class JsonFormatter < BatchFormatter
     # Convert the severity enum to a JSON string value.
     #
     # Uses `"warning"` (not `"warn"`) to match the checkstyle and SARIF
     # formatters and the SARIF `level` vocabulary.
     private def severity_to_json(severity : Severity) : String
-      case severity
-      when .error? then "error"
-      when .warn?  then "warning"
-      when .fixed? then "fixed"
-      else              "info"
-      end
+      severity_word(severity)
     end
 
     # Write the complete JSON document to the output stream.

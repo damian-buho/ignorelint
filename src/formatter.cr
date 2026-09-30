@@ -32,8 +32,8 @@
 #
 # The concrete formatter `require` statements are at the bottom of this file
 # because each formatter file references types defined here (`Formatter`,
-# `FileResult`). Crystal's `require` is single-pass, so the base types must
-# be defined before the concrete types that inherit from them.
+# `BatchFormatter`, `FileResult`). Crystal's `require` is single-pass, so the
+# base types must be defined before the concrete types that inherit from them.
 require "./issue"
 
 module Ignorelint
@@ -82,12 +82,60 @@ module Ignorelint
     # Called once after all files are processed. Use for document footers
     # and final aggregation (e.g., JSON total count).
     abstract def finish(io : IO) : Nil
+
+    # Machine-readable severity word, shared by every non-terminal format.
+    protected def severity_word(severity : Severity) : String
+      case severity
+      when .error? then "error"
+      when .warn?  then "warning"
+      when .fixed? then "fixed"
+      else              "info"
+      end
+    end
+
+    # Strips control characters so hostile pattern text cannot break the layout.
+    protected def strip_control(text : String) : String
+      text.gsub(/[\x00-\x1F\x7F]/, "")
+    end
+  end
+
+  # Base for the formats that emit one document: it collects every `FileResult`
+  # and leaves `finish` to the concrete formatter.
+  abstract class BatchFormatter < Formatter
+    # Every processed file, in discovery order; read by `finish`.
+    @results = [] of FileResult
+
+    # No-op — batch formats write their header inside `finish`.
+    def start(io : IO) : Nil
+    end
+
+    # Defers the file until `finish`, where aggregate counts are known.
+    def format_file(result : FileResult, io : IO) : Nil
+      @results << result
+    end
+
+    # Walks every collected issue paired with the path of its file.
+    protected def each_issue(& : String, Issue -> Nil) : Nil
+      @results.each do |result|
+        result.issues.each { |issue| yield result.path, issue }
+      end
+    end
+
+    # Total issues across every collected file.
+    protected def issue_count : Int32
+      @results.sum(&.issues.size)
+    end
   end
 end
 
 # Load concrete formatter implementations.
 # Each file defines a subclass of `Formatter`.
 require "./formatter/human"
+require "./formatter/gnu"
 require "./formatter/json"
 require "./formatter/checkstyle"
+require "./formatter/junit"
+require "./formatter/gitlab_codeclimate"
+require "./formatter/codacy"
+require "./formatter/sonarqube"
 require "./formatter/sarif"

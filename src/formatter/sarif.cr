@@ -32,19 +32,7 @@ require "uri"
 require "../version"
 
 module Ignorelint
-  class SarifFormatter < Formatter
-    # Collected results from all processed files. Emitted in `finish`.
-    @results = [] of FileResult
-
-    # No-op — the SARIF document is written in `finish`.
-    def start(io : IO) : Nil
-    end
-
-    # Collect the file result for later emission in `finish`.
-    def format_file(result : FileResult, io : IO) : Nil
-      @results << result
-    end
-
+  class SarifFormatter < BatchFormatter
     # Write the complete SARIF 2.1.0 JSON document to the output stream.
     #
     # The document has two main sections:

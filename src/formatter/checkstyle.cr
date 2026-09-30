@@ -36,17 +36,7 @@
 require "xml"
 
 module Ignorelint
-  class CheckstyleFormatter < Formatter
-    # No-op — the XML header is written in `finish`.
-    @results = [] of FileResult
-
-    def start(io : IO) : Nil
-    end
-
-    def format_file(result : FileResult, io : IO) : Nil
-      @results << result
-    end
-
+  class CheckstyleFormatter < BatchFormatter
     # Write the complete Checkstyle XML document to the output stream.
     #
     # Groups issues by file, skipping files with no issues. Each issue
@@ -77,11 +67,6 @@ module Ignorelint
       end
       io << '\n'
     end
-
-    # Lazy-initialized collection of file results.
-    # Declared nilable because Crystal requires all ivars to have a value
-    # after construction, and this class has no explicit `initialize`.
-    @results : Array(FileResult)
 
     # Map our `Severity` enum to Checkstyle severity strings.
     #
