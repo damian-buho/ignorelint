@@ -1,0 +1,87 @@
+[
+  {
+    "type": "issue",
+    "check_name": "IG-001",
+    "description": "Trailing whitespace in \"build  \"",
+    "categories": [
+      "Bug Risk"
+    ],
+    "severity": "major",
+    "fingerprint": "1371a77974c063d3c8b26a6b625e0aba158edf75",
+    "location": {
+      "path": ".gitignore",
+      "lines": {
+        "begin": 1,
+        "end": 1
+      }
+    }
+  },
+  {
+    "type": "issue",
+    "check_name": "IG-003",
+    "description": "Double negation \"!!keep\" cancels out",
+    "categories": [
+      "Bug Risk"
+    ],
+    "severity": "critical",
+    "fingerprint": "dd939597035a927132ace0b56f05a7c22dff11bf",
+    "location": {
+      "path": ".gitignore",
+      "lines": {
+        "begin": 2,
+        "end": 2
+      }
+    }
+  },
+  {
+    "type": "issue",
+    "check_name": "IG-020",
+    "description": "Directory \"node_modules\" does not exist",
+    "categories": [
+      "Bug Risk"
+    ],
+    "severity": "minor",
+    "fingerprint": "73540590609c52eef6504e0dc82a5eb3c9ad2dd3",
+    "location": {
+      "path": ".gitignore",
+      "lines": {
+        "begin": 3,
+        "end": 3
+      }
+    }
+  },
+  {
+    "type": "issue",
+    "check_name": "IG-001",
+    "description": "Trailing whitespace fixed",
+    "categories": [
+      "Bug Risk"
+    ],
+    "severity": "info",
+    "fingerprint": "8ac6aee998d3c672b6bc9d2e76e91947b95a5145",
+    "location": {
+      "path": ".gitignore",
+      "lines": {
+        "begin": 4,
+        "end": 4
+      }
+    }
+  },
+  {
+    "type": "issue",
+    "check_name": "IG-007",
+    "description": "Bad <tag> & \"quotes\"",
+    "categories": [
+      "Bug Risk"
+    ],
+    "severity": "major",
+    "fingerprint": "41d603b17f519b334b5f9b4cbeec4402cdd8ff6b",
+    "location": {
+      "path": "sub/.npmignore",
+      "lines": {
+        "begin": 2,
+        "end": 2
+      }
+    }
+  }
+]

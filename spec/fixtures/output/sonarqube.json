@@ -1,0 +1,84 @@
+{
+  "issues": [
+    {
+      "engineId": "ignorelint",
+      "ruleId": "IG-001",
+      "severity": "MAJOR",
+      "type": "CODE_SMELL",
+      "primaryLocation": {
+        "message": "Trailing whitespace in \"build  \"",
+        "filePath": ".gitignore",
+        "textRange": {
+          "startLine": 1,
+          "endLine": 1,
+          "startColumn": 0,
+          "endColumn": 1
+        }
+      }
+    },
+    {
+      "engineId": "ignorelint",
+      "ruleId": "IG-003",
+      "severity": "CRITICAL",
+      "type": "BUG",
+      "primaryLocation": {
+        "message": "Double negation \"!!keep\" cancels out",
+        "filePath": ".gitignore",
+        "textRange": {
+          "startLine": 2,
+          "endLine": 2,
+          "startColumn": 0,
+          "endColumn": 1
+        }
+      }
+    },
+    {
+      "engineId": "ignorelint",
+      "ruleId": "IG-020",
+      "severity": "MINOR",
+      "type": "CODE_SMELL",
+      "primaryLocation": {
+        "message": "Directory \"node_modules\" does not exist",
+        "filePath": ".gitignore",
+        "textRange": {
+          "startLine": 3,
+          "endLine": 3,
+          "startColumn": 0,
+          "endColumn": 1
+        }
+      }
+    },
+    {
+      "engineId": "ignorelint",
+      "ruleId": "IG-001",
+      "severity": "INFO",
+      "type": "CODE_SMELL",
+      "primaryLocation": {
+        "message": "Trailing whitespace fixed",
+        "filePath": ".gitignore",
+        "textRange": {
+          "startLine": 4,
+          "endLine": 4,
+          "startColumn": 0,
+          "endColumn": 1
+        }
+      }
+    },
+    {
+      "engineId": "ignorelint",
+      "ruleId": "IG-007",
+      "severity": "MAJOR",
+      "type": "CODE_SMELL",
+      "primaryLocation": {
+        "message": "Bad <tag> & \"quotes\"",
+        "filePath": "sub/.npmignore",
+        "textRange": {
+          "startLine": 2,
+          "endLine": 2,
+          "startColumn": 0,
+          "endColumn": 1
+        }
+      }
+    }
+  ]
+}

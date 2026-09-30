@@ -586,10 +586,20 @@ module Ignorelint
       case @format
       when .human?
         HumanFormatter.new(color, @plain, @quiet)
+      when .gnu?
+        GnuFormatter.new
       when .json?
         JsonFormatter.new
       when .checkstyle?
         CheckstyleFormatter.new
+      when .junit?
+        JunitFormatter.new
+      when .gitlab_codeclimate?
+        GitlabCodeclimateFormatter.new
+      when .codacy?
+        CodacyFormatter.new
+      when .sonarqube?
+        SonarqubeFormatter.new
       when .sarif?
         SarifFormatter.new
       else

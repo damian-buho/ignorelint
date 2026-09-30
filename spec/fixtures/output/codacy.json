@@ -1,0 +1,32 @@
+[
+  {
+    "filename": ".gitignore",
+    "patternId": "IG-001",
+    "message": "Trailing whitespace in \"build  \"",
+    "line": 1
+  },
+  {
+    "filename": ".gitignore",
+    "patternId": "IG-003",
+    "message": "Double negation \"!!keep\" cancels out",
+    "line": 2
+  },
+  {
+    "filename": ".gitignore",
+    "patternId": "IG-020",
+    "message": "Directory \"node_modules\" does not exist",
+    "line": 3
+  },
+  {
+    "filename": ".gitignore",
+    "patternId": "IG-001",
+    "message": "Trailing whitespace fixed",
+    "line": 4
+  },
+  {
+    "filename": "sub/.npmignore",
+    "patternId": "IG-007",
+    "message": "Bad <tag> & \"quotes\"",
+    "line": 2
+  }
+]

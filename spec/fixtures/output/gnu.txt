@@ -1,0 +1,5 @@
+.gitignore:1: warning: IG-001 Trailing whitespace in "build  "
+.gitignore:2: error: IG-003 Double negation "!!keep" cancels out
+.gitignore:3: info: IG-020 Directory "node_modules" does not exist
+.gitignore:4: fixed: IG-001 Trailing whitespace fixed
+sub/.npmignore:2: warning: IG-007 Bad <tag> & "quotes"

@@ -18,6 +18,37 @@ private def make_result(path : String, issues : Array(Ignorelint::Issue)) : Igno
   Ignorelint::FileResult.new(path, issues)
 end
 
+# Directory holding the committed expected output of each machine format.
+private GOLDEN_DIR = File.join(__DIR__, "fixtures", "output")
+
+# The fixed multi-issue fixture every output golden file is rendered from.
+#
+# Three files, three severities, a fixed finding, a clean file and a message with
+# XML/JSON metacharacters, so one comparison pins a format's whole contract.
+private def golden_files : Array(Ignorelint::FileResult)
+  [
+    make_result(".gitignore", [
+      make_issue(1, "Trailing whitespace in \"build  \"", :warn, :trailing_whitespace),
+      make_issue(2, "Double negation \"!!keep\" cancels out", :error, :double_negation),
+      make_issue(3, "Directory \"node_modules\" does not exist", :info, :path_not_found),
+      make_issue(4, "Trailing whitespace fixed", :fixed, :trailing_whitespace),
+    ]),
+    make_result("sub/.npmignore", [
+      make_issue(2, "Bad <tag> & \"quotes\"", :warn, :space_in_pattern),
+    ]),
+    make_result("clean/.gitignore", [] of Ignorelint::Issue),
+  ]
+end
+
+# Renders the shared multi-issue fixture through one formatter.
+private def render_golden(formatter : Ignorelint::Formatter) : String
+  io = IO::Memory.new
+  formatter.start(io)
+  golden_files.each { |result| formatter.format_file(result, io) }
+  formatter.finish(io)
+  io.to_s
+end
+
 describe Ignorelint::OutputFormat do
   describe ".parse?" do
     it "parses human" do
@@ -34,6 +65,38 @@ describe Ignorelint::OutputFormat do
 
     it "parses sarif" do
       Ignorelint::OutputFormat.parse?("sarif").should eq(Ignorelint::OutputFormat::Sarif)
+    end
+
+    it "parses gnu" do
+      Ignorelint::OutputFormat.parse?("gnu").should eq(Ignorelint::OutputFormat::Gnu)
+    end
+
+    it "parses junit" do
+      Ignorelint::OutputFormat.parse?("junit").should eq(Ignorelint::OutputFormat::Junit)
+    end
+
+    it "parses gitlab_codeclimate" do
+      Ignorelint::OutputFormat.parse?("gitlab_codeclimate").should eq(Ignorelint::OutputFormat::GitlabCodeclimate)
+    end
+
+    it "parses codacy" do
+      Ignorelint::OutputFormat.parse?("codacy").should eq(Ignorelint::OutputFormat::Codacy)
+    end
+
+    it "parses sonarqube" do
+      Ignorelint::OutputFormat.parse?("sonarqube").should eq(Ignorelint::OutputFormat::Sonarqube)
+    end
+
+    it "accepts tty as an alias of human" do
+      Ignorelint::OutputFormat.parse?("tty").should eq(Ignorelint::OutputFormat::Human)
+      Ignorelint::OutputFormat.parse?("TTY").should eq(Ignorelint::OutputFormat::Human)
+    end
+
+    it "lists every format it parses in valid_values" do
+      parsed = Ignorelint::OutputFormat.valid_values.split("|")
+      %w[human tty gnu json checkstyle junit gitlab_codeclimate codacy sonarqube sarif].each do |name|
+        parsed.includes?(name).should be_true
+      end
     end
 
     it "is case-insensitive" do
@@ -252,6 +315,137 @@ describe Ignorelint::CheckstyleFormatter do
   end
 end
 
+describe Ignorelint::GnuFormatter do
+  it "renders one record per issue" do
+    io = IO::Memory.new
+    f = Ignorelint::GnuFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(3, "Trailing whitespace in \"build  \"", :warn, :trailing_whitespace),
+    ]), io)
+    f.finish(io)
+    io.to_s.should eq(".gitignore:3: warning: IG-001 Trailing whitespace in \"build  \"\n")
+  end
+
+  it "renders every severity" do
+    io = IO::Memory.new
+    f = Ignorelint::GnuFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(1, "e", :error),
+      make_issue(2, "w", :warn),
+      make_issue(3, "i", :info),
+      make_issue(4, "f", :fixed),
+    ]), io)
+    f.finish(io)
+    io.to_s.should eq(
+      ".gitignore:1: error: IG-001 e\n" \
+      ".gitignore:2: warning: IG-001 w\n" \
+      ".gitignore:3: info: IG-001 i\n" \
+      ".gitignore:4: fixed: IG-001 f\n"
+    )
+  end
+
+  it "prints nothing for a clean file" do
+    io = IO::Memory.new
+    f = Ignorelint::GnuFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [] of Ignorelint::Issue), io)
+    f.finish(io)
+    io.to_s.should be_empty
+  end
+
+  it "strips control characters so a record stays one line" do
+    io = IO::Memory.new
+    f = Ignorelint::GnuFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitig\nnore", [
+      make_issue(1, "bad \e[31mred", :error),
+    ]), io)
+    f.finish(io)
+    output = io.to_s
+    output.should_not contain("\e[")
+    output.lines.size.should eq(1)
+  end
+
+  it "matches its golden file" do
+    render_golden(Ignorelint::GnuFormatter.new).should eq(File.read(File.join(GOLDEN_DIR, "gnu.txt")))
+  end
+end
+
+describe Ignorelint::JunitFormatter do
+  it "emits one suite per file with counts" do
+    io = IO::Memory.new
+    f = Ignorelint::JunitFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(1, "e", :error),
+      make_issue(2, "f", :fixed),
+    ]), io)
+    f.finish(io)
+
+    doc = XML.parse(io.to_s)
+    suites = doc.xpath_nodes("//testsuite")
+    suites.size.should eq(1)
+    suites[0]["name"].should eq(".gitignore")
+    suites[0]["tests"].should eq("2")
+    suites[0]["failures"].should eq("1")
+
+    root = doc.xpath_nodes("//testsuites")[0]
+    root["skipped"].should eq("1")
+    root["errors"].should eq("0")
+  end
+
+  it "marks a fixed issue as skipped rather than a failure" do
+    io = IO::Memory.new
+    f = Ignorelint::JunitFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(2, "Fixed", :fixed, :trailing_whitespace),
+    ]), io)
+    f.finish(io)
+
+    doc = XML.parse(io.to_s)
+    doc.xpath_nodes("//failure").should be_empty
+    skipped = doc.xpath_nodes("//skipped")
+    skipped.size.should eq(1)
+    skipped[0]["message"].should eq("Fixed")
+  end
+
+  it "names each case with its rule and location" do
+    io = IO::Memory.new
+    f = Ignorelint::JunitFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(7, "e", :error, :double_negation),
+    ]), io)
+    f.finish(io)
+
+    doc = XML.parse(io.to_s)
+    kase = doc.xpath_nodes("//testcase")[0]
+    kase["name"].should eq("IG-003 .gitignore:7")
+    kase["classname"].should eq("ignorelint.IG-003")
+    doc.xpath_nodes("//failure")[0]["type"].should eq("error")
+  end
+
+  it "escapes XML special characters" do
+    io = IO::Memory.new
+    f = Ignorelint::JunitFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(1, "Bad <tag> & \"quotes\"", :error),
+    ]), io)
+    f.finish(io)
+
+    doc = XML.parse(io.to_s)
+    doc.xpath_nodes("//failure")[0]["message"].should eq("Bad <tag> & \"quotes\"")
+  end
+
+  it "matches its golden file" do
+    render_golden(Ignorelint::JunitFormatter.new).should eq(File.read(File.join(GOLDEN_DIR, "junit.xml")))
+  end
+end
+
 describe Ignorelint::SarifFormatter do
   it "outputs valid SARIF JSON" do
     io = IO::Memory.new
@@ -370,5 +564,125 @@ describe Ignorelint::SarifFormatter do
     result = parsed["runs"].as_a[0]["results"].as_a[0]
     result["level"].as_s.should eq("note")
     result.as_h.has_key?("kind").should be_false
+  end
+end
+
+describe Ignorelint::GitlabCodeclimateFormatter do
+  it "emits the fields GitLab requires" do
+    io = IO::Memory.new
+    f = Ignorelint::GitlabCodeclimateFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(5, "Double negation \"!!foo\"", :error, :double_negation),
+    ]), io)
+    f.finish(io)
+
+    issue = JSON.parse(io.to_s).as_a[0]
+    issue["type"].as_s.should eq("issue")
+    issue["description"].as_s.should eq("Double negation \"!!foo\"")
+    issue["check_name"].as_s.should eq("IG-003")
+    issue["fingerprint"].as_s.should match(/\A[0-9a-f]{40}\z/)
+    issue["location"]["path"].as_s.should eq(".gitignore")
+    issue["location"]["lines"]["begin"].as_i.should eq(5)
+  end
+
+  it "fingerprints by rule and location, not by wording" do
+    render_one = ->(path : String, line : Int32, message : String) do
+      io = IO::Memory.new
+      f = Ignorelint::GitlabCodeclimateFormatter.new
+      f.start(io)
+      f.format_file(make_result(path, [make_issue(line, message, :error)]), io)
+      f.finish(io)
+      JSON.parse(io.to_s).as_a[0]["fingerprint"].as_s
+    end
+
+    first = render_one.call(".gitignore", 5, "One wording")
+    render_one.call(".gitignore", 5, "Another wording").should eq(first)
+    render_one.call(".gitignore", 6, "One wording").should_not eq(first)
+    render_one.call(".npmignore", 5, "One wording").should_not eq(first)
+  end
+
+  it "maps severity onto the Code Climate vocabulary" do
+    io = IO::Memory.new
+    f = Ignorelint::GitlabCodeclimateFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(1, "e", :error),
+      make_issue(2, "w", :warn),
+      make_issue(3, "i", :info),
+      make_issue(4, "f", :fixed),
+    ]), io)
+    f.finish(io)
+
+    issues = JSON.parse(io.to_s).as_a
+    issues.map(&.as_h["severity"].as_s).should eq(["critical", "major", "minor", "info"])
+  end
+
+  it "matches its golden file" do
+    render_golden(Ignorelint::GitlabCodeclimateFormatter.new)
+      .should eq(File.read(File.join(GOLDEN_DIR, "gitlab_codeclimate.json")))
+  end
+end
+
+describe Ignorelint::CodacyFormatter do
+  it "keys each issue on its pattern id" do
+    io = IO::Memory.new
+    f = Ignorelint::CodacyFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(3, "Trailing whitespace in \"build  \"", :warn, :trailing_whitespace),
+    ]), io)
+    f.finish(io)
+
+    issue = JSON.parse(io.to_s).as_a[0]
+    issue["filename"].as_s.should eq(".gitignore")
+    issue["patternId"].as_s.should eq("IG-001")
+    issue["message"].as_s.should eq("Trailing whitespace in \"build  \"")
+    issue["line"].as_i.should eq(3)
+  end
+
+  it "matches its golden file" do
+    render_golden(Ignorelint::CodacyFormatter.new).should eq(File.read(File.join(GOLDEN_DIR, "codacy.json")))
+  end
+end
+
+describe Ignorelint::SonarqubeFormatter do
+  it "wraps issues with an engine id and a primary location" do
+    io = IO::Memory.new
+    f = Ignorelint::SonarqubeFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(5, "Double negation \"!!foo\"", :error, :double_negation),
+    ]), io)
+    f.finish(io)
+
+    issue = JSON.parse(io.to_s)["issues"].as_a[0]
+    issue["engineId"].as_s.should eq("ignorelint")
+    issue["ruleId"].as_s.should eq("IG-003")
+    issue["severity"].as_s.should eq("CRITICAL")
+    issue["type"].as_s.should eq("BUG")
+    issue["primaryLocation"]["filePath"].as_s.should eq(".gitignore")
+    issue["primaryLocation"]["textRange"]["startLine"].as_i.should eq(5)
+  end
+
+  it "maps severity and type onto the SonarQube vocabulary" do
+    io = IO::Memory.new
+    f = Ignorelint::SonarqubeFormatter.new
+    f.start(io)
+    f.format_file(make_result(".gitignore", [
+      make_issue(1, "e", :error),
+      make_issue(2, "w", :warn),
+      make_issue(3, "i", :info),
+      make_issue(4, "f", :fixed),
+    ]), io)
+    f.finish(io)
+
+    issues = JSON.parse(io.to_s)["issues"].as_a
+    issues.map(&.as_h["severity"].as_s).should eq(["CRITICAL", "MAJOR", "MINOR", "INFO"])
+    issues.map(&.as_h["type"].as_s).should eq(["BUG", "CODE_SMELL", "CODE_SMELL", "CODE_SMELL"])
+  end
+
+  it "matches its golden file" do
+    render_golden(Ignorelint::SonarqubeFormatter.new).should eq(File.read(File.join(GOLDEN_DIR, "sonarqube.json")))
   end
 end
