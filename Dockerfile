@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 ARG B19_CRYSTAL_BASE_IMAGE=registry.invalid/b19/crystal:latest
-ARG B19_UBUNTU_BASE_IMAGE=registry.invalid/b19/ubuntu/resolute:latest
+ARG B19_UBUNTU_BASE_IMAGE=registry.invalid/b19/ubuntu:resolute
 ARG B19_UBUNTU_SERIES=resolute
 
 FROM ${B19_CRYSTAL_BASE_IMAGE} AS ignorelint-builder
