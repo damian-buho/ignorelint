@@ -22,8 +22,8 @@ includes:
   - .makefile/b19/ci.yaml
   - .makefile/b19/images/crystal.yaml
   - .makefile/b19/images/ubuntu.yaml
-  - .makefile/b19/traits/signed-images.yaml
   - .makefile/b19/traits/attested-images.yaml
+  - .makefile/b19/traits/signed-images.yaml
   - .makefile/container/traits/readme-tool-image.yaml
   - .makefile/core/traits/github-action.yaml
   - .makefile/library/languages/crystal.yaml
@@ -31,6 +31,7 @@ includes:
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/forge/github.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/include.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/registry/dockerhub.yaml
+  - https://kiota.ch/damian-buho/metadata/raw/branch/main/traits/personal-image.yaml
 keywords:
   - ignorelint
   - linter
@@ -133,17 +134,6 @@ org:
                 - arm64
               TARGET_OS:
                 - linux
-    image:
-      org: damian-buho
-      flatpath: ${name}
-    forge:
-      # The account IS the org, so the GitHub repository is the bare name
-      org: damian-buho
-      flatpath: ${name}
-    # The org is the GHCR account, so the artifact drops the repeat; foreign pulls keep nesting
-    sinks:
-      ghcr:
-        selfref: ghcr.io/damian-buho/${name}:${tag}
     conventions:
       fragments:
         parents:
@@ -163,8 +153,8 @@ repositories:
   - role: mirror
     type: git
     url: git@codeberg.org:damian-buho/ignorelint.git
-technologies:
-  - crystal
 requirements:
   runtime:
     crystal: '>= 1.13.0'
+technologies:
+  - crystal
