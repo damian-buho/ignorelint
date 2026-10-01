@@ -33,7 +33,7 @@ Ignorelint — лінтер і автокоректор для ignore-файлі
 
 ## Що надає цей проєкт
 
-- **CI-дія** `damian-buho/ignorelint@1.7.0`
+- **CI-дія** `damian-buho/ignorelint@1.7.1`
 - **Виконуваний файл** `ignorelint` — команда `ignorelint`
 - **Образ контейнера** `ghcr.io/damian-buho/ignorelint:latest`
 - **Образ контейнера** `damianbuho/ignorelint:latest`
@@ -91,7 +91,7 @@ curl --fail --location --output ignorelint https://github.com/damian-buho/ignore
 Запускайте його як крок робочого процесу GitHub Actions:
 
 ```yaml
-- uses: damian-buho/ignorelint@1.7.0
+- uses: damian-buho/ignorelint@1.7.1
 ```
 
 Дія приймає такі вхідні параметри:
