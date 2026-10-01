@@ -66,7 +66,7 @@ jobs:
     runs-on: docker
     strategy:
       matrix:
-        TARGET_ARCH: ["amd64", "arm64"]
+        TARGET_ARCH: ["amd64"]
         TARGET_OS: ["linux"]
     env:
       TARGET_ARCH: ${{ matrix.TARGET_ARCH }}
@@ -107,7 +107,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
-        TARGET_ARCH: ["amd64", "arm64"]
+        TARGET_ARCH: ["amd64"]
         TARGET_OS: ["linux"]
     env:
       TARGET_ARCH: ${{ matrix.TARGET_ARCH }}
@@ -300,11 +300,6 @@ jobs:
         if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
         with:
           name: crystal-build-amd64-linux-${{ github.run_id }}
-          path: dist
-      - uses: actions/download-artifact@v3
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
-        with:
-          name: crystal-build-arm64-linux-${{ github.run_id }}
           path: dist
       - uses: actions/download-artifact@v3
         if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_HAS_SBOM != 'true' && vars.CI_SKIP_SYFT_SBOM_TAR != 'true'
