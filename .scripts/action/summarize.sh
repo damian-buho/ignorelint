@@ -17,7 +17,6 @@ total=$(jq -r '.total // 0' "$REPORT_JSON")
   echo "fixed=$fixed"
   echo "total=$total"
 } >> "$GITHUB_OUTPUT"
-jq -r '.issues[] | select(.severity != "fixed") | (if .severity == "error" then "error" elif .severity == "warning" then "warning" else "notice" end) as $lvl | "::\($lvl) file=\(.file),line=\(.line),title=ignorelint \(.code)::\(.message | gsub("\r"; "") | gsub("\n"; " "))"' "$REPORT_JSON" || true
 case "$FAIL_ON" in
   none)
     fail=0
@@ -37,6 +36,7 @@ case "$FAIL_ON" in
     ;;
 esac
 if [ "$fail" -eq 1 ]; then result=fail; else result=pass; fi
+jq -r --arg fail_on "$FAIL_ON" '.issues[] | select(.severity != "fixed") | select(($fail_on == "info") or ($fail_on == "warn" and (.severity == "error" or .severity == "warning")) or ($fail_on == "error" and .severity == "error")) | (if .severity == "error" then "error" elif .severity == "warning" then "warning" else "notice" end) as $lvl | "::\($lvl) file=\(.file),line=\(.line),title=ignorelint \(.code)::\(.message | gsub("\r"; "") | gsub("\n"; " "))"' "$REPORT_JSON" || true
 echo "result=$result" >> "$GITHUB_OUTPUT"
 echo "fail=$fail" >> "$GITHUB_OUTPUT"
 {

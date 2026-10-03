@@ -192,8 +192,11 @@ The action always writes:
 - A JSON report (used internally for the `fail_on` gate; not exposed as output).
 - A SARIF report when `sarif` or `upload_sarif` is `true` (exposed as `sarif_path`).
 
-Violations also appear as inline annotations on the PR diff (`error` for
-errors, `warning` for warnings, `notice` for infos).
+Violations at or above `fail_on` also appear as inline annotations on
+the PR diff (`error` for errors, `warning` for warnings, `notice` for
+infos). With the default `fail_on: error`, only errors annotate;
+`warn` adds warnings, `info` adds infos, and `none` annotates nothing.
+The full human report still renders to the run summary and the PR comment.
 
 ## Source and support
 
