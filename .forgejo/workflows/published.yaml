@@ -218,6 +218,10 @@ jobs:
     needs: ["container-is-ok"]
     steps:
       - run: echo container-ready-to-test
+  deps-installed:
+    runs-on: docker
+    steps:
+      - run: echo deps-installed
   documentation-is-ok:
     runs-on: docker
     needs: ["documentation-passes-lint"]
@@ -662,20 +666,12 @@ jobs:
           if-no-files-found: warn
   source-is-tested:
     runs-on: docker
+    needs: ["deps-installed"]
     steps:
-      - uses: actions/checkout@v7
-        with:
-          submodules: true
-          persist-credentials: false
-      - name: crystal-test
-        if: vars.CI_SKIP_SOURCE_IS_TESTED != 'true' && vars.CI_SKIP_CRYSTAL_TEST != 'true'
-        uses: projectfile/actions/run-tool@v1
-        with:
-          image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'kiota.ch') }}
-          version: ${{ env.M6E_TAG }}
-          run: crystal spec
+      - run: echo source-is-tested
   source-passes-lint:
     runs-on: docker
+    needs: ["deps-installed"]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -738,6 +734,14 @@ jobs:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'kiota.ch') }}
           version: ${{ env.M6E_TAG }}
           run: crystal tool format --check
+      - name: shards-install
+        if: vars.CI_SKIP_DEPS_INSTALLED != 'true' && vars.CI_SKIP_SHARDS_INSTALL != 'true'
+        uses: projectfile/actions/run-tool@v1
+        with:
+          image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'kiota.ch') }}
+          version: ${{ env.M6E_TAG }}
+          run: env SHARDS_INSTALL_PATH=/app/ws/lib shards install
+          mounts: /app/data/ci-cache/shards:/app/.cache/shards:rw
       - name: crystal-lint
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_CRYSTAL_LINT != 'true'
         uses: projectfile/actions/run-tool@v1
@@ -745,6 +749,13 @@ jobs:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'kiota.ch') }}
           version: ${{ env.M6E_TAG }}
           run: crystal build --no-codegen src/ignorelint.cr
+      - name: crystal-test
+        if: vars.CI_SKIP_SOURCE_IS_TESTED != 'true' && vars.CI_SKIP_CRYSTAL_TEST != 'true'
+        uses: projectfile/actions/run-tool@v1
+        with:
+          image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'kiota.ch') }}
+          version: ${{ env.M6E_TAG }}
+          run: crystal spec
       - name: hadolint
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_HADOLINT != 'true'
         uses: projectfile/actions/run-tool@v1
