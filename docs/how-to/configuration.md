@@ -29,7 +29,7 @@ org:
 
 Precedence is explicit flags, then environment, then the projectfile subtree, then built-in defaults. `--disabled-rules` on the command line replaces the file list entirely. Overrides merge per code — a flag beats the environment for that code, the environment beats the file — so mixed planes compose instead of colliding. Every option is available on all three planes except `--diff`, which stays per-invocation by design.
 
-`IGNORELINT_*` variables mirror their flags for CI systems that set policy once; `ignorelint --help` lists them. `IGNORELINT_VERBOSE`, `IGNORELINT_RECURSIVE` and `IGNORELINT_FIX` accept `1`/`true`-style values; `0`, `false`, `no`, `n` and `off` disable. `NO_COLOR` disables colour following the no-color.org convention; colour also requires a terminal.
+`IGNORELINT_*` variables mirror their flags for CI systems that set policy once; `ignorelint --help` lists them. `IGNORELINT_RECURSIVE` and `IGNORELINT_FIX` accept `1`/`true`-style values; `0`, `false`, `no`, `n` and `off` disable. `SHELL_VERBOSITY=1` acts as `-v` and `-1` as `-q`. `NO_COLOR` disables colour following the no-color.org convention; colour also requires a terminal unless `FORCE_COLOR` or `--ansi` is set, and `--no-ansi` beats both.
 
 Each rule’s default severity is in [the rules reference](rules.md).
 

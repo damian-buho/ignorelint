@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 
 # Change a rule’s severity
 
-`--error`, `--warning` and `--info` move rules to that severity for the whole run, before `--fail-on` is evaluated. Tags are case-insensitive, comma-separated and repeatable; the last mention of a code wins. `IGNORELINT_OVERRIDE_ERROR`, `_WARNING` and `_INFO` do the same from the environment.
+`--error`, `--warning` and `--info` move rules to that severity for the whole run, before `--fail-on` is evaluated. Tags are case-insensitive, comma-separated and repeatable; a code named in several applies `--error`, then `--warning`, then `--info`, so `--info` wins. `IGNORELINT_OVERRIDE_ERROR`, `_WARNING` and `_INFO` do the same from the environment.
 
 ```console
 $ ignorelint --info=IG-003

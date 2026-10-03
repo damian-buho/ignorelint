@@ -13,3 +13,7 @@ targets:
 crystal: '>= 1.13.0'
 license: MIT
 repository: ssh://git@kiota.ch/damian-buho/ignorelint.git
+dependencies:
+  athena-console:
+    github: athena-framework/console
+    version: ~> 0.4.3

@@ -13,19 +13,8 @@
 #   5. Lint each file via `Linter.lint`
 #   6. Optionally auto-fix issues via `Fixer.apply_fixes`
 #   7. Format and emit results
-#   8. Return the appropriate exit code (0 = clean, 1 = issues found)
-#
-# ## Crystal note: `OptionParser`
-#
-# Crystal's standard library `OptionParser` handles flag parsing. It supports:
-#   - Short flags (`-h`) and long flags (`--help`)
-#   - Flags with values (`--format=json`)
-#   - Positional arguments via `unknown_args` (everything not consumed by flags)
-#   - Invalid option handling via `invalid_option`
-#
-# Unlike some CLI frameworks, `OptionParser` does not build a result object —
-# it mutates state in closures as it parses.
-require "option_parser"
+#   8. Return the appropriate exit code (0 = clean, 1 = issues found, 2 = usage error)
+require "athena-console"
 
 require "./file_type"
 require "./fix"
@@ -38,37 +27,34 @@ require "./projectfile_policy"
 require "./version"
 
 module Ignorelint
-  # The command-line interface class.
+  # Single-command console application; reports usage errors as `error:` lines with exit 2.
+  class Application < ACON::Application
+    # Athena raises usage errors with code 0, which would exit as success.
+    protected def do_run(input : ACON::Input::Interface, output : ACON::Output::Interface) : ACON::Command::Status
+      super
+    rescue ex : ACON::Exception
+      raise ex unless ex.code.zero?
+      raise ACON::Exception::InvalidArgument.new(ex.message.to_s, code: ACON::Command::Status::INVALID.value)
+    end
+
+    # Prints one plain `error:` line plus the synopsis instead of Athena’s banner block.
+    protected def render_exception(ex : ::Exception, output : ACON::Output::Interface) : Nil
+      output = output.error_output if output.is_a?(ACON::Output::ConsoleOutputInterface)
+      output.puts "error: #{ex.message.to_s.strip}", :quiet, :raw
+      output.puts "usage: #{get(name).synopsis(short: true)} (see --help)", :quiet, :raw
+    end
+  end
+
+  # The lint command: one instance per invocation, holding the parsed options as mutable state.
   #
-  # ## Design
-  #
-  # The CLI is a regular class (not a struct) because it holds mutable state:
-  # the parsed options (`@paths`, `@fail_on`, `@format`, `@fix`, `@verbose`).
-  # A single instance is created per invocation and orchestrates the entire
-  # lint run.
-  #
-  # ## Exit codes
-  #
-  # - `0`: no issues at or above the `--fail-on` threshold
-  # - `1`: issues found at or above the threshold
-  # - `2`: invalid CLI arguments (unknown flags, bad values)
-  #
-  # ## Crystal note: `private` constants
-  #
-  # `SEVERITY_WIDTH` is a `private` constant (uppercase = constant in Crystal).
-  # It is defined on the class, not the module. Crystal's `private` on a
-  # constant restricts visibility to the defining type.
-  class CLI
+  # Exit codes: `0` clean, `1` issues at or above `--fail-on`, `2` invalid arguments.
+  class CLI < ACON::Command
     # Width of the severity label column in human output (e.g. "error:" is 6 chars).
     private SEVERITY_WIDTH = 6
 
-    # Convenience entry point: create an instance and run.
-    #
-    # Separates construction from execution so tests can inject a custom `IO`.
-    # The `io` parameter defaults to `STDOUT` but can be replaced with a
-    # `StringIO` for testing.
-    def self.run(args : Array(String), io : IO = STDOUT, err : IO = STDERR) : Nil
-      code = new(io, err).run(args)
+    # Process entry point: runs `args` and exits with the resulting code.
+    def self.run(args : Array(String)) : Nil
+      code = new.main(args)
       exit(code) if code != 0
     end
 
@@ -77,6 +63,12 @@ module Ignorelint
 
     # Output stream for diagnostics: errors, usage, file-not-found reports.
     @err : IO
+
+    # Piped input read by `--stdin`.
+    @input : IO
+
+    # Whether human output is colored, as decided by Athena (`--ansi`, `NO_COLOR`, TTY).
+    @color : Bool = false
 
     # Explicitly provided file paths (from positional CLI arguments).
     @paths = [] of String
@@ -95,9 +87,6 @@ module Ignorelint
 
     # True once `--no-fail` was passed explicitly (env must not override it).
     @no_fail_set : Bool = false
-
-    # Color choice from `--colors`/`--no-color`; nil means auto.
-    @colors : Bool? = nil
 
     # Whether `--plain` was requested (undecorated one-record-per-line human output).
     @plain : Bool = false
@@ -147,10 +136,10 @@ module Ignorelint
     # Effective per-code severity after merging file, env, then flags.
     @overrides : Hash(String, Severity)
 
-    # Whether `--verbose` was requested (show file discovery output).
+    # Whether `-v` was requested (show file discovery output).
     @verbose : Bool
 
-    # True once `--verbose` was passed explicitly (env and file must not override it).
+    # True once `-v` or `SHELL_VERBOSITY` raised verbosity (the projectfile must not override it).
     @verbose_set : Bool = false
 
     # Whether to search subdirectories for ignore files (vs cwd only).
@@ -162,17 +151,8 @@ module Ignorelint
     # Explicit projectfile path from `--config` (empty means undiscovered).
     @config_path : String?
 
-    # Whether the output stream is a TTY (used to decide color output).
-    @tty : Bool
-
-    # Initialize the CLI with an output stream.
-    #
-    # Detects TTY status; option defaults resolve later in `run` so that
-    # explicit flags beat environment, which beats the projectfile subtree.
-    # Crystal's `responds_to?(:tty?)` is a type-safe way to check if the `IO`
-    # supports TTY detection (not all `IO` types do — `StringIO` does not).
-    def initialize(@io : IO, @err : IO = STDERR)
-      @tty = @io.responds_to?(:tty?) && @io.tty?
+    # Streams are injectable so specs can capture them; option defaults resolve in `execute`.
+    def initialize(@io : IO = STDOUT, @err : IO = STDERR, @input : IO = STDIN)
       @verbose = false
       @recursive = false
       @fix = false
@@ -183,31 +163,75 @@ module Ignorelint
       @disabled = Set(String).new
       @flag_overrides = {} of String => Severity
       @overrides = {} of String => Severity
+      super("ignorelint")
     end
 
-    # Main execution: parse flags, discover files, lint, format.
-    #
-    # Returns the process exit code (0 = clean) instead of exiting, so specs
-    # can assert on it; `self.run` performs the actual `exit`.
-    #
-    # The flow is:
-    #   1. Build and parse the option parser (consumes flags from `args`)
-    #   2. Load policy (explicit `--config`, else cwd projectfile discovery)
-    #   3. Apply projectfile, then environment overrides (flags always win)
-    #   4. Build the output formatter
-    #   5. Determine which files to lint (explicit paths or auto-discovery)
-    #   6. Lint each file, collecting the exit code
-    #   7. Emit formatted output
-    #   8. Return non-zero if issues were found above the threshold
-    def run(args : Array(String), input : IO = STDIN) : Int32
-      parser = build_option_parser
+    # Runs `args` through a single-command Athena application and returns the exit code.
+    def main(args : Array(String)) : Int32
+      app = Application.new("ignorelint", VERSION)
+      app.add(self)
+      app.default_command(name, true)
+      app.auto_exit = false
+      output = ACON::Output::ConsoleOutput.new(decorated: ACON::Output::IO.new(@io).decorated?)
+      output.io = @io
+      output.error_output = ACON::Output::IO.new(@err, decorated: output.decorated?)
+      app.run(ACON::Input::ARGV.new(args), output).value
+    end
 
-      parser.parse(args)
+    protected def configure : Nil
+      description("Linter for *ignore files (.gitignore, .dockerignore, .eslintignore, etc.)")
+        .argument("paths", :is_array, "Files to lint; none discovers them in the current directory, a lone - reads stdin")
+        .option("fail-on", value_mode: :required, description: "Exit non-zero at this severity or worse (error|warn|info|none, default: error)")
+        .option("no-fail", description: "Report every finding but always exit 0 (beats --fail-on)")
+        .option("plain", description: "Human output as one undecorated path:line [CODE] severity: message record per line")
+        .option("file-path-in-report", value_mode: :required, description: "Record this path instead of the linted one in machine-readable reports")
+        .option("format", value_mode: :required, description: "Output format (#{OutputFormat.valid_values}, default: human)")
+        .option("recursive", "r", description: "Search subdirectories for *ignore files (skips hidden dirs, node_modules, symlinks)")
+        .option("fix", description: "Auto-fix deterministically fixable issues (IG-001,002,003,008,015,018,022,023,024)")
+        .option("diff", description: "Preview auto-fix changes without writing (cannot combine with --fix)")
+        .option("stdin", description: "Lint piped content instead of files (requires --file; a lone - path does the same)")
+        .option("file", value_mode: :required, description: "Filename for --stdin input (drives format detection)")
+        .option("disabled-rules", value_mode: ACON::Input::Option::Value[:required, :is_array], description: "Skip rules entirely (comma-separated tags, e.g. IG-001,IG-020)")
+        .option("error", value_mode: ACON::Input::Option::Value[:required, :is_array], description: "Promote rules to error severity (comma-separated tags, e.g. IG-020)")
+        .option("warning", value_mode: ACON::Input::Option::Value[:required, :is_array], description: "Set rules to warning severity (comma-separated tags)")
+        .option("info", value_mode: ACON::Input::Option::Value[:required, :is_array], description: "Demote rules to info severity (comma-separated tags; applied last)")
+        .option("disable-ignore-pragma", description: "Parse suppression directives but apply none; IG-026 still lists them")
+        .option("config", value_mode: :required, description: "Projectfile read via pf-cli for the org.ignorelint policy subtree (default: ./projectfile.*)")
+        .help(HELP)
+    end
+
+    # Help epilogue: stream contract and environment variables.
+    private HELP = <<-TEXT
+      When no path is given, discovers supported *ignore files in the current directory.
+      Discovery and diagnostics go to stderr; stdout carries only the report.
+
+      Environment variables:
+        SHELL_VERBOSITY=1          Same as -v (-1 same as -q)
+        IGNORELINT_FAIL_ON=LEVEL   Same as --fail-on (error|warn|info|none)
+        IGNORELINT_NOFAIL=1        Same as --no-fail
+        IGNORELINT_FORMAT=FORMAT   Same as --format
+        IGNORELINT_FIX=1           Same as --fix
+        IGNORELINT_RECURSIVE=1     Same as --recursive
+        IGNORELINT_DISABLED_RULES=CODES Same as --disabled-rules
+        IGNORELINT_OVERRIDE_ERROR=CODES Same as --error
+        IGNORELINT_OVERRIDE_WARNING=CODES Same as --warning
+        IGNORELINT_OVERRIDE_INFO=CODES Same as --info
+        IGNORELINT_CONFIG=PATH     Same as --config
+        IGNORELINT_DISABLE_IGNORE_PRAGMA=1 Same as --disable-ignore-pragma
+        IGNORELINT_FILE_PATH_IN_REPORT=PATH Same as --file-path-in-report
+        NO_COLOR=1                 Disable colored output (also TERM=dumb)
+        FORCE_COLOR=1              Color even when piped (--ansi and --no-ansi beat both)
+      TEXT
+
+    # Reads the options Athena parsed, then lints with flags beating env beating the projectfile.
+    protected def execute(input : ACON::Input::Interface, output : ACON::Output::Interface) : ACON::Command::Status
+      read_options(input, output)
+      ACON::Command::Status.new(lint_all)
+    end
+
+    # Lints stdin, the given paths or the discovered files; returns the exit code.
+    private def lint_all : Int32
       return 2 unless claim_stdin_dash
-      if @verbose && @quiet
-        @err << "error: --verbose and --quiet: use one, not both\n"
-        return 2
-      end
 
       # --fix writes while --diff only previews; combining them is a usage error.
       if @fix && @diff
@@ -225,7 +249,7 @@ module Ignorelint
       if @stdin
         name = stdin_name
         return 2 if name.nil?
-        return lint_stdin(input, formatter, name)
+        return lint_stdin(@input, formatter, name)
       end
       paths = @paths.empty? ? find_ignore_files : @paths
       exit_code = 0
@@ -320,7 +344,6 @@ module Ignorelint
     #
     # Returns 0 on success, 2 when an env value is invalid (reported on stderr).
     private def apply_env_overrides : Int32
-      apply_env_switch("IGNORELINT_VERBOSE", @verbose_set) { |v| @verbose = v }
       apply_env_switch("IGNORELINT_RECURSIVE", @recursive_set) { |v| @recursive = v }
       apply_env_switch("IGNORELINT_FIX", @fix_set) { |v| @fix = v }
       apply_env_switch("IGNORELINT_NOFAIL", @no_fail_set) { |v| @no_fail = v }
@@ -412,131 +435,38 @@ module Ignorelint
       LintResult.new(issues: kept, patterns: result.patterns)
     end
 
-    # Build the `OptionParser` that handles all CLI flags.
-    #
-    # Crystal's `OptionParser` uses a DSL-style block where each `p.on` call
-    # registers a handler for a flag. Unknown positional arguments (files)
-    # are captured via `p.unknown_args`.
-    private def build_option_parser : OptionParser
-      OptionParser.new do |parser|
-        parser.banner = "Usage: ignorelint [OPTIONS] [PATH...]"
-        parser.separator("")
-        parser.separator("Linter for *ignore files (.gitignore, .dockerignore, .eslintignore, etc.)")
-        parser.separator("")
-        parser.separator("Options:")
-
-        parser.on("-h", "--help", "Show this help") { print_help(parser, @io); exit }
-        parser.on("-V", "--version", "Show version") { @io << "ignorelint " << VERSION << '\n'; exit }
-        parser.on("--fail-on=LEVEL", "Exit non-zero on LEVEL or worse (error|warn|info|none, default: error)") do |v|
-          @fail_on = parse_severity(v)
-          @fail_on_set = true
-        end
-        parser.on("--no-fail", "Report every finding but always exit 0 (beats --fail-on)") do
-          @no_fail = true
-          @no_fail_set = true
-        end
-        parser.on("--colors=WHEN", "Color human output (auto|on|off, default: auto)") do |v|
-          @colors = parse_colors(v)
-        end
-        parser.on("--no-color", "Same as --colors=off") do
-          @colors = false
-        end
-        parser.on("--plain", "Human output as one undecorated path:line [CODE] severity: message record per line") do
-          @plain = true
-        end
-        parser.on("-q", "--quiet", "Print only issues: no valid-file lines or info notices (cannot combine with --verbose)") do
-          @quiet = true
-        end
-        parser.on("--file-path-in-report=PATH", "Record PATH instead of the linted path in machine-readable reports") do |v|
-          @report_path = v
-        end
-        parser.on("--format=FORMAT", "Output format (#{OutputFormat.valid_values}, default: human)") do |v|
-          parsed = OutputFormat.parse?(v)
-          unless parsed
-            @err << "error: invalid --format value: #{v} (expected: #{OutputFormat.valid_values})\n"
-            exit(2)
-          end
-          @format = parsed
-          @format_set = true
-        end
-        parser.on("-v", "--verbose", "Show discovery output and extra diagnostics") do
-          @verbose = true
-          @verbose_set = true
-        end
-        parser.on("-r", "--recursive", "Search subdirectories for *ignore files (skips hidden dirs, node_modules, symlinks)") do
-          @recursive = true
-          @recursive_set = true
-        end
-        parser.on("--fix", "Auto-fix deterministically fixable issues (IG-001,002,003,008,015,018,022,023,024)") do
-          @fix = true
-          @fix_set = true
-        end
-        parser.on("--diff", "Preview auto-fix changes without writing (cannot combine with --fix)") do
-          @diff = true
-        end
-        parser.on("--stdin", "Lint piped content instead of files (requires --file; a lone - PATH does the same)") do
-          @stdin = true
-        end
-        parser.on("--file=NAME", "Filename for --stdin input (drives format detection)") do |v|
-          @stdin_file = v
-        end
-        parser.on("--disabled-rules=CODES", "Skip rules entirely (comma-separated tags, e.g. IG-001,IG-020)") do |v|
-          parse_disabled_rules(v).each { |tag| @disabled << tag }
-          @disabled_set = true
-        end
-        parser.on("--error=CODES", "Promote rules to error severity (comma-separated tags, e.g. IG-020)") do |v|
-          assign_flag_override(v, Severity::Error)
-        end
-        parser.on("--warning=CODES", "Set rules to warning severity (comma-separated tags)") do |v|
-          assign_flag_override(v, Severity::Warn)
-        end
-        parser.on("--info=CODES", "Demote rules to info severity (comma-separated tags)") do |v|
-          assign_flag_override(v, Severity::Info)
-        end
-        parser.on("--disable-ignore-pragma", "Parse suppression directives but apply none; IG-026 still lists them") do
-          @no_pragmas = true
-          @no_pragmas_set = true
-        end
-        parser.on("--config=PATH", "Projectfile read via pf-cli for the org.ignorelint policy subtree (default: ./projectfile.*)") do |v|
-          @config_path = v
-        end
-
-        parser.separator("")
-        parser.separator("When no PATH is given, discovers supported *ignore files in the current directory.")
-        parser.separator("Discovery and diagnostics go to stderr; stdout carries only the report.")
-        parser.separator("")
-        parser.separator("Environment variables:")
-        parser.separator("  IGNORELINT_VERBOSE=1       Same as --verbose")
-        parser.separator("  IGNORELINT_FAIL_ON=LEVEL   Same as --fail-on (error|warn|info|none)")
-        parser.separator("  IGNORELINT_NOFAIL=1        Same as --no-fail")
-        parser.separator("  IGNORELINT_FORMAT=FORMAT   Same as --format")
-        parser.separator("  IGNORELINT_FIX=1           Same as --fix")
-        parser.separator("  IGNORELINT_RECURSIVE=1     Same as --recursive")
-        parser.separator("  IGNORELINT_DISABLED_RULES=CODES Same as --disabled-rules")
-        parser.separator("  IGNORELINT_OVERRIDE_ERROR=CODES Same as --error")
-        parser.separator("  IGNORELINT_OVERRIDE_WARNING=CODES Same as --warning")
-        parser.separator("  IGNORELINT_OVERRIDE_INFO=CODES Same as --info")
-        parser.separator("  IGNORELINT_CONFIG=PATH     Same as --config")
-        parser.separator("  IGNORELINT_DISABLE_IGNORE_PRAGMA=1 Same as --disable-ignore-pragma")
-        parser.separator("  IGNORELINT_FILE_PATH_IN_REPORT=PATH Same as --file-path-in-report")
-        parser.separator("  NO_COLOR=1                 Disable colored output (also IGNORELINT_NO_COLOR=1, TERM=dumb)")
-        parser.separator("  FORCE_COLOR=1              Color even when piped (--colors beats it)")
-
-        parser.unknown_args do |remaining|
-          @paths = remaining
-        end
-
-        parser.invalid_option do |flag|
-          @err << "error: unknown option: #{flag}\n"
-          @err << parser
-          exit(2)
-        end
+    # Copies the options Athena parsed into the CLI state; `_set` marks values env and file must not override.
+    private def read_options(input : ACON::Input::Interface, output : ACON::Output::Interface) : Nil
+      @paths = input.argument("paths", Array(String))
+      @quiet = output.verbosity.value < 0
+      @verbose = @verbose_set = output.verbosity.value > 0
+      @color = output.decorated?
+      if level = input.option("fail-on")
+        @fail_on = parse_severity(level)
+        @fail_on_set = true
       end
+      @no_fail = @no_fail_set = input.option("no-fail", Bool)
+      @plain = input.option("plain", Bool)
+      @report_path = input.option("file-path-in-report")
+      if value = input.option("format")
+        @format = OutputFormat.parse?(value) || raise ACON::Exception::InvalidOption.new("invalid --format value: #{value} (expected: #{OutputFormat.valid_values})")
+        @format_set = true
+      end
+      @recursive = @recursive_set = input.option("recursive", Bool)
+      @fix = @fix_set = input.option("fix", Bool)
+      @diff = input.option("diff", Bool)
+      @stdin = input.option("stdin", Bool)
+      @stdin_file = input.option("file")
+      input.option("disabled-rules", Array(String)).each { |codes| @disabled.concat(parse_disabled_rules(codes)) }
+      @disabled_set = !@disabled.empty?
+      input.option("error", Array(String)).each { |codes| assign_flag_override(codes, Severity::Error) }
+      input.option("warning", Array(String)).each { |codes| assign_flag_override(codes, Severity::Warn) }
+      input.option("info", Array(String)).each { |codes| assign_flag_override(codes, Severity::Info) }
+      @no_pragmas = @no_pragmas_set = input.option("disable-ignore-pragma", Bool)
+      @config_path = input.option("config")
     end
 
-    # Parse a severity level string from CLI input.
-    #
-    # Exits with code 2 and an error message for invalid values.
+    # Parses a severity level; an invalid value raises a usage error (exit 2).
     private def parse_severity(value : String) : Severity?
       case value.downcase
       when "error"
@@ -548,40 +478,13 @@ module Ignorelint
       when "none"
         nil
       else
-        @err << "error: invalid --fail-on value: #{value} (expected: error|warn|info|none)\n"
-        exit(2)
+        raise ACON::Exception::InvalidOption.new("invalid --fail-on value: #{value} (expected: error|warn|info|none)")
       end
-    end
-
-    # Maps auto|on|off to a forced choice; auto yields nil, anything else exits 2.
-    private def parse_colors(value : String) : Bool?
-      case value.downcase
-      when "auto" then nil
-      when "on"   then true
-      when "off"  then false
-      else
-        @err << "error: invalid --colors value: #{value} (expected: auto|on|off)\n"
-        exit(2)
-      end
-    end
-
-    # Print the help text (option parser banner + flag descriptions).
-    private def print_help(parser : OptionParser, io : IO) : Nil
-      io << parser << '\n'
-    end
-
-    # Resolves color: flag, then FORCE_COLOR, then NO_COLOR/IGNORELINT_NO_COLOR/TERM=dumb, then TTY.
-    def self.color_enabled?(tty : Bool, forced : Bool? = nil) : Bool
-      return forced unless forced.nil?
-      return true if env_bool?(ENV["FORCE_COLOR"]? || "")
-      return false if {"NO_COLOR", "IGNORELINT_NO_COLOR"}.any? { |key| !ENV[key]?.to_s.empty? }
-      return false if ENV["TERM"]? == "dumb"
-      tty
     end
 
     # Builds the formatter for the selected output format.
     private def build_formatter : Formatter
-      color = self.class.color_enabled?(@tty, @colors)
+      color = @color
 
       case @format
       when .human?

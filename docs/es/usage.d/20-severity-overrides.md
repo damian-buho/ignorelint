@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 
 # Cambiar la severidad de una regla
 
-`--error`, `--warning` e `--info` llevan las reglas a esa severidad durante toda la ejecución, antes de evaluar `--fail-on`. Las etiquetas no distinguen mayúsculas, se separan con comas y se pueden repetir; gana la última mención de un código. `IGNORELINT_OVERRIDE_ERROR`, `_WARNING` e `_INFO` hacen lo mismo desde el entorno.
+`--error`, `--warning` e `--info` llevan las reglas a esa severidad durante toda la ejecución, antes de evaluar `--fail-on`. Las etiquetas no distinguen mayúsculas, se separan con comas y se pueden repetir; un código nombrado en varias aplica `--error`, luego `--warning` y luego `--info`, así que gana `--info`. `IGNORELINT_OVERRIDE_ERROR`, `_WARNING` e `_INFO` hacen lo mismo desde el entorno.
 
 ```console
 $ ignorelint --info=IG-003
