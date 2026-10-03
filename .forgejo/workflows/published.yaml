@@ -740,7 +740,7 @@ jobs:
         with:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'kiota.ch') }}
           version: ${{ env.M6E_TAG }}
-          run: env SHARDS_INSTALL_PATH=/app/ws/lib shards install
+          run: shards install
           mounts: /app/data/ci-cache/shards:/app/.cache/shards:rw
       - name: crystal-lint
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_CRYSTAL_LINT != 'true'
