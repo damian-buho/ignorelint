@@ -46,7 +46,7 @@ module Ignorelint
         # Example: `/build` matches `./build` but NOT `./src/build`.
         # The user likely meant `build` (matches at any depth).
         if pat.rooted_shallow?
-          issues << Issue.new(pat.line, "Rooted pattern \"#{pat.raw}\" matches top-level only", :warn,
+          issues << Issue.new(pat.line, "Rooted pattern \"#{pat.raw}\" matches top-level only", :info,
             :rooted_shallow)
         end
 
