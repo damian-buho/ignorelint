@@ -311,7 +311,7 @@ Autofix Ameba findings
 
 Check for outdated Crystal shards
 
-`shards outdated`
+`.makefile/core/scripts/check-outdated.sh 'Outdated dependencies:' sh -c 'shards install --frozen && shards outdated'`
 
 > Image: CRYSTAL_TOOL_IMAGE
 
