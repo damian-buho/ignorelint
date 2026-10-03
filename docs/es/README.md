@@ -108,6 +108,7 @@ La acción acepta estas entradas:
 | `warning` | | Comma-separated rule tags to set to warning severity. |
 | `info` | | Comma-separated rule tags to demote to info severity. |
 | `sarif` | `false` | Also emit SARIF for github/codeql-action/upload-sarif. |
+| `upload_sarif` | `false` | Upload the SARIF report to GitHub code scanning (implies sarif; needs security-events: write). |
 | `comment` | `false` | Post the human report as a sticky comment on the triggering pull request. |
 | `version` | | Image tag to pull (e.g. latest, 1.2.3). Empty follows the release the action is pinned to, else latest. |
 | `image` | | Override the full image reference. Takes precedence over `version`. |

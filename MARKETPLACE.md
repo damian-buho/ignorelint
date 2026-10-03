@@ -66,6 +66,7 @@ Pin an exact tag for reproducible runs.
 | `warning`        | *(empty)*      | Comma-separated rule tags to set to warning severity.                                     |
 | `info`           | *(empty)*      | Comma-separated rule tags to demote to info severity.                                     |
 | `sarif`          | `false`        | Also emit a SARIF report for `github/codeql-action/upload-sarif`.                         |
+| `upload_sarif`   | `false`        | Upload the SARIF report to GitHub code scanning. Implies `sarif`.                         |
 | `comment`        | `false`        | Post the human report as a sticky comment on the triggering pull request.                 |
 | `version`        | `latest`       | Image tag to pull (e.g. `latest`, `1.2.3`). Ignored when `image` is set.                  |
 | `image`          | *(empty)*      | Full image reference override (e.g. for testing a locally-built image). Takes precedence. |
@@ -131,13 +132,9 @@ the post-fix workspace.
 
 ```yaml
 - uses: damian-buho/ignorelint@1.3.0
-  id: ignorelint
   with:
-    recursive: true
-    sarif:     true
-- uses: github/codeql-action/upload-sarif@v4
-  with:
-    sarif_file: ${{ steps.ignorelint.outputs.sarif_path }}
+    recursive:    true
+    upload_sarif: true
 ```
 
 ### Sticky PR comment on every pull request
@@ -184,7 +181,7 @@ the report still renders to the Actions run summary.
 | ------------------------ | -------------------------------------- |
 | `contents: read`         | Always (for `actions/checkout`).       |
 | `pull-requests: write`   | `comment: true` on a `pull_request`.   |
-| `security-events: write` | Uploading SARIF to code scanning.      |
+| `security-events: write` | `upload_sarif: true`.                  |
 
 ## Reporting
 
@@ -193,7 +190,7 @@ The action always writes:
 - A human-readable report to `$RUNNER_TEMP/ignorelint-report.txt` (exposed as `report_path`).
 - A rendered copy in the Actions run summary page.
 - A JSON report (used internally for the `fail_on` gate; not exposed as output).
-- A SARIF report when `sarif: true` (exposed as `sarif_path`).
+- A SARIF report when `sarif` or `upload_sarif` is `true` (exposed as `sarif_path`).
 
 Violations also appear as inline annotations on the PR diff (`error` for
 errors, `warning` for warnings, `notice` for infos).
