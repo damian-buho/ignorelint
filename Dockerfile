@@ -28,7 +28,7 @@ WORKDIR ${B19_HOME}
 
 COPY --chown=${B19_UID}:${B19_GID} .container/compile-crystal/ /
 
-COPY --chown=${B19_UID}:${B19_GID} shard.yml  ./
+COPY --chown=${B19_UID}:${B19_GID} shard.yml shard.lock ./
 COPY --chown=${B19_UID}:${B19_GID} src/       ./src/
 
 USER 0

@@ -20,7 +20,7 @@ if [ ! -f "shard.yml" ]; then
 fi
 
 b19-run "SHARDS" "$(_ "Install dependencies")" --     \
-  shards install
+  shards install --frozen
 
 # Crystal has no -X linker flag, so the version reaches the binary as a
 # compile-time macro env (src/version.cr). M6E_VERSION is the build ARG the OCI
