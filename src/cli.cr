@@ -168,6 +168,7 @@ module Ignorelint
 
     # Runs `args` through a single-command Athena application and returns the exit code.
     def main(args : Array(String)) : Int32
+      drop_invalid_shell_verbosity
       app = Application.new("ignorelint", VERSION)
       app.add(self)
       app.default_command(name, true)
@@ -176,6 +177,14 @@ module Ignorelint
       output.io = @io
       output.error_output = ACON::Output::IO.new(@err, decorated: output.decorated?)
       app.run(ACON::Input::ARGV.new(args), output).value
+    end
+
+    # Athena crashes on a non-integer SHELL_VERBOSITY, so warn and unset it instead.
+    private def drop_invalid_shell_verbosity : Nil
+      raw = ENV["SHELL_VERBOSITY"]?
+      return if raw.nil? || raw.to_i?
+      @err << "warning: ignoring non-integer SHELL_VERBOSITY=" << raw << '\n'
+      ENV.delete("SHELL_VERBOSITY")
     end
 
     protected def configure : Nil
