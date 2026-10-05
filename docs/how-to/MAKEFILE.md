@@ -387,6 +387,14 @@ Sync shard.yml with the projectfile
 
 > Image: PF_BRIDGE_IMAGE
 
+### `shards-install`
+
+Install shards into the checkout’s lib/
+
+`shards install`
+
+> Image: CRYSTAL_TOOL_IMAGE
+
 ## Dependencies
 
 ### `apt-pin`
