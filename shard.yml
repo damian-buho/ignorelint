@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 name: ignorelint
-version: 2.0.1
+version: 2.0.2
 authors:
   - Damián Búho <damian.buho@proton.me>
 description: Linter for gitignore, dockerignore and 20+ other ignore files
