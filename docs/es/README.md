@@ -82,7 +82,9 @@ ignorelint --help
 Descarga el binario precompilado para tu plataforma desde las versiones de GitHub:
 
 ```sh
-mkdir -p ~/.local/bin && curl --fail --location --output ~/.local/bin/ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-$(uname -m) && chmod +x ~/.local/bin/ignorelint
+mkdir -p ~/.local/bin
+curl --fail --location --output ~/.local/bin/ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-$(uname -m)
+chmod +x ~/.local/bin/ignorelint
 ~/.local/bin/ignorelint --help
 ```
 
