@@ -8,6 +8,8 @@ pf-cli-managed: yes
 
 [English](../../README.md) · [Українська](../uk/README.md)
 
+<p align="center"><img src="docs/logo.png" alt="logotipo" width="200"></p>
+
 # Ignorelint
 
 Ignorelint es un linter y corrector automático para archivos de ignorados como .gitignore, .dockerignore y .npmignore, escrito en Crystal. Reconoce 25 nombres de archivo a través de ocho controladores de globs específicos de formato e informa 25 reglas de diagnóstico con diez formatos de salida, desde el legible y GNU hasta JUnit, Code Climate, Codacy, SonarQube y SARIF.
@@ -77,11 +79,11 @@ ignorelint --help
 
 ### Binario precompilado
 
-Descarga el binario precompilado para tu plataforma desde la última versión en GitHub:
+Descarga el binario precompilado para tu plataforma desde las versiones de GitHub:
 
 ```sh
-curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-$(uname -s | tr A-Z a-z)-$(uname -m | sed -e s/x86_64/amd64/ -e s/aarch64/arm64/) && chmod +x ignorelint
-./ignorelint --help
+mkdir -p ~/.local/bin && curl --fail --location --output ~/.local/bin/ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-$(uname -s | tr A-Z a-z)-$(uname -m) && chmod +x ~/.local/bin/ignorelint
+~/.local/bin/ignorelint --help
 ```
 
 Publicado para: `linux/amd64`, `linux/arm64`

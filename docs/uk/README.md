@@ -8,6 +8,8 @@ pf-cli-managed: yes
 
 [English](../../README.md) · [Español](../es/README.md)
 
+<p align="center"><img src="docs/logo.png" alt="логотип" width="200"></p>
+
 # Ignorelint
 
 Ignorelint — лінтер і автокоректор для ignore-файлів як-от .gitignore, .dockerignore та .npmignore, написаний на Crystal. Розпізнає 25 назв файлів у восьми специфічних для форматів glob-драйверах і звітує 25 діагностичних правил із десятьма форматами виводу — від людиночитного та GNU до JUnit, Code Climate, Codacy, SonarQube і SARIF.
@@ -77,11 +79,11 @@ ignorelint --help
 
 ### Готовий бінарний файл
 
-Завантажте готовий бінарний файл для своєї платформи з останнього випуску на GitHub:
+Завантажте готовий бінарний файл для своєї платформи з випусків на GitHub:
 
 ```sh
-curl --fail --location --output ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-$(uname -s | tr A-Z a-z)-$(uname -m | sed -e s/x86_64/amd64/ -e s/aarch64/arm64/) && chmod +x ignorelint
-./ignorelint --help
+mkdir -p ~/.local/bin && curl --fail --location --output ~/.local/bin/ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-$(uname -s | tr A-Z a-z)-$(uname -m) && chmod +x ~/.local/bin/ignorelint
+~/.local/bin/ignorelint --help
 ```
 
 Опубліковано для: `linux/amd64`, `linux/arm64`
