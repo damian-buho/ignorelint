@@ -82,7 +82,7 @@ ignorelint --help
 Завантажте готовий бінарний файл для своєї платформи з випусків на GitHub:
 
 ```sh
-mkdir -p ~/.local/bin && curl --fail --location --output ~/.local/bin/ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-$(uname -s | tr A-Z a-z)-$(uname -m) && chmod +x ~/.local/bin/ignorelint
+mkdir -p ~/.local/bin && curl --fail --location --output ~/.local/bin/ignorelint https://github.com/damian-buho/ignorelint/releases/latest/download/ignorelint-linux-$(uname -m) && chmod +x ~/.local/bin/ignorelint
 ~/.local/bin/ignorelint --help
 ```
 

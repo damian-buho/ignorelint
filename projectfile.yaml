@@ -110,6 +110,7 @@ org:
     artifacts:
       crystal-binary:
         help: [""]
+        host-asset: ignorelint-linux-$(uname -m)
     architecture:
       - amd64
       - arm64
