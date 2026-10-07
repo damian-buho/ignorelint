@@ -95,7 +95,7 @@ assert_issue_contains() {
 
   output=$("${binary}" "${fixture}" 2>&1) || true
 
-  if printf '%s\n' "${output}" | grep -q "${needle}"; then
+  if grep -q "${needle}" <<<"${output}"; then
     log_pass "${label} — contains '${needle}'"
   else
     log_fail "${label} — missing expected '${needle}', output:"
