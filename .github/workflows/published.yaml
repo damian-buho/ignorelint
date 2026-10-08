@@ -86,6 +86,14 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
+      - name: restore crystal
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        if: (vars.CI_ONLY_TARGET_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_ARCH), format(',{0},', matrix.TARGET_ARCH))) && (vars.CI_ONLY_TARGET_OS == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_OS), format(',{0},', matrix.TARGET_OS))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
+        with:
+          path: ${{ runner.temp }}/ci-cache/crystal
+          key: ci-cache-crystal-
+          restore-keys: |
+            ci-cache-crystal-
       - name: restore shards
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
         if: (vars.CI_ONLY_TARGET_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_ARCH), format(',{0},', matrix.TARGET_ARCH))) && (vars.CI_ONLY_TARGET_OS == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_OS), format(',{0},', matrix.TARGET_OS))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
@@ -96,7 +104,7 @@ jobs:
             ci-cache-shards-
       - name: crystal-build
         if: (vars.CI_ONLY_TARGET_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_ARCH), format(',{0},', matrix.TARGET_ARCH))) && (vars.CI_ONLY_TARGET_OS == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_OS), format(',{0},', matrix.TARGET_OS))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -108,7 +116,13 @@ jobs:
             GITHUB_REF_NAME
             GITHUB_REF_TYPE
             M6E_VERSION
-          mounts: ${{ runner.temp }}/ci-cache/shards:/app/.cache/shards:rw
+          mounts: ${{ runner.temp }}/ci-cache/crystal:/app/.cache/crystal:rw ${{ runner.temp }}/ci-cache/shards:/app/.cache/shards:rw
+      - name: save crystal
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        if: (vars.CI_ONLY_TARGET_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_ARCH), format(',{0},', matrix.TARGET_ARCH))) && (vars.CI_ONLY_TARGET_OS == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_OS), format(',{0},', matrix.TARGET_OS))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
+        with:
+          path: ${{ runner.temp }}/ci-cache/crystal
+          key: ci-cache-crystal-${{ github.run_id }}
       - name: save shards
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
         if: (vars.CI_ONLY_TARGET_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_ARCH), format(',{0},', matrix.TARGET_ARCH))) && (vars.CI_ONLY_TARGET_OS == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_OS), format(',{0},', matrix.TARGET_OS))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
@@ -126,35 +140,6 @@ jobs:
     needs: ["binaries-are-built"]
     steps:
       - run: echo binaries-are-ok
-  binaries-are-released:
-    runs-on: ubuntu-26.04
-    needs: ["binaries-are-ok", "image-is-attested", "image-is-signed"]
-    permissions:
-      contents: write
-    if: startsWith(github.ref, 'refs/tags/')
-    strategy:
-      matrix:
-        TARGET_ARCH: ["amd64", "arm64"]
-        TARGET_OS: ["linux"]
-    env:
-      TARGET_ARCH: ${{ matrix.TARGET_ARCH }}
-      TARGET_OS: ${{ matrix.TARGET_OS }}
-      RELEASE_TAG: ${{ github.ref_name }}
-      RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          submodules: true
-          persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        if: (vars.CI_ONLY_TARGET_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_ARCH), format(',{0},', matrix.TARGET_ARCH))) && (vars.CI_ONLY_TARGET_OS == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_OS), format(',{0},', matrix.TARGET_OS))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
-        with:
-          name: crystal-build-${{ matrix.TARGET_ARCH }}-${{ matrix.TARGET_OS }}-${{ github.run_id }}
-          path: dist
-      - name: gh-release
-        if: (vars.CI_ONLY_TARGET_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_ARCH), format(',{0},', matrix.TARGET_ARCH))) && (vars.CI_ONLY_TARGET_OS == '' || contains(format(',{0},', vars.CI_ONLY_TARGET_OS), format(',{0},', matrix.TARGET_OS))) && vars.CI_SKIP_BINARIES_ARE_RELEASED != 'true' && vars.CI_SKIP_GH_RELEASE != 'true'
-        run: .makefile/core/scripts/gh-release.sh "$RELEASE_TAG" dist/ignorelint
   container-is-diagnosed:
     runs-on: ubuntu-26.04
     needs: ["container-ready-to-test"]
@@ -193,7 +178,7 @@ jobs:
       # can delete a layer record mid-copy — podman then buries the real cause under a
       # four-transport probe that claims the tar matches no supported format. The retry
       # for that class lives in the pinned action, not inline (Law 2).
-      - uses: projectfile-org/actions/container-load@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+      - uses: projectfile-org/actions/container-load@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH)))
         with:
           archive: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}.tar
@@ -208,7 +193,7 @@ jobs:
         run: .makefile/container/scripts/configuration-capture.sh --check --default-lang= es uk
       - name: container-test
         if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && vars.CI_SKIP_CONTAINER_READY_TO_TEST != 'true' && vars.CI_SKIP_CONTAINER_TEST != 'true'
-        uses: projectfile-org/actions/container-exec@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/container-exec@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           container: ${{ env.M6E_CONTAINER_INSTANCE }}
           run: test.d
@@ -229,7 +214,7 @@ jobs:
       # site), so one docker-cleanup step reaps both — the imperative reaps + their
       # `inspect` guard live in the pinned action, not inline (Law 2).
       - if: ${{ always() }}
-        uses: projectfile-org/actions/docker-cleanup@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/docker-cleanup@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: damian-buho/ignorelint:${{ env.M6E_TAG }}-${{ github.run_id }}-${{ matrix.M6E_ARCH }}
           network: ci-damian-buho-ignorelint-${{ matrix.M6E_ARCH }}-${{ env.M6E_RUN_SCOPE }}-network
@@ -256,14 +241,14 @@ jobs:
           persist-credentials: false
       - name: auto-markdownlint
         if: vars.CI_SKIP_DOCUMENTATION_PASSES_LINT != 'true' && vars.CI_SKIP_AUTO_MARKDOWNLINT != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_JS_TOOLS_IMAGE || format('{0}/d9t/js-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-markdownlint
       - name: auto-textlint
         if: vars.CI_SKIP_DOCUMENTATION_PASSES_LINT != 'true' && vars.CI_SKIP_AUTO_TEXTLINT != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_JS_TOOLS_IMAGE || format('{0}/d9t/js-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -293,7 +278,7 @@ jobs:
           name: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
       - name: syft-sbom-tar
         if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && vars.CI_SKIP_IMAGE_HAS_SBOM != 'true' && vars.CI_SKIP_SYFT_SBOM_TAR != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_GO_TOOLS_IMAGE || format('{0}/d9t/go-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -316,10 +301,8 @@ jobs:
     if: (startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main') || (startsWith(github.ref, 'refs/tags/'))
     strategy:
       matrix:
-        M6E_ARCH: ["amd64", "arm64"]
         M6E_PUBLISH_SINK: ["ghcr"]
     env:
-      M6E_ARCH: ${{ matrix.M6E_ARCH }}
       COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
       COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
       DOCKERHUB_REGISTRY_PASSWORD: ${{ secrets.DOCKERHUB_REGISTRY_PASSWORD }}
@@ -334,32 +317,37 @@ jobs:
           submodules: true
           persist-credentials: false
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), ',amd64,')) && vars.CI_SKIP_IMAGE_IS_BUILT != 'true' && vars.CI_SKIP_CONTAINER_BUILD != 'true'
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), ',amd64,')) && vars.CI_SKIP_IMAGE_IS_BUILT != 'true' && vars.CI_SKIP_CONTAINER_BUILD != 'true'
         with:
           name: image-amd64-${{ github.run_id }}
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), ',arm64,')) && vars.CI_SKIP_IMAGE_IS_BUILT != 'true' && vars.CI_SKIP_CONTAINER_BUILD != 'true'
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), ',arm64,')) && vars.CI_SKIP_IMAGE_IS_BUILT != 'true' && vars.CI_SKIP_CONTAINER_BUILD != 'true'
         with:
           name: image-arm64-${{ github.run_id }}
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
         with:
           name: crystal-build-amd64-linux-${{ github.run_id }}
           path: dist
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
         with:
           name: crystal-build-arm64-linux-${{ github.run_id }}
           path: dist
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_HAS_SBOM != 'true' && vars.CI_SKIP_SYFT_SBOM_TAR != 'true'
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_HAS_SBOM != 'true' && vars.CI_SKIP_SYFT_SBOM_TAR != 'true'
         with:
-          name: syft-sbom-tar-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
+          name: syft-sbom-tar-amd64-${{ github.run_id }}
+          path: reports
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_HAS_SBOM != 'true' && vars.CI_SKIP_SYFT_SBOM_TAR != 'true'
+        with:
+          name: syft-sbom-tar-arm64-${{ github.run_id }}
           path: reports
       - name: oci-push
         # The cell's run-time override gate, on the STEP because a job `if:` may not read the matrix context
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_PUBLISH_IMAGE != 'true' && vars.CI_SKIP_OCI_PUSH != 'true'
-        uses: projectfile-org/actions/oci-push@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_PUBLISH_IMAGE != 'true' && vars.CI_SKIP_OCI_PUSH != 'true'
+        uses: projectfile-org/actions/oci-push@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           # One tar per DECLARED architecture, published together as a manifest list at
           # each cascade tag. Per-arch TAGS are deliberately not published: they are
@@ -396,30 +384,28 @@ jobs:
           # place the archive goes, so a registry refusing a push fails only its own.
           sink: ${{ matrix.M6E_PUBLISH_SINK }}
       - name: cosign-key-file-attest
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_IS_ATTESTED != 'true' && vars.CI_SKIP_COSIGN_KEY_FILE_ATTEST != 'true'
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_IS_ATTESTED != 'true' && vars.CI_SKIP_COSIGN_KEY_FILE_ATTEST != 'true'
         run: .makefile/b19/scripts/cosign-key-file.sh
       - name: cosign-key-file-sign
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_IS_SIGNED != 'true' && vars.CI_SKIP_COSIGN_KEY_FILE_SIGN != 'true'
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_IS_SIGNED != 'true' && vars.CI_SKIP_COSIGN_KEY_FILE_SIGN != 'true'
         run: .makefile/b19/scripts/cosign-key-file.sh
       - name: cosign-sbom-attest
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_IS_ATTESTED != 'true' && vars.CI_SKIP_COSIGN_SBOM_ATTEST != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_IS_ATTESTED != 'true' && vars.CI_SKIP_COSIGN_SBOM_ATTEST != 'true'
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_GO_TOOLS_IMAGE || format('{0}/d9t/go-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-cosign attest
           env: |-
-            M6E_ARCH=${{ matrix.M6E_ARCH }}
             COSIGN_PASSWORD=${{ secrets.COSIGN_PASSWORD }}
       - name: cosign-sign
-        if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_IS_SIGNED != 'true' && vars.CI_SKIP_COSIGN_SIGN != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        if: (vars.CI_ONLY_M6E_PUBLISH_SINK == '' || contains(format(',{0},', vars.CI_ONLY_M6E_PUBLISH_SINK), format(',{0},', matrix.M6E_PUBLISH_SINK))) && vars.CI_SKIP_IMAGE_IS_SIGNED != 'true' && vars.CI_SKIP_COSIGN_SIGN != 'true'
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_GO_TOOLS_IMAGE || format('{0}/d9t/go-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-cosign sign
           env: |-
-            M6E_ARCH=${{ matrix.M6E_ARCH }}
             COSIGN_PASSWORD=${{ secrets.COSIGN_PASSWORD }}
   image-is-built:
     runs-on: ${{ matrix.M6E_RUNNER }}
@@ -471,7 +457,7 @@ jobs:
         run: docker buildx create --name ci --driver docker-container --use
       - name: container-build
         if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && vars.CI_SKIP_IMAGE_IS_BUILT != 'true' && vars.CI_SKIP_CONTAINER_BUILD != 'true'
-        uses: projectfile-org/actions/container-build/buildx@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/container-build/buildx@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           artifact-name: image-${{ matrix.M6E_ARCH }}-${{ github.run_id }}
           image: damian-buho/ignorelint:${{ env.M6E_TAG }}-${{ github.run_id }}-${{ matrix.M6E_ARCH }}
@@ -537,7 +523,7 @@ jobs:
             ci-cache-grype-db-
       - name: grype-scan-tar
         if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && vars.CI_SKIP_IMAGE_IS_SECURE != 'true' && vars.CI_SKIP_GRYPE_SCAN_TAR != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_GO_TOOLS_IMAGE || format('{0}/d9t/go-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -564,7 +550,7 @@ jobs:
             ci-cache-trivy-db-
       - name: trivy-scan-tar
         if: (vars.CI_ONLY_M6E_ARCH == '' || contains(format(',{0},', vars.CI_ONLY_M6E_ARCH), format(',{0},', matrix.M6E_ARCH))) && vars.CI_SKIP_IMAGE_IS_SECURE != 'true' && vars.CI_SKIP_TRIVY_SCAN_TAR != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_GO_TOOLS_IMAGE || format('{0}/d9t/go-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -615,7 +601,7 @@ jobs:
           persist-credentials: false
       - name: pf-bridge-check
         if: vars.CI_SKIP_PROJECTFILE_IS_OK != 'true' && vars.CI_SKIP_PF_BRIDGE_CHECK != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.PF_BRIDGE_IMAGE || format('{0}/bridge', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/projectfile-org') }}
           version: ${{ env.M6E_TAG }}
@@ -629,7 +615,7 @@ jobs:
           persist-credentials: false
       - name: pf-validate
         if: vars.CI_SKIP_PROJECTFILE_IS_VALID != 'true' && vars.CI_SKIP_PF_VALIDATE != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.PF_CLI_IMAGE || format('{0}/cli', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/projectfile-org') }}
           version: ${{ env.M6E_TAG }}
@@ -642,7 +628,7 @@ jobs:
       - run: echo publish-image
   published:
     runs-on: ubuntu-26.04
-    needs: ["binaries-are-released", "image-has-sbom", "image-is-attested", "image-is-signed", "publish-image", "ready-to-publish", "release-notes-are-published"]
+    needs: ["image-has-sbom", "image-is-attested", "image-is-signed", "publish-image", "ready-to-publish", "release-is-published", "release-notes-are-published"]
     steps:
       - run: echo published
   ready-to-publish:
@@ -650,9 +636,37 @@ jobs:
     needs: ["artifacts-are-ok"]
     steps:
       - run: echo ready-to-publish
+  release-is-published:
+    runs-on: ubuntu-26.04
+    needs: ["binaries-are-ok", "image-is-attested", "image-is-signed"]
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/')
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          submodules: true
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        if: vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
+        with:
+          name: crystal-build-amd64-linux-${{ github.run_id }}
+          path: dist
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        if: vars.CI_SKIP_BINARIES_ARE_BUILT != 'true' && vars.CI_SKIP_CRYSTAL_BUILD != 'true'
+        with:
+          name: crystal-build-arm64-linux-${{ github.run_id }}
+          path: dist
+      - name: gh-release
+        if: vars.CI_SKIP_RELEASE_IS_PUBLISHED != 'true' && vars.CI_SKIP_GH_RELEASE != 'true'
+        run: .makefile/core/scripts/gh-release.sh "$RELEASE_TAG" dist/ignorelint
   release-notes-are-published:
     runs-on: ubuntu-26.04
-    needs: ["binaries-are-released"]
+    needs: ["release-is-published"]
     permissions:
       contents: write
     if: startsWith(github.ref, 'refs/tags/')
@@ -665,7 +679,7 @@ jobs:
           persist-credentials: false
       - name: release-notes-gha
         if: vars.CI_SKIP_RELEASE_NOTES_ARE_PUBLISHED != 'true' && vars.CI_SKIP_RELEASE_NOTES_GHA != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.PF_BRIDGE_IMAGE || format('{0}/bridge', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/projectfile-org') }}
           version: ${{ env.M6E_TAG }}
@@ -697,7 +711,7 @@ jobs:
         run: .makefile/b19/scripts/cosign-key-file.sh
       - name: cosign-preflight
         if: vars.CI_SKIP_SIGNING_IS_READY != 'true' && vars.CI_SKIP_COSIGN_PREFLIGHT != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_GO_TOOLS_IMAGE || format('{0}/d9t/go-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -713,14 +727,14 @@ jobs:
           persist-credentials: false
       - name: i18n-check
         if: vars.CI_SKIP_SOURCE_IS_COMPLIANT != 'true' && vars.CI_SKIP_I18N_CHECK != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_MISC_TOOLS_IMAGE || format('{0}/d9t/misc-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-i18n check
       - name: reuse-lint
         if: vars.CI_SKIP_SOURCE_IS_COMPLIANT != 'true' && vars.CI_SKIP_REUSE_LINT != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_PYTHON_TOOLS_IMAGE || format('{0}/d9t/python-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -749,7 +763,7 @@ jobs:
             ci-cache-grype-db-
       - name: grype-scan-source
         if: vars.CI_SKIP_SOURCE_IS_SECURE != 'true' && vars.CI_SKIP_GRYPE_SCAN_SOURCE != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_GO_TOOLS_IMAGE || format('{0}/d9t/go-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -774,7 +788,7 @@ jobs:
             ci-cache-trivy-db-
       - name: trivy-scan-source
         if: vars.CI_SKIP_SOURCE_IS_SECURE != 'true' && vars.CI_SKIP_TRIVY_SCAN_SOURCE != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_GO_TOOLS_IMAGE || format('{0}/d9t/go-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -812,49 +826,49 @@ jobs:
           persist-credentials: false
       - name: ameba-check
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_AMEBA_CHECK != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_CRYSTAL_TOOLS_IMAGE || format('{0}/d9t/crystal-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-ameba
       - name: auto-cffr-validate
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_AUTO_CFFR_VALIDATE != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_R_TOOLS_IMAGE || format('{0}/d9t/r-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-cffr-validate
       - name: auto-jsonlint
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_AUTO_JSONLINT != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_JS_TOOLS_IMAGE || format('{0}/d9t/js-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-jsonlint
       - name: auto-shellcheck
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_AUTO_SHELLCHECK != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_MISC_TOOLS_IMAGE || format('{0}/d9t/misc-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-shellcheck
       - name: auto-yamllint
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_AUTO_YAMLLINT != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_PYTHON_TOOLS_IMAGE || format('{0}/d9t/python-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-yamllint
       - name: auto-zizmor-github
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_AUTO_ZIZMOR_GITHUB != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.D9T_RUST_TOOLS_IMAGE || format('{0}/d9t/rust-tools', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: auto-zizmor --forge github
       - name: compose-example-check
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_COMPOSE_EXAMPLE_CHECK != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.DOCKER_CLI_IMAGE || 'docker' }}
           version: 29.8.1-cli
@@ -862,7 +876,7 @@ jobs:
           run: sh -c 'test ! -f .compose/example.yaml || docker compose --file .compose/example.yaml config --no-interpolate --quiet'
       - name: crystal-format-check
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_CRYSTAL_FORMAT_CHECK != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -877,7 +891,7 @@ jobs:
             ci-cache-shards-
       - name: shards-install
         if: vars.CI_SKIP_DEPS_INSTALLED != 'true' && vars.CI_SKIP_SHARDS_INSTALL != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
@@ -891,21 +905,50 @@ jobs:
           key: ci-cache-shards-${{ github.run_id }}
       - name: crystal-lint
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_CRYSTAL_LINT != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: crystal build --no-codegen src/ignorelint.cr
+      - name: restore crystal
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        if: vars.CI_SKIP_SOURCE_IS_TESTED != 'true' && vars.CI_SKIP_CRYSTAL_TEST != 'true'
+        with:
+          path: ${{ runner.temp }}/ci-cache/crystal
+          key: ci-cache-crystal-
+          restore-keys: |
+            ci-cache-crystal-
+      - name: restore shards
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        if: vars.CI_SKIP_SOURCE_IS_TESTED != 'true' && vars.CI_SKIP_CRYSTAL_TEST != 'true'
+        with:
+          path: ${{ runner.temp }}/ci-cache/shards
+          key: ci-cache-shards-
+          restore-keys: |
+            ci-cache-shards-
       - name: crystal-test
         if: vars.CI_SKIP_SOURCE_IS_TESTED != 'true' && vars.CI_SKIP_CRYSTAL_TEST != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.CRYSTAL_TOOL_IMAGE || format('{0}/b19/crystal', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
           run: crystal spec
+          mounts: ${{ runner.temp }}/ci-cache/crystal:/app/.cache/crystal:rw ${{ runner.temp }}/ci-cache/shards:/app/.cache/shards:rw
+      - name: save crystal
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        if: vars.CI_SKIP_SOURCE_IS_TESTED != 'true' && vars.CI_SKIP_CRYSTAL_TEST != 'true'
+        with:
+          path: ${{ runner.temp }}/ci-cache/crystal
+          key: ci-cache-crystal-${{ github.run_id }}
+      - name: save shards
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        if: vars.CI_SKIP_SOURCE_IS_TESTED != 'true' && vars.CI_SKIP_CRYSTAL_TEST != 'true'
+        with:
+          path: ${{ runner.temp }}/ci-cache/shards
+          key: ci-cache-shards-${{ github.run_id }}
       - name: hadolint
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_HADOLINT != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.HADOLINT_IMAGE || 'hadolint/hadolint' }}
           version: v2.15.1
@@ -913,7 +956,7 @@ jobs:
           run: hadolint Dockerfile
       - name: ignorelint-check
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_IGNORELINT_CHECK != 'true'
-        uses: projectfile-org/actions/run-tool@a6b99b0a61942c764e9c40e6c7089737675eda8e # v1
+        uses: projectfile-org/actions/run-tool@643052a02d1358d0f5a078a7f434166011d36d64 # v1
         with:
           image: ${{ vars.IGNORELINT_IMAGE || format('{0}/ignorelint', vars.SOURCE_DOCKER_REGISTRY || 'ghcr.io/damian-buho') }}
           version: ${{ env.M6E_TAG }}
