@@ -223,6 +223,7 @@ Pipeline entry points:
 
 - [Configuration](docs/how-to/configuration.md)
 - [Output formats reference](docs/how-to/formats.md)
+- [Regenerating golden files](docs/how-to/regenerating-goldens.md)
 - [Rules reference](docs/how-to/rules.md)
 
 ## Policies

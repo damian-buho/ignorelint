@@ -121,6 +121,14 @@ org:
       env:
         TARGET_ARCH: amd64
         TARGET_OS: linux
+      tools:
+        regen-goldens:
+          run: crystal run spec/regen-goldens.cr
+          description: Regenerate the formatter golden files in spec/fixtures/output
+          guard: shard.yml
+          gha: false
+          forgejo: false
+          tags: [crystal]
       nodes:
         binaries-are-built:
           matrix:

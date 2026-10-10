@@ -1,0 +1,11 @@
+---
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+Lint/SpecFilename:
+  IgnoredPaths:
+    - spec/support/**
+    - spec/fixtures/**
+    - spec/data/**
+    - spec/**/spec_helper.cr
+    - spec/regen-goldens.cr

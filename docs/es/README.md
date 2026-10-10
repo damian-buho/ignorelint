@@ -225,6 +225,7 @@ Puntos de entrada de la canalización:
 
 - [Configuration](../how-to/configuration.md)
 - [Output formats reference](../how-to/formats.md)
+- [Regenerating golden files](../how-to/regenerating-goldens.md)
 - [Rules reference](../how-to/rules.md)
 
 ## Políticas

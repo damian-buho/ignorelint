@@ -5,49 +5,7 @@
 require "spec"
 require "json"
 require "xml"
-require "../src/formatter"
-require "../src/output_format"
-require "../src/issue"
-
-private def make_issue(line : Int32, message : String, severity : Ignorelint::Severity = :error,
-                       code : Ignorelint::Code = :trailing_whitespace) : Ignorelint::Issue
-  Ignorelint::Issue.new(line, message, severity, code)
-end
-
-private def make_result(path : String, issues : Array(Ignorelint::Issue)) : Ignorelint::FileResult
-  Ignorelint::FileResult.new(path, issues)
-end
-
-# Directory holding the committed expected output of each machine format.
-private GOLDEN_DIR = File.join(__DIR__, "fixtures", "output")
-
-# The fixed multi-issue fixture every output golden file is rendered from.
-#
-# Three files, three severities, a fixed finding, a clean file and a message with
-# XML/JSON metacharacters, so one comparison pins a format's whole contract.
-private def golden_files : Array(Ignorelint::FileResult)
-  [
-    make_result(".gitignore", [
-      make_issue(1, "Trailing whitespace in \"build  \"", :warn, :trailing_whitespace),
-      make_issue(2, "Double negation \"!!keep\" cancels out", :error, :double_negation),
-      make_issue(3, "Directory \"node_modules\" does not exist", :info, :path_not_found),
-      make_issue(4, "Trailing whitespace fixed", :fixed, :trailing_whitespace),
-    ]),
-    make_result("sub/.npmignore", [
-      make_issue(2, "Bad <tag> & \"quotes\"", :warn, :space_in_pattern),
-    ]),
-    make_result("clean/.gitignore", [] of Ignorelint::Issue),
-  ]
-end
-
-# Renders the shared multi-issue fixture through one formatter.
-private def render_golden(formatter : Ignorelint::Formatter) : String
-  io = IO::Memory.new
-  formatter.start(io)
-  golden_files.each { |result| formatter.format_file(result, io) }
-  formatter.finish(io)
-  io.to_s
-end
+require "./support/golden_fixture"
 
 describe Ignorelint::OutputFormat do
   describe ".parse?" do
@@ -367,10 +325,6 @@ describe Ignorelint::GnuFormatter do
     output.should_not contain("\e[")
     output.lines.size.should eq(1)
   end
-
-  it "matches its golden file" do
-    render_golden(Ignorelint::GnuFormatter.new).should eq(File.read(File.join(GOLDEN_DIR, "gnu.txt")))
-  end
 end
 
 describe Ignorelint::JunitFormatter do
@@ -439,10 +393,6 @@ describe Ignorelint::JunitFormatter do
 
     doc = XML.parse(io.to_s)
     doc.xpath_nodes("//failure")[0]["message"].should eq("Bad <tag> & \"quotes\"")
-  end
-
-  it "matches its golden file" do
-    render_golden(Ignorelint::JunitFormatter.new).should eq(File.read(File.join(GOLDEN_DIR, "junit.xml")))
   end
 end
 
@@ -617,11 +567,6 @@ describe Ignorelint::GitlabCodeclimateFormatter do
     issues = JSON.parse(io.to_s).as_a
     issues.map(&.as_h["severity"].as_s).should eq(["critical", "major", "minor", "info"])
   end
-
-  it "matches its golden file" do
-    render_golden(Ignorelint::GitlabCodeclimateFormatter.new)
-      .should eq(File.read(File.join(GOLDEN_DIR, "gitlab_codeclimate.json")))
-  end
 end
 
 describe Ignorelint::CodacyFormatter do
@@ -639,10 +584,6 @@ describe Ignorelint::CodacyFormatter do
     issue["patternId"].as_s.should eq("IG-001")
     issue["message"].as_s.should eq("Trailing whitespace in \"build  \"")
     issue["line"].as_i.should eq(3)
-  end
-
-  it "matches its golden file" do
-    render_golden(Ignorelint::CodacyFormatter.new).should eq(File.read(File.join(GOLDEN_DIR, "codacy.json")))
   end
 end
 
@@ -681,8 +622,12 @@ describe Ignorelint::SonarqubeFormatter do
     issues.map(&.as_h["severity"].as_s).should eq(["CRITICAL", "MAJOR", "MINOR", "INFO"])
     issues.map(&.as_h["type"].as_s).should eq(["BUG", "CODE_SMELL", "CODE_SMELL", "CODE_SMELL"])
   end
+end
 
-  it "matches its golden file" do
-    render_golden(Ignorelint::SonarqubeFormatter.new).should eq(File.read(File.join(GOLDEN_DIR, "sonarqube.json")))
+describe "golden files" do
+  GOLDEN_TARGETS.each do |filename, make_formatter|
+    it "matches #{filename} (refresh with `make regen-goldens`)" do
+      render_golden(make_formatter.call).should eq(File.read(File.join(GOLDEN_DIR, filename)))
+    end
   end
 end

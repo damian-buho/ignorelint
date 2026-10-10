@@ -225,6 +225,7 @@ make container-build
 
 - [Configuration](../how-to/configuration.md)
 - [Output formats reference](../how-to/formats.md)
+- [Regenerating golden files](../how-to/regenerating-goldens.md)
 - [Rules reference](../how-to/rules.md)
 
 ## Політики
