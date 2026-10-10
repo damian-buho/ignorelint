@@ -32,5 +32,5 @@ keywords:
   - dockerignore
   - ignore-files
   - crystal
-version: 2.0.2
-date-released: "2026-10-06"
+version: 2.0.3
+date-released: "2026-10-09"
