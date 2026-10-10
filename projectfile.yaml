@@ -114,6 +114,9 @@ org:
     architecture:
       - amd64
       - arm64
+    build:
+      args:
+        PF_CLI_IMAGE: ""
     ci:
       env:
         TARGET_ARCH: amd64

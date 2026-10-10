@@ -25,7 +25,7 @@ org:
       info: [IG-003]
 ```
 
-`disabled-rules` also accepts one comma-separated string, and `fail_on` / `disabled_rules` spellings work. `override` buckets accept a list or one comma-separated string each, and `warn` works as an alias of `warning`. Unknown keys warn instead of failing, so newer policy never breaks older binaries. Without `pf-cli` on `PATH`, an info notice is printed and only flags plus environment apply — the run never fails for a missing reader.
+`disabled-rules` also accepts one comma-separated string, and `fail_on` / `disabled_rules` spellings work. `override` buckets accept a list or one comma-separated string each, and `warn` works as an alias of `warning`. Unknown keys warn instead of failing, so newer policy never breaks older binaries. Outside the image, without `pf-cli` on `PATH`, an info notice is printed and only flags plus environment apply — the run never fails for a missing reader. The published image bundles `pf-cli`, so projectfile policy applies with no extra mounts; `--config` points at a mounted projectfile.
 
 Precedence is explicit flags, then environment, then the projectfile subtree, then built-in defaults. `--disabled-rules` on the command line replaces the file list entirely. Overrides merge per code — a flag beats the environment for that code, the environment beats the file — so mixed planes compose instead of colliding. Every option is available on all three planes except `--diff`, which stays per-invocation by design.
 

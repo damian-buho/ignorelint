@@ -5,6 +5,9 @@
 ARG B19_CRYSTAL_BASE_IMAGE=registry.invalid/b19/crystal:latest
 ARG B19_UBUNTU_BASE_IMAGE=registry.invalid/b19/ubuntu:resolute
 ARG B19_UBUNTU_SERIES=resolute
+ARG PF_CLI_IMAGE=registry.invalid/projectfile/cli:latest
+
+FROM ${PF_CLI_IMAGE} AS pf-cli
 
 FROM ${B19_CRYSTAL_BASE_IMAGE} AS ignorelint-builder
 
@@ -63,6 +66,8 @@ ARG TARGETARCH
 
 COPY --chown=${B19_UID}:${B19_GID} .container/base/ /
 COPY --from=ignorelint-builder /export /
+# Reads the org.ignorelint subtree of a mounted projectfile
+COPY --from=pf-cli /usr/local/bin/pf-cli /usr/local/bin/pf-cli
 
 USER 0
 
