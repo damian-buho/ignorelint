@@ -48,7 +48,7 @@ module Ignorelint
       nil
     end
 
-    # Fetches the policy subtree via `pf-cli get --path-file document org.ignorelint`.
+    # Fetches the policy subtree via `pf-cli get --file document org.ignorelint`.
     #
     # Never raises: an absent pf-cli yields an info notice plus empty settings,
     # an absent subtree is silently empty, and an unreadable document returns
@@ -72,7 +72,7 @@ module Ignorelint
 
     # Runs pf-cli; nil when the binary is not on PATH.
     private def self.run_pf_cli(document : String, fetched : IO, capture : IO) : Process::Status?
-      Process.run("pf-cli", {"get", "--path-file", document, POLICY_PATH, "--format", "json"},
+      Process.run("pf-cli", {"get", "--file", document, POLICY_PATH, "--format", "json"},
         output: fetched, error: capture)
     rescue File::NotFoundError
       nil
