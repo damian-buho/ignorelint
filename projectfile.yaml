@@ -109,7 +109,7 @@ org:
   projectfile:
     artifacts:
       crystal-binary:
-        help: [""]
+        executable: dist/ignorelint
         host-asset: ignorelint-linux-$(uname -m)
     architecture:
       - amd64
