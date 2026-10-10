@@ -54,23 +54,31 @@ Pin an exact tag for reproducible runs.
 
 ## Inputs
 
-| Name             | Default        | Description                                                                               |
-| ---------------- | -------------- | ----------------------------------------------------------------------------------------- |
-| `paths`          | *(empty)*      | Newline-separated ignore files to lint. Empty enables auto-discovery.                     |
-| `recursive`      | `false`        | Search subdirectories for ignore files.                                                   |
-| `config_file`    | *(empty)*      | Projectfile path for the `org.ignorelint` policy subtree (read via `--config`).           |
-| `fail_on`        | `error`        | Severity threshold that fails the job: `none`, `error`, `warn`, or `info`.                |
-| `fix`            | `false`        | Autofix deterministically fixable issues. The workspace will be modified.                 |
-| `disabled_rules` | *(empty)*      | Comma-separated rule tags to skip entirely (e.g. `IG-001,IG-020`).                        |
-| `error`          | *(empty)*      | Comma-separated rule tags to promote to error severity.                                   |
-| `warning`        | *(empty)*      | Comma-separated rule tags to set to warning severity.                                     |
-| `info`           | *(empty)*      | Comma-separated rule tags to demote to info severity.                                     |
-| `sarif`          | `false`        | Also emit a SARIF report for `github/codeql-action/upload-sarif`.                         |
-| `upload_sarif`   | `false`        | Upload the SARIF report to GitHub code scanning. Implies `sarif`.                         |
-| `comment`        | `false`        | Post the human report as a sticky comment on the triggering pull request.                 |
-| `version`        | `latest`       | Image tag to pull (e.g. `latest`, `1.2.3`). Ignored when `image` is set.                  |
-| `image`          | *(empty)*      | Full image reference override (e.g. for testing a locally-built image). Takes precedence. |
-| `github_token`   | `github.token` | Token used to post PR comments. The default uses the workflow token.                      |
+| Name                    | Default        | Description                                                                                         |
+|-------------------------|----------------|-----------------------------------------------------------------------------------------------------|
+| `paths`                 | *(empty)*      | Newline-separated ignore files to lint. Empty enables auto-discovery.                               |
+| `recursive`             | `false`        | Search subdirectories for ignore files.                                                             |
+| `config_file`           | *(empty)*      | Projectfile path for the `org.ignorelint` policy subtree (read via `--config`).                     |
+| `fail_on`               | `error`        | Severity threshold that fails the job: `none`, `error`, `warn`, or `info`.                          |
+| `fix`                   | `false`        | Autofix deterministically fixable issues. The workspace will be modified.                           |
+| `disabled_rules`        | *(empty)*      | Comma-separated rule tags to skip entirely (e.g. `IG-001,IG-020`).                                  |
+| `error`                 | *(empty)*      | Comma-separated rule tags to promote to error severity.                                             |
+| `warning`               | *(empty)*      | Comma-separated rule tags to set to warning severity.                                               |
+| `info`                  | *(empty)*      | Comma-separated rule tags to demote to info severity.                                               |
+| `format`                | *(empty)*      | Extra report format (same values as `--format`). Empty emits none; `sarif` acts like `sarif: true`. |
+| `no_fail`               | `false`        | Report every finding but always pass (beats `fail_on`).                                             |
+| `diff`                  | `false`        | Preview autofix changes in the human report without writing (needs `fix: false`).                   |
+| `plain`                 | `false`        | Human report as one undecorated record per line.                                                    |
+| `quiet`                 | `false`        | Only errors in the human report (needs `verbose: false`).                                           |
+| `verbose`               | `false`        | Show file discovery output on stderr (needs `quiet: false`).                                        |
+| `disable_ignore_pragma` | `false`        | Parse suppression directives but apply none.                                                        |
+| `file_path_in_report`   | *(empty)*      | Recorded path in machine-readable reports instead of the linted one.                                |
+| `sarif`                 | `false`        | Also emit a SARIF report for `github/codeql-action/upload-sarif`.                                   |
+| `upload_sarif`          | `false`        | Upload the SARIF report to GitHub code scanning. Implies `sarif`.                                   |
+| `comment`               | `false`        | Post the human report as a sticky comment on the triggering pull request.                           |
+| `version`               | `latest`       | Image tag to pull (e.g. `latest`, `1.2.3`). Ignored when `image` is set.                            |
+| `image`                 | *(empty)*      | Full image reference override (e.g. for testing a locally-built image). Takes precedence.           |
+| `github_token`          | `github.token` | Token used to post PR comments. The default uses the workflow token.                                |
 
 Policy precedence inside the run is flags (these inputs), then
 environment, then the projectfile subtree, then built-in defaults.
@@ -90,6 +98,7 @@ info notice.
 | `total`       | Total issue count across all severities.                             |
 | `report_path` | Path on the runner to the generated human-readable report.           |
 | `sarif_path`  | Path on the runner to the SARIF report (empty unless `sarif: true`). |
+| `format_path` | Path on the runner to the `format` report (empty unless set).        |
 
 ## Common recipes
 
@@ -191,6 +200,7 @@ The action always writes:
 - A rendered copy in the Actions run summary page.
 - A JSON report (used internally for the `fail_on` gate; not exposed as output).
 - A SARIF report when `sarif` or `upload_sarif` is `true` (exposed as `sarif_path`).
+- A `format` report when `format` is set (exposed as `format_path`; `human` and `json` reuse the reports above).
 
 Violations at or above `fail_on` also appear as inline annotations on
 the PR diff (`error` for errors, `warning` for warnings, `notice` for

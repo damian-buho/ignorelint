@@ -44,6 +44,38 @@ inputs:
     description: 'Comma-separated rule tags to demote to info severity.'
     required: false
     default: ''
+  format:
+    description: 'Extra report format (same values as --format). Empty emits none; sarif acts like sarif: true.'
+    required: false
+    default: ''
+  no_fail:
+    description: 'Report every finding but always pass (beats fail_on).'
+    required: false
+    default: 'false'
+  diff:
+    description: 'Preview autofix changes in the human report without writing (cannot combine with fix).'
+    required: false
+    default: 'false'
+  plain:
+    description: 'Human report as one undecorated record per line.'
+    required: false
+    default: 'false'
+  quiet:
+    description: 'Only errors in the human report; suppresses notices (cannot combine with verbose).'
+    required: false
+    default: 'false'
+  verbose:
+    description: 'Show file discovery output on stderr (cannot combine with quiet).'
+    required: false
+    default: 'false'
+  disable_ignore_pragma:
+    description: 'Parse suppression directives but apply none.'
+    required: false
+    default: 'false'
+  file_path_in_report:
+    description: 'Record this path instead of the linted one in machine-readable reports.'
+    required: false
+    default: ''
   sarif:
     description: 'Also emit SARIF for github/codeql-action/upload-sarif.'
     required: false
@@ -93,6 +125,9 @@ outputs:
   sarif_path:
     description: 'Path on the runner to the generated SARIF report (empty unless sarif is true)'
     value: ${{ steps.lint.outputs.sarif_path }}
+  format_path:
+    description: 'Path on the runner to the generated report in format (empty unless format is set)'
+    value: ${{ steps.lint.outputs.format_path }}
 runs:
   using: composite
   steps:
@@ -122,6 +157,14 @@ runs:
         OVERRIDE_ERROR: ${{ inputs.error }}
         OVERRIDE_WARNING: ${{ inputs.warning }}
         OVERRIDE_INFO: ${{ inputs.info }}
+        FORMAT: ${{ inputs.format }}
+        NO_FAIL: ${{ inputs.no_fail }}
+        DIFF: ${{ inputs.diff }}
+        PLAIN: ${{ inputs.plain }}
+        QUIET: ${{ inputs.quiet }}
+        VERBOSE: ${{ inputs.verbose }}
+        DISABLE_IGNORE_PRAGMA: ${{ inputs.disable_ignore_pragma }}
+        FILE_PATH_IN_REPORT: ${{ inputs.file_path_in_report }}
         EMIT_SARIF: ${{ inputs.sarif == 'true' || inputs.upload_sarif == 'true' }}
       run: ${{ github.action_path }}/.scripts/action/lint.sh
     - name: Summarize
@@ -131,6 +174,7 @@ runs:
         REPORT_JSON: ${{ steps.lint.outputs.report_json }}
         REPORT_HUMAN: ${{ steps.lint.outputs.report_path }}
         FAIL_ON: ${{ inputs.fail_on }}
+        NO_FAIL: ${{ inputs.no_fail }}
       run: ${{ github.action_path }}/.scripts/action/summarize.sh
     - name: Upload SARIF to code scanning
       if: ${{ inputs.upload_sarif == 'true' }}

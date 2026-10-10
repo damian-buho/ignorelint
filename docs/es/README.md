@@ -111,6 +111,14 @@ La acción acepta estas entradas:
 | `error` | | Comma-separated rule tags to promote to error severity. |
 | `warning` | | Comma-separated rule tags to set to warning severity. |
 | `info` | | Comma-separated rule tags to demote to info severity. |
+| `format` | | Extra report format (same values as --format). Empty emits none; sarif acts like sarif: true. |
+| `no_fail` | `false` | Report every finding but always pass (beats fail_on). |
+| `diff` | `false` | Preview autofix changes in the human report without writing (cannot combine with fix). |
+| `plain` | `false` | Human report as one undecorated record per line. |
+| `quiet` | `false` | Only errors in the human report; suppresses notices (cannot combine with verbose). |
+| `verbose` | `false` | Show file discovery output on stderr (cannot combine with quiet). |
+| `disable_ignore_pragma` | `false` | Parse suppression directives but apply none. |
+| `file_path_in_report` | | Record this path instead of the linted one in machine-readable reports. |
 | `sarif` | `false` | Also emit SARIF for github/codeql-action/upload-sarif. |
 | `upload_sarif` | `false` | Upload the SARIF report to GitHub code scanning (implies sarif; needs security-events: write). |
 | `comment` | `false` | Post the human report as a sticky comment on the triggering pull request. |

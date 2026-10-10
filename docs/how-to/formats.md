@@ -66,6 +66,22 @@ SonarQube — import the generic issue format, naming the report in your scanner
 ignorelint --format=sonarqube > sonar-issues.json
 ```
 
+## GitHub Action
+
+The action always runs JSON for gating and human for display. Every other format is one input away:
+
+```yaml
+- uses: damian-buho/ignorelint@2.0.3
+  id: ignorelint
+  with:
+    format: junit
+- uses: actions/upload-artifact@v4
+  with:
+    path: ${{ steps.ignorelint.outputs.format_path }}
+```
+
+`format: sarif` behaves like `sarif: true` and fills `sarif_path` too. An invalid `format` fails the step before the container runs.
+
 ## Severity mapping
 
 Every machine format carries the rule tag (`IG-NNN`), the line and the message, so a finding stays identifiable whatever the platform calls its levels. Severities are translated into each platform’s own closed vocabulary:
