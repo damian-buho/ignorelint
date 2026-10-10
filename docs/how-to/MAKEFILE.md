@@ -209,6 +209,14 @@ Continuously refresh the compose service list (watch dc-ps)
 
 ## Container
 
+### `compose-config-check`
+
+Validate every compose file and the variables it references
+
+`.makefile/container/scripts/compose-config.sh`
+
+> Image: host runner
+
 ### `compose-example-check`
 
 Validate the README’s example compose file
@@ -256,6 +264,22 @@ Run a fresh container from the built image (with mounted secrets) and shell into
 ### `container-test`
 
 Run the test.d suite inside the running container
+
+### `dockerfile-parse-buildah`
+
+Parse the Dockerfile with buildah, skipped when it is not installed
+
+`.makefile/container/scripts/dockerfile-parse.sh buildah`
+
+> Image: host runner
+
+### `dockerfile-parse-buildx`
+
+Parse the Dockerfile with docker buildx, skipped when it is not installed
+
+`.makefile/container/scripts/dockerfile-parse.sh docker`
+
+> Image: host runner
 
 ### `hadolint`
 
