@@ -307,7 +307,7 @@ Generate .dockerignore from the projectfile
 
 ### `usage-capture`
 
-Capture each declared --help from the built image into docs/usage.d
+Capture each declared --help into docs/usage.d
 
 `.makefile/container/scripts/usage-capture.sh --default-lang=${org.projectfile.i18n.default-language} ${org.projectfile.i18n.languages[]}`
 
