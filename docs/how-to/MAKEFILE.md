@@ -387,6 +387,14 @@ Sync shard.yml with the projectfile
 
 > Image: PF_BRIDGE_IMAGE
 
+### `regen-goldens`
+
+Regenerate the formatter golden files in spec/fixtures/output
+
+`crystal run spec/regen-goldens.cr`
+
+> Image: host runner
+
 ### `shards-install`
 
 Install shards into the checkout’s lib/
