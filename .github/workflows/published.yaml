@@ -654,6 +654,7 @@ jobs:
   published:
     runs-on: ubuntu-26.04
     needs: ["image-has-sbom", "image-is-attested", "image-is-signed", "publish-image", "ready-to-publish", "release-is-published", "release-notes-are-published"]
+    if: ${{ !cancelled() && (needs.image-has-sbom.result == 'success' || (needs.image-has-sbom.result == 'skipped' && !(startsWith(github.ref, 'refs/tags/')))) && (needs.image-is-attested.result == 'success' || (needs.image-is-attested.result == 'skipped' && !(startsWith(github.ref, 'refs/tags/')))) && (needs.image-is-signed.result == 'success' || (needs.image-is-signed.result == 'skipped' && !(startsWith(github.ref, 'refs/tags/')))) && (needs.publish-image.result == 'success' || (needs.publish-image.result == 'skipped' && !((startsWith(github.ref, 'refs/heads/')) || (startsWith(github.ref, 'refs/tags/'))))) && needs.ready-to-publish.result == 'success' && (needs.release-is-published.result == 'success' || (needs.release-is-published.result == 'skipped' && !(startsWith(github.ref, 'refs/tags/')))) && (needs.release-notes-are-published.result == 'success' || (needs.release-notes-are-published.result == 'skipped' && !(startsWith(github.ref, 'refs/tags/')))) }}
     steps:
       - run: echo published
   ready-to-publish:
