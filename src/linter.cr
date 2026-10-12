@@ -258,7 +258,8 @@ module Ignorelint
       return if pat.body.split('/').includes?("..")
 
       target = File.join(base_dir, pat.body)
-      return if File.exists?(target) || Dir.exists?(target)
+      # A dangling symlink still occupies the path, so its rule is not dead.
+      return if File.exists?(target, follow_symlinks: false) || Dir.exists?(target)
 
       kind = pat.directory_only? ? "Directory" : "Path"
       if corrected = case_corrected_path(base_dir, pat.body)

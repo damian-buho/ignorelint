@@ -173,6 +173,16 @@ describe Ignorelint::Linter do
         found.any?(&.message.includes?("*.txt")).should be_false
       end
     end
+
+    it "keeps a rule whose path is a dangling symlink" do
+      with_repo(["exists.txt"]) do |dir|
+        File.symlink("nowhere-target", File.join(dir, "dangling"))
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "dangling\nmissing.txt\n")
+        found = result.issues.select(&.code.path_not_found?)
+        found.any?(&.message.includes?("dangling")).should be_false
+        found.any?(&.message.includes?("missing.txt")).should be_true
+      end
+    end
   end
 
   describe "filesystem: case mismatch" do
