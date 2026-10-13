@@ -24,7 +24,12 @@ trap cleanup EXIT
 
 printf 'foo  \n' > "${WORK_DIR}/.gitignore"
 printf 'org:\n  ignorelint:\n    format: json\n' > "${WORK_DIR}/projectfile.yaml"
-ignorelint --config "${WORK_DIR}/projectfile.yaml" --fail-on=none "${WORK_DIR}/.gitignore" > "${REPORT_FILE}" 2> "${DIAG_FILE}"
+STATUS=0
+ignorelint --config "${WORK_DIR}/projectfile.yaml" --fail-on=none "${WORK_DIR}/.gitignore" > "${REPORT_FILE}" 2> "${DIAG_FILE}" || STATUS=$?
+if [ "${STATUS}" != "0" ]; then
+    b19-log error "IGNORELINT" "$(_p "ignorelint failed (exit %s): %s" "${STATUS}" "$(cat "${DIAG_FILE}")")"
+    exit "${STATUS}"
+fi
 
 b19-log info "IGNORELINT" "$(_p "policy report bytes: %s" "$(wc -c < "${REPORT_FILE}")")"
 grep -q '"issues"' "${REPORT_FILE}"
