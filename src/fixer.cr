@@ -63,6 +63,12 @@ module Ignorelint
       FIXABLE_CODES.includes?(code)
     end
 
+    # The fixable codes as the `--fix` display list (`IG-001,003,008`), derived so the help text cannot drift from `FIXABLE_CODES`.
+    def fixable_tags : String
+      tags = FIXABLE_CODES.map(&.tag).sort!
+      tags.map_with_index { |tag, index| index.zero? ? tag : tag.lchop("IG-") }.join(",")
+    end
+
     # Generate a `Fix` for a single issue, given the surrounding context of
     # all parsed patterns.
     #
