@@ -43,17 +43,8 @@ module Ignorelint
         "node_modules",
       }
 
-      # Files always included by npm — cannot be excluded even with `.npmignore`.
-      #
-      # These are required for the package to function. A negation pattern
-      # (`!package.json`) is meaningless because the file is already included.
-      BUILTIN_INCLUDES = {
-        "package.json",
-        "README*",
-        "CHANGELOG*",
-        "LICENSE",
-        "LICENCE",
-      }
+      # Root names npm-packlist always packs, in any case, bare or with any extension.
+      BUILTIN_INCLUDES = {"readme", "copying", "license", "licence"}
 
       # Check a single pattern for npmignore-specific issues.
       #
@@ -86,18 +77,12 @@ module Ignorelint
         BUILTIN_EXCLUDES.any? { |builtin| body == builtin || glob_matches?(body, builtin) }
       end
 
-      # Check if the pattern body matches one of npm's built-in includes.
-      #
-      # Handles glob-style patterns: `"README*"` matches any body starting
-      # with `"README"`.
+      # True when the body names a root file npm always packs.
       private def matches_builtin_include?(body : String) : Bool
-        BUILTIN_INCLUDES.any? do |builtin|
-          if builtin.ends_with?('*')
-            body.starts_with?(builtin.rchop('*'))
-          else
-            body == builtin
-          end
-        end
+        name = body.lchop('/').downcase
+        return true if name == "package.json"
+        return false if name.ends_with?('~') || name.ends_with?('$')
+        BUILTIN_INCLUDES.any? { |base| name == base || name.starts_with?("#{base}.") }
       end
 
       # Simple glob match for patterns like `._*` matching `._*` or `.git` matching `.git/`.

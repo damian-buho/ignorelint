@@ -33,13 +33,15 @@ These are always excluded regardless of `.npmignore` contents:
 
 ## Built-in includes
 
-These are always included and cannot be excluded:
+These root files are always included and cannot be excluded; all but `package.json` match in any case, bare or with any extension ([npm-packlist](https://github.com/npm/npm-packlist/blob/main/lib/index.js)):
 
 - `package.json`
-- `README*`
-- `CHANGELOG*`
+- `README`
+- `COPYING`
 - `LICENSE`
 - `LICENCE`
+
+`CHANGELOG` is not on that list, so `!CHANGELOG.md` is a real re-include.
 
 ## Notes
 

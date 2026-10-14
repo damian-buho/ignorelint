@@ -635,6 +635,16 @@ describe Ignorelint::Linter do
       result.issues.any?(&.message.includes?("can never be excluded")).should be_true
     end
 
+    it "warns on negation of built-in include in any case and extension" do
+      result = Ignorelint::Linter.lint(".npmignore", "!readme\n!License.md\n!COPYING.txt\n")
+      result.issues.count(&.code.builtin_include_protected?).should eq 3
+    end
+
+    it "accepts a changelog re-include, which npm no longer packs by default" do
+      result = Ignorelint::Linter.lint(".npmignore", "!CHANGELOG.md\n!docs/README.md\n")
+      result.issues.none?(&.code.builtin_include_protected?).should be_true
+    end
+
     it "warns on long AppleDouble files (._*)" do
       result = Ignorelint::Linter.lint(".npmignore", "._longname\n")
       result.issues.any?(&.message.includes?("already excluded by default")).should be_true
