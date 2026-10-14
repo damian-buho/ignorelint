@@ -109,8 +109,13 @@ module Ignorelint
       end
 
       if pat.invalid_doublestar?
-        issues << Issue.new(pat.line, "Invalid ** usage in \"#{pat.body}\"", :error,
-          :invalid_doublestar)
+        # Moby compiles a trailing `**` to `.*`, any other to `(.*/)?`.
+        trailing = pat.body.ends_with?("**") && pat.body.rchop("**").split('/').none? { |seg| seg.includes?("**") && seg != "**" }
+        issues << if trailing
+          Issue.new(pat.line, "Invalid ** usage in \"#{pat.body}\": a trailing \"**\" matches like \"*\"", :warn, :invalid_doublestar)
+        else
+          Issue.new(pat.line, "Invalid ** usage in \"#{pat.body}\": a \"**\" inside a path segment stands for zero or more directories, not for characters in a name", :error, :invalid_doublestar)
+        end
       end
 
       issues.concat(Checks::DockerignoreSemantics.check(pat))
