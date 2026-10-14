@@ -26,16 +26,14 @@ module Ignorelint
       # Check a single pattern for helmignore-specific issues.
       #
       # Checks:
-      #   - IG-016: `**` is not documented in `.helmignore` — behavior may
-      #     vary across Helm versions. Warn so the user can decide whether to
-      #     rely on it.
+      #   - IG-016: Helm refuses to load a `.helmignore` with any `**` rule.
       def check(pat : Pattern) : Array(Issue)
         issues = [] of Issue
 
         if pat.body.includes?("**")
           issues << Issue.new(pat.line,
-            "\"**\" in \"#{pat.raw}\" is not documented in .helmignore — behavior may vary",
-            :warn, :doublestar_unsupported)
+            "\"**\" in \"#{pat.raw}\": Helm rejects a .helmignore rule containing \"**\"",
+            :error, :doublestar_unsupported)
         end
 
         issues
@@ -47,7 +45,7 @@ module Ignorelint
   #
   # Combines:
   #   1. `CommonGlob.check` — shared glob-validity rules
-  #   2. `HelmignoreSemantics.check` — undocumented `**` warning
+  #   2. `HelmignoreSemantics.check` — rejected `**` error
   #   3. `Conflicts.check` — cross-pattern conflict detection
   struct HelmignoreStyleLinter
     include FormatLinter

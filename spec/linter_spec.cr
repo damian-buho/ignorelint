@@ -803,9 +803,12 @@ describe Ignorelint::Linter do
       result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
-    it "applies helmignore-specific rules to .helmignore (reports ** as undocumented)" do
+    it "applies helmignore-specific rules to .helmignore (reports ** as rejected)" do
       result = Ignorelint::Linter.lint(".helmignore", "foo/**/bar\n")
-      result.issues.any?(&.message.includes?("not documented")).should be_true
+      found = result.issues.select(&.code.doublestar_unsupported?)
+      found.size.should eq(1)
+      found.first.severity.error?.should be_true
+      found.first.message.should contain("Helm rejects")
     end
 
     it "does not report negated rooted for .helmignore (uses helmignore-specific rules)" do
