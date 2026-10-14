@@ -10,6 +10,7 @@ set -euo pipefail
 usage() {
 	cat >&2 <<'EOF'
 Usage: corpus.sh select TOP RANDOM > repos.txt   pick TOP most-starred plus RANDOM active repositories
+       corpus.sh files COUNT NAME… > repos.txt          pick up to COUNT non-fork repositories per ignore file NAME (code search)
        corpus.sh scan repos.txt                  clone what is missing, lint every listed repository
        corpus.sh summary                         findings per rule and file name, as TSV
 Environment:
@@ -64,6 +65,20 @@ select_repos() {
 		[[ -n "${picked}" && -z "${seen[${picked}]:-}" ]] && seen["${picked}"]=1 && printf '%s\n' "${picked}"
 		sleep 2
 	done
+}
+
+# Prints up to COUNT non-fork owner/repo per file name, in GitHub code search best-match order.
+select_files() {
+	local count="$1" name page
+	shift
+	for name in "$@"; do
+		for ((page = 1; page <= (count + 99) / 100; page++)); do
+			log "files name=${name} page=${page} count=${count}"
+			retry timeout 60 gh api --method GET search/code --raw-field q="filename:${name}" --raw-field per_page=100 \
+				--raw-field page="${page}" --jq '.items[] | select(.repository.fork | not) | .repository.full_name'
+			sleep 7
+		done | awk --assign n="${count}" '!seen[$0]++ && ++k <= n'
+	done | awk '!seen[$0]++'
 }
 
 # Clones without blobs, checks out the ignore files, and touches every other path as an empty file.
@@ -143,6 +158,7 @@ names="$(rg --only-matching --replace '$1' '^\s+"([^"]+)"\s+=> FileType::' "${ro
 
 case "${1:-}" in
 select) [[ $# -eq 3 ]] || usage; select_repos "$2" "$3" ;;
+files) [[ $# -ge 3 ]] || usage; select_files "${@:2}" ;;
 scan) [[ $# -eq 2 ]] || usage; scan "$2" ;;
 summary) summary ;;
 *) usage ;;
