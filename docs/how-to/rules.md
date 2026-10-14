@@ -37,7 +37,7 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | IG-022 | warn | Double slash | ✓ |
 | IG-023 | info | Unsorted rule | ✓ |
 | IG-024 | warn | Leading whitespace | ✓ |
-| IG-025 | warn | Case mismatch | — |
+| IG-025 | info | Case mismatch: a literal path that matches nothing exists in another case | — |
 
 Severities are `error`, `warn`, and `info`; every code is emitted in all output formats. Any default can be changed for the whole run with `--error`, `--warning`, or `--info` (see [USAGE.md](../../USAGE.md)).
 

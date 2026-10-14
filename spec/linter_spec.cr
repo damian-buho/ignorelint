@@ -213,7 +213,7 @@ describe Ignorelint::Linter do
         result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "Readme.md\n")
         found = result.issues.select(&.code.case_mismatch?)
         found.size.should eq(1)
-        found.first.severity.warn?.should be_true
+        found.first.severity.info?.should be_true
         found.first.code.tag.should eq("IG-025")
         found.first.message.should contain("Readme.md")
         found.first.message.should contain("README.md")

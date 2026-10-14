@@ -252,8 +252,7 @@ module Ignorelint
     # we check `File.exists?` / `Dir.exists?` directly. If the target does
     # not exist, the rule is likely stale.
     #
-    # A missing target that exists under a different case (IG-025) reports
-    # the mismatch instead of plain absence, so the fix is obvious.
+    # A missing target that exists under a different case also names that near match (IG-025).
     private def check_path_exists(pat : Pattern, base_dir : String, issues : Array(Issue)) : Nil
       return unless pat.literal?
       return if pat.body.split('/').includes?("..")
@@ -267,7 +266,7 @@ module Ignorelint
       # A directory-only pattern cannot have meant a file (`build/` vs Bazel `BUILD`).
       corrected = nil if corrected && pat.directory_only? && !Dir.exists?(File.join(base_dir, corrected))
       if corrected
-        issues << Issue.new(pat.line, "#{kind} \"#{pat.body}\" differs in case from \"#{corrected}\" on disk", :warn,
+        issues << Issue.new(pat.line, "#{kind} \"#{pat.body}\" does not exist; \"#{corrected}\" differs only in case", :info,
           :case_mismatch)
         return
       end
