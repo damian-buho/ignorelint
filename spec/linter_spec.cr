@@ -207,6 +207,15 @@ describe Ignorelint::Linter do
       end
     end
 
+    it "anchors every dockerignore glob to the context root" do
+      with_repo([] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "nested"))
+        File.write(File.join(dir, "nested", "a.txt"), "x\n")
+        found = Ignorelint::Linter.lint(File.join(dir, ".dockerignore"), "*.txt\n**/*.txt\n").issues.select(&.code.dead_glob_rule?)
+        found.map(&.line).should eq([1])
+      end
+    end
+
     it "keeps a rule whose path is a dangling symlink" do
       with_repo(["exists.txt"]) do |dir|
         File.symlink("nowhere-target", File.join(dir, "dangling"))

@@ -79,19 +79,13 @@ module Ignorelint
   # consecutive asterisks, malformed brackets, and invalid `**` usage, then
   # adds dockerignore-specific semantic checks.
   #
-  # Also overrides `build_glob` because dockerignore strips slashes before
-  # matching — unrooted and rooted patterns both match recursively.
+  # Also overrides `build_glob`: every pattern is anchored to the context root.
   struct DockerignoreStyleLinter
     include FormatLinter
 
-    # Override the default glob builder: dockerignore strips leading/trailing
-    # slashes before matching, so rooted distinction does not exist — always
-    # use `**/` prefix for dead-rule detection.
-    #
-    # Without this override, a rooted pattern like `/build` would only check
-    # for `./build` (missing matches at deeper levels).
+    # Every pattern matches from the context root; only an explicit `**` reaches deeper.
     def build_glob(pat : Pattern, base_dir : String) : String
-      File.join(base_dir, "**", pat.body)
+      File.join(base_dir, pat.body)
     end
 
     # Check a single pattern for dockerignore-specific issues.

@@ -45,7 +45,7 @@ module Ignorelint
   #
   # The mixin also provides a default `build_glob` implementation for
   # filesystem dead-rule detection. Dockerignore overrides this because
-  # it strips slashes before matching.
+  # it anchors every pattern to the context root.
   module FormatLinter
     # Check a single pattern for format-specific issues.
     #
@@ -60,7 +60,7 @@ module Ignorelint
     abstract def check_patterns(patterns : Array(Pattern), issues : Array(Issue)) : Nil
 
     # Build a filesystem glob for dead-rule detection, accounting for
-    # format-specific matching semantics (e.g., dockerignore strips slashes).
+    # format-specific matching semantics (e.g., dockerignore anchors to the root).
     #
     # A slash at the start or middle anchors the pattern; any other gets a `**/` prefix.
     def build_glob(pat : Pattern, base_dir : String) : String

@@ -313,8 +313,7 @@ module Ignorelint
     #
     # The `format_linter` provides the glob expression via `build_glob`,
     # because different ignore formats have different matching semantics
-    # (e.g. dockerignore strips slashes, so rooted patterns still match
-    # recursively).
+    # (e.g. dockerignore anchors every pattern to the context root).
     private def check_glob_matches(pat : Pattern, base_dir : String, issues : Array(Issue),
                                    format_linter : FormatLinter) : Nil
       return if pat.literal?
