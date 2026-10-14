@@ -191,8 +191,9 @@ module Ignorelint
     end
 
     private def check_whitespace_and_format(pat : Pattern, path : String, issues : Array(Issue)) : Nil
-      if !dockerignore?(path) && pat.body.includes?(' ')
-        issues << Issue.new(pat.line, "Space in pattern \"#{pat.raw}\"", :warn,
+      # IG-007: a space before `#` marks an attempted inline comment.
+      if !dockerignore?(path) && pat.body.matches?(/\s#/)
+        issues << Issue.new(pat.line, "Space before # in \"#{pat.raw.strip}\": # starts a comment only at the beginning of a line, so the whole line is one pattern", :warn,
           :space_in_pattern)
       end
 

@@ -526,12 +526,12 @@ describe Ignorelint::CLI do
     end
 
     it "takes comma-separated tags case-insensitively" do
-      with_ignore_file("!!foo\nfoo  \n") do |path|
+      with_ignore_file("!!foo\nfoo  \nbar # note\n") do |path|
         code, out, _ = run_cli(["--disabled-rules=ig-001,IG-003", path] of String)
         code.should eq(0)
         out.should_not contain("Double negation")
         out.should_not contain("Trailing whitespace")
-        out.should contain("Space in pattern")
+        out.should contain("Space before #")
       end
     end
 

@@ -113,6 +113,23 @@ describe Ignorelint::Linter do
     end
   end
 
+  describe "universal: space in pattern" do
+    it "reports a space before # as an attempted inline comment" do
+      result = Ignorelint::Linter.lint(".gitignore", "!*.svg # keep vector files\n")
+      result.issues.count(&.code.space_in_pattern?).should eq(1)
+    end
+
+    it "allows a literal space in a name" do
+      result = Ignorelint::Linter.lint(".gitignore", "Network Trash Folder\n*- [Bb]ackup.rdl\n")
+      result.issues.none?(&.code.space_in_pattern?).should be_true
+    end
+
+    it "skips dockerignore" do
+      result = Ignorelint::Linter.lint(".dockerignore", "foo # note\n")
+      result.issues.none?(&.code.space_in_pattern?).should be_true
+    end
+  end
+
   describe "universal: leading whitespace" do
     it "reports leading spaces" do
       result = Ignorelint::Linter.lint("test.gitignore", " foo\n")
