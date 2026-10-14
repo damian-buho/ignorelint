@@ -111,12 +111,12 @@ scan() {
 
 summary() {
 	log "results=$(fd --hidden --glob '*.meta.json' "${data}/results" | wc --lines) data=${data}"
-	printf 'code\tfile\tfindings\trepos\n'
+	printf 'severity\tcode\tfile\tfindings\trepos\n'
 	# shellcheck disable=SC2016 # $repo is jq syntax
 	fd --hidden --glob '*.json' --exclude '*.meta.json' "${data}/results" --exec jq --compact-output \
-		--arg repo '{/.}' '.issues[]? | {code, file: (.file | split("/") | last), $repo}' '{}' \
-		| jq --slurp --raw-output 'group_by([.code, .file]) | map([.[0].code, .[0].file, length, (map(.repo) | unique | length)])
-			| sort_by(-.[2]) | .[] | @tsv'
+		--arg repo '{/.}' '.issues[]? | {severity, code, file: (.file | split("/") | last), $repo}' '{}' \
+		| jq --slurp --raw-output 'group_by([.severity, .code, .file]) | map([.[0].severity, .[0].code, .[0].file, length, (map(.repo) | unique | length)])
+			| sort_by(({error: 0, warning: 1, info: 2}[.[0]] // 3), -.[3]) | .[] | @tsv'
 	log "crashes=$(jq --slurp '[.[] | select(.status != 0)] | length' "${data}"/results/*.meta.json)"
 }
 
