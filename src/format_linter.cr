@@ -96,7 +96,6 @@ require "./driver/gitignore"
 require "./driver/dockerignore"
 require "./driver/slugignore"
 require "./driver/helmignore"
-require "./driver/eslintignore"
 require "./driver/npmignore"
 require "./driver/cfignore"
 require "./driver/prettierignore"
@@ -120,7 +119,7 @@ module Ignorelint
       FileType::Gitignore              => GitignoreStyleLinter.new,
       FileType::Npmignore              => NpmignoreStyleLinter.new,
       FileType::Claudeignore           => GitignoreStyleLinter.new,
-      FileType::Eslintignore           => EslintignoreStyleLinter.new,
+      FileType::Eslintignore           => GitignoreStyleLinter.new,
       FileType::Prettierignore         => PrettierignoreStyleLinter.new,
       FileType::Stylelintignore        => GitignoreStyleLinter.new,
       FileType::Yarnignore             => GitignoreStyleLinter.new,

@@ -17,7 +17,7 @@ Uses gitignore syntax as implemented by the `node-ignore` library. Supports all 
 
 ## Deviations from gitignore
 
-- A pattern like `.config` only matches at the same directory level (non-recursive), unlike gitignore where an unrooted pattern matches at any depth. To match recursively, use `**/.config/`.
+- None in matching: an unrooted `.config` matches at any depth, as in gitignore. The non-recursive rule (`.config/` matches only beside the config file, `**/.config/` everywhere) belongs to flat-config `ignores` globs, not to `.eslintignore`.
 - In flat config (`eslint.config.js`), ignore patterns are defined inline via `globalIgnores()` and `ignores` key, not in a `.eslintignore` file.
 
 ## Notes

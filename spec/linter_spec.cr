@@ -709,19 +709,9 @@ describe Ignorelint::Linter do
       result.issues.any?(&.message.includes?("Invalid **")).should be_true
     end
 
-    it "warns on unrooted pattern (non-recursive in eslintignore)" do
+    it "accepts an unrooted pattern: it is recursive, as in gitignore" do
       result = Ignorelint::Linter.lint(".eslintignore", ".config\n")
-      result.issues.any?(&.message.includes?("same-directory only")).should be_true
-    end
-
-    it "does not warn on rooted pattern" do
-      result = Ignorelint::Linter.lint(".eslintignore", "/.config\n")
-      result.issues.any?(&.message.includes?("same-directory only")).should be_false
-    end
-
-    it "does not warn on pattern with **" do
-      result = Ignorelint::Linter.lint(".eslintignore", "**/.config\n")
-      result.issues.any?(&.message.includes?("same-directory only")).should be_false
+      result.issues.reject(&.severity.info?).should be_empty
     end
 
     it "clean file" do

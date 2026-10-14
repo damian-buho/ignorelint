@@ -29,7 +29,7 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | IG-014 | error | Path traversal | — |
 | IG-015 | info | Slash has no effect | ✓ |
 | IG-016 | warn | Doublestar unsupported | — |
-| IG-017 | warn | Unrooted non-recursive pattern | — |
+| IG-017 | — | Retired: `.eslintignore` matches unrooted patterns at any depth | — |
 | IG-018 | info | Redundant built-in exclude | ✓ |
 | IG-019 | warn | Built-in include protected | — |
 | IG-020 | info | Path not found | — |
