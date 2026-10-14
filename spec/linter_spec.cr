@@ -483,6 +483,11 @@ describe Ignorelint::Linter do
       result.issues.select(&.code.invalid_doublestar?).all?(&.severity.error?).should be_true
     end
 
+    it "reports consecutive stars and malformed brackets once" do
+      result = Ignorelint::Linter.lint(".dockerignore", "a***\nb[c\n")
+      result.issues.count { |i| i.code.consecutive_star? || i.code.malformed_brackets? }.should eq 2
+    end
+
     it "warns on a trailing a**, which Moby compiles to a.*" do
       result = Ignorelint::Linter.lint(".dockerignore", ".terraform**\nfoo**bar**\n")
       result.issues.select(&.code.invalid_doublestar?).map { |i| {i.line, i.severity.to_s} }.should eq [{1, "Warn"}, {2, "Error"}]

@@ -88,25 +88,9 @@ module Ignorelint
       File.join(base_dir, pat.body)
     end
 
-    # Check a single pattern for dockerignore-specific issues.
-    #
-    # Performs structural glob checks directly (instead of delegating to
-    # `CommonGlob`) because dockerignore has subtly different `**` semantics,
-    # then adds dockerignore-specific semantic checks.
+    # Checks one pattern with Moby `**` semantics, then dockerignore-specific rules.
     def check_pattern(pat : Pattern) : Array(Issue)
       issues = [] of Issue
-
-      # Structural glob checks still apply (consecutive asterisks, malformed
-      # brackets) but NOT gitignore-specific rooted_shallow or invalid_doublestar.
-      if pat.consecutive_asterisks?
-        issues << Issue.new(pat.line, "Consecutive *** in \"#{pat.body}\"", :error,
-          :consecutive_star)
-      end
-
-      if pat.malformed_brackets?
-        issues << Issue.new(pat.line, "Malformed bracket expression in \"#{pat.body}\"", :error,
-          :malformed_brackets)
-      end
 
       if pat.invalid_doublestar?
         # Moby compiles a trailing `**` to `.*`, any other to `(.*/)?`.
