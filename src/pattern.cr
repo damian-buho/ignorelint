@@ -221,17 +221,6 @@ module Ignorelint
       false
     end
 
-    # -- .gitignore-specific semantic checks --------------------------------
-
-    # `!` followed by `/` — anchoring has no effect on negation.
-    #
-    # In gitignore, a leading `/` anchors a pattern to the ignore file's
-    # directory. But negation patterns (`!`) are already resolved relative to
-    # that directory, so adding `/` to a negation is misleading.
-    def negated_rooted? : Bool
-      negated? && rooted?
-    end
-
     # Pattern contains a leading slash that anchors to root but is followed
     # by no path separators — it only matches at the top level. Often a
     # mistake when the user wanted to match anywhere.

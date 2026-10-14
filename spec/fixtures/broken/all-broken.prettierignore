@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Issues: negated rooted, invalid **, duplicate patterns, trailing whitespace
+# Issues: invalid **, duplicate patterns, trailing whitespace
 !/src/keep
 a**b
 dist/

@@ -29,7 +29,6 @@ describe Ignorelint::Pattern do
       pat = Ignorelint::Pattern.new("!/keep", 1)
       pat.negated?.should be_true
       pat.rooted?.should be_true
-      pat.negated_rooted?.should be_true
     end
 
     it "detects blank lines" do
@@ -166,10 +165,6 @@ describe Ignorelint::Pattern do
 
     it "rooted with subdirs is not shallow" do
       Ignorelint::Pattern.new("/src/build/", 1).rooted_shallow?.should be_false
-    end
-
-    it "detects negated rooted" do
-      Ignorelint::Pattern.new("!/keep", 1).negated_rooted?.should be_true
     end
   end
 

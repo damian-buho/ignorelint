@@ -118,15 +118,13 @@ module Ignorelint
   #
   # Combines:
   #   1. `CommonGlob.check` — shared glob-validity rules
-  #   2. `GitignoreSemantics.check` — gitignore-specific rules (reused)
-  #   3. `NpmignoreSemantics.check` — redundant built-in exclude/include checks
-  #   4. `Conflicts.check` — cross-pattern conflict detection
+  #   2. `NpmignoreSemantics.check` — redundant built-in exclude/include checks
+  #   3. `Conflicts.check` — cross-pattern conflict detection
   struct NpmignoreStyleLinter
     include FormatLinter
 
     def check_pattern(pat : Pattern) : Array(Issue)
       issues = Checks::CommonGlob.check(pat)
-      issues.concat(Checks::GitignoreSemantics.check(pat))
       issues.concat(Checks::NpmignoreSemantics.check(pat))
       issues
     end

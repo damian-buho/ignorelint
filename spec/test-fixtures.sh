@@ -25,7 +25,7 @@ tmpdir="$(mktemp -d)"
 trap 'rm -rf "${tmpdir}"' EXIT
 
 # staged_file <fixture_path> — copies fixture to tmpdir with correct name
-# e.g. broken/negated-rooted.gitignore → tmpdir/.gitignore
+# e.g. broken/double-negation.gitignore → tmpdir/.gitignore
 staged_file() {
   local fixture="$1"
   local ext
@@ -128,7 +128,6 @@ assert_issue_contains "$(staged_file "${fixtures_dir}/broken/consecutive-asteris
 assert_issue_contains "$(staged_file "${fixtures_dir}/broken/space-in-pattern.gitignore")" "space in pattern"
 
 # Gitignore-style issues
-assert_issue_contains "$(staged_file "${fixtures_dir}/broken/negated-rooted.gitignore")" "anchoring has no effect"
 assert_issue_contains "$(staged_file "${fixtures_dir}/broken/invalid-doublestar.gitignore")" "invalid **"
 assert_issue_contains "$(staged_file "${fixtures_dir}/broken/rooted-shallow.gitignore")" "rooted pattern"
 assert_issue_contains "$(staged_file "${fixtures_dir}/broken/redundant-pair.gitignore")" "redundant pair"

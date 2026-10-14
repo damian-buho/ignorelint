@@ -23,7 +23,7 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | IG-008 | warn | Duplicate rule | ✓ |
 | IG-009 | error | Invalid doublestar | — |
 | IG-010 | info | Rooted shallow pattern | — |
-| IG-011 | warn | Negated rooted pattern | — |
+| IG-011 | — | Retired: a leading `/` anchors a negation as it anchors any pattern | — |
 | IG-012 | warn | Redundant pair | — |
 | IG-013 | error | Negation unsupported | — |
 | IG-014 | error | Path traversal | — |

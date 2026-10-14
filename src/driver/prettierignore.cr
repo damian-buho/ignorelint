@@ -56,15 +56,13 @@ module Ignorelint
   #
   # Combines:
   #   1. `CommonGlob.check` — shared glob-validity rules
-  #   2. `GitignoreSemantics.check` — gitignore-specific rules (reused)
-  #   3. `PrettierignoreSemantics.check` — redundant built-in exclude check
-  #   4. `Conflicts.check` — cross-pattern conflict detection
+  #   2. `PrettierignoreSemantics.check` — redundant built-in exclude check
+  #   3. `Conflicts.check` — cross-pattern conflict detection
   struct PrettierignoreStyleLinter
     include FormatLinter
 
     def check_pattern(pat : Pattern) : Array(Issue)
       issues = Checks::CommonGlob.check(pat)
-      issues.concat(Checks::GitignoreSemantics.check(pat))
       issues.concat(Checks::PrettierignoreSemantics.check(pat))
       issues
     end

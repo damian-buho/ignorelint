@@ -374,13 +374,6 @@ describe Ignorelint::Linter do
 
   # -- .gitignore-specific rules ------------------------------------------
 
-  describe "gitignore: negated rooted pattern" do
-    it "reports !/ pattern" do
-      result = Ignorelint::Linter.lint(".gitignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring has no effect")).should be_true
-    end
-  end
-
   describe "gitignore: invalid **" do
     it "reports a**b" do
       result = Ignorelint::Linter.lint(".gitignore", "a**b\n")
@@ -545,8 +538,8 @@ describe Ignorelint::Linter do
 
   describe "npmignore: gitignore-style rules" do
     it "reports negated rooted pattern" do
-      result = Ignorelint::Linter.lint(".npmignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring has no effect")).should be_true
+      result = Ignorelint::Linter.lint(".npmignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "reports redundant ignore/negation pair" do
@@ -608,8 +601,8 @@ describe Ignorelint::Linter do
 
   describe "claudeignore: gitignore-style rules" do
     it "reports negated rooted pattern" do
-      result = Ignorelint::Linter.lint(".claudeignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring has no effect")).should be_true
+      result = Ignorelint::Linter.lint(".claudeignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "reports redundant ignore/negation pair" do
@@ -700,8 +693,8 @@ describe Ignorelint::Linter do
 
   describe "eslintignore:" do
     it "reports negated rooted pattern" do
-      result = Ignorelint::Linter.lint(".eslintignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring has no effect")).should be_true
+      result = Ignorelint::Linter.lint(".eslintignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "reports invalid **" do
@@ -733,8 +726,8 @@ describe Ignorelint::Linter do
 
   describe "prettierignore:" do
     it "reports negated rooted pattern" do
-      result = Ignorelint::Linter.lint(".prettierignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring has no effect")).should be_true
+      result = Ignorelint::Linter.lint(".prettierignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "reports invalid **" do
@@ -771,13 +764,13 @@ describe Ignorelint::Linter do
 
   describe "other gitignore-style formats" do
     it "applies gitignore rules to .stylelintignore" do
-      result = Ignorelint::Linter.lint(".stylelintignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".stylelintignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .yarnignore" do
-      result = Ignorelint::Linter.lint(".yarnignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".yarnignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies helmignore-specific rules to .helmignore (reports ** as undocumented)" do
@@ -791,13 +784,13 @@ describe Ignorelint::Linter do
     end
 
     it "applies gitignore rules to .gcloudignore" do
-      result = Ignorelint::Linter.lint(".gcloudignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".gcloudignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .vercelignore" do
-      result = Ignorelint::Linter.lint(".vercelignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".vercelignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies cfignore-specific rules (redundant built-in exclude)" do
@@ -806,63 +799,63 @@ describe Ignorelint::Linter do
     end
 
     it "applies gitignore rules to .cfignore for basic patterns" do
-      result = Ignorelint::Linter.lint(".cfignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".cfignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .cursorignore" do
-      result = Ignorelint::Linter.lint(".cursorignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".cursorignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .aiderignore" do
-      result = Ignorelint::Linter.lint(".aiderignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".aiderignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .aiexclude" do
-      result = Ignorelint::Linter.lint(".aiexclude", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".aiexclude", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .codeiumignore" do
-      result = Ignorelint::Linter.lint(".codeiumignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".codeiumignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .ignore" do
-      result = Ignorelint::Linter.lint(".ignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".ignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .rgignore" do
-      result = Ignorelint::Linter.lint(".rgignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".rgignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .fdignore" do
-      result = Ignorelint::Linter.lint(".fdignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".fdignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .eleventyignore" do
-      result = Ignorelint::Linter.lint(".eleventyignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".eleventyignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .tfignore" do
-      result = Ignorelint::Linter.lint(".tfignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".tfignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .ebignore" do
-      result = Ignorelint::Linter.lint(".ebignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".ebignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore rules to .openapi-generator-ignore" do
-      result = Ignorelint::Linter.lint(".openapi-generator-ignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".openapi-generator-ignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
   end
 
@@ -870,8 +863,8 @@ describe Ignorelint::Linter do
 
   describe "file type detection" do
     it "applies gitignore rules to .gitignore" do
-      result = Ignorelint::Linter.lint(".gitignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring")).should be_true
+      result = Ignorelint::Linter.lint(".gitignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies dockerignore rules to .dockerignore" do
@@ -890,13 +883,13 @@ describe Ignorelint::Linter do
     end
 
     it "applies gitignore-style rules to .npmignore" do
-      result = Ignorelint::Linter.lint(".npmignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring has no effect")).should be_true
+      result = Ignorelint::Linter.lint(".npmignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies gitignore-style rules to .claudeignore" do
-      result = Ignorelint::Linter.lint(".claudeignore", "!/keep\n")
-      result.issues.any?(&.message.includes?("anchoring has no effect")).should be_true
+      result = Ignorelint::Linter.lint(".claudeignore", "foo\n!foo\n")
+      result.issues.any?(&.message.includes?("Redundant pair")).should be_true
     end
 
     it "applies dockerignore-style rules to .containerignore" do
