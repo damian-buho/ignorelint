@@ -223,6 +223,7 @@ describe Ignorelint::Linter do
         File.write(File.join(dir, "nested", "a.txt"), "x\n")
         found = Ignorelint::Linter.lint(File.join(dir, ".dockerignore"), "*.txt\n**/*.txt\n").issues.select(&.code.dead_glob_rule?)
         found.map(&.line).should eq([1])
+        found.first.message.should contain("\"**/*.txt\" would match at any depth")
       end
     end
 

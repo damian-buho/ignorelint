@@ -280,7 +280,14 @@ module Ignorelint
     # True when an unanchored name the format matches at any depth sits below the root.
     private def exists_deeper?(pat : Pattern, target : String, glob : String) : Bool
       return false if glob == target || pat.body.matches?(/[*?\[\]{}\\]/)
+      glob_any?(glob, pat)
+    end
+
+    # True when the glob matches an entry, a directory when the pattern is directory-only.
+    private def glob_any?(glob : String, pat : Pattern) : Bool
       Dir.glob(glob).any? { |match| !pat.directory_only? || Dir.exists?(match) }
+    rescue File::BadPatternError
+      false
     end
 
     # IG-025: Walk each path segment for a case-only difference on disk.
@@ -341,7 +348,9 @@ module Ignorelint
       return unless matches.empty?
 
       label = pat.directory_only? ? "directory" : "file"
-      issues << Issue.new(pat.line, "Glob \"#{pat.body}\" matches no #{label}s (dead rule)", :info,
+      deep = File.join(base_dir, "**", pat.body)
+      hint = !pat.rooted? && deep != glob && glob_any?(deep, pat) ? "; \"**/#{pat.body}\" would match at any depth" : ""
+      issues << Issue.new(pat.line, "Glob \"#{pat.body}\" matches no #{label}s (dead rule)#{hint}", :info,
         :dead_glob_rule)
     end
 
