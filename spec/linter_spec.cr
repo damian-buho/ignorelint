@@ -207,6 +207,16 @@ describe Ignorelint::Linter do
       end
     end
 
+    it "finds an unanchored literal at any depth, but not in a dockerignore" do
+      with_repo([] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "nested", "data"))
+        gitignore = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "data\n/data\ndata.txt/\n").issues
+        gitignore.select(&.code.path_not_found?).map(&.line).should eq([2, 3])
+        dockerignore = Ignorelint::Linter.lint(File.join(dir, ".dockerignore"), "data\n").issues
+        dockerignore.count(&.code.path_not_found?).should eq(1)
+      end
+    end
+
     it "anchors every dockerignore glob to the context root" do
       with_repo([] of String) do |dir|
         Dir.mkdir_p(File.join(dir, "nested"))

@@ -132,7 +132,7 @@ module Ignorelint
         patterns.each do |pat|
           next if pat.blank? || pat.comment?
           next if pat.negated? # Negated patterns re-include, not ignore — skip dead-rule check
-          check_path_exists(pat, base_dir, issues)
+          check_path_exists(pat, base_dir, issues, format_linter)
           check_glob_matches(pat, base_dir, issues, format_linter)
         end
       end
@@ -253,13 +253,15 @@ module Ignorelint
     # not exist, the rule is likely stale.
     #
     # A missing target that exists under a different case also names that near match (IG-025).
-    private def check_path_exists(pat : Pattern, base_dir : String, issues : Array(Issue)) : Nil
+    private def check_path_exists(pat : Pattern, base_dir : String, issues : Array(Issue),
+                                  format_linter : FormatLinter) : Nil
       return unless pat.literal?
       return if pat.body.split('/').includes?("..")
 
       target = File.join(base_dir, pat.body)
       # A dangling symlink still occupies the path, so its rule is not dead.
       return if File.exists?(target, follow_symlinks: false) || Dir.exists?(target)
+      return if exists_deeper?(pat, target, format_linter.build_glob(pat, base_dir))
 
       kind = pat.directory_only? ? "Directory" : "Path"
       corrected = case_corrected_path(base_dir, pat.body)
@@ -273,6 +275,12 @@ module Ignorelint
 
       issues << Issue.new(pat.line, "#{kind} \"#{pat.body}\" does not exist", :info,
         :path_not_found)
+    end
+
+    # True when an unanchored name the format matches at any depth sits below the root.
+    private def exists_deeper?(pat : Pattern, target : String, glob : String) : Bool
+      return false if glob == target || pat.body.matches?(/[*?\[\]{}\\]/)
+      Dir.glob(glob).any? { |match| !pat.directory_only? || Dir.exists?(match) }
     end
 
     # IG-025: Walk each path segment for a case-only difference on disk.
