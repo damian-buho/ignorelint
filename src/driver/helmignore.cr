@@ -52,21 +52,6 @@ module Ignorelint
   struct HelmignoreStyleLinter
     include FormatLinter
 
-    # Build the glob for dead-rule detection.
-    #
-    # Helmignore has no documented `**` support — the `**/` prefix in the
-    # glob could produce false negatives if Helm's matcher does not support
-    # it. However, for dead-rule detection a false negative (missed dead rule)
-    # is less harmful than a false positive (flagging a valid rule), so we
-    # use `**/` for unrooted patterns to match as broadly as possible.
-    def build_glob(pat : Pattern, base_dir : String) : String
-      if pat.rooted?
-        File.join(base_dir, pat.body)
-      else
-        File.join(base_dir, "**", pat.body)
-      end
-    end
-
     def check_pattern(pat : Pattern) : Array(Issue)
       issues = Checks::CommonGlob.check(pat)
       issues.concat(Checks::HelmignoreSemantics.check(pat))

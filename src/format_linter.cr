@@ -62,10 +62,9 @@ module Ignorelint
     # Build a filesystem glob for dead-rule detection, accounting for
     # format-specific matching semantics (e.g., dockerignore strips slashes).
     #
-    # Rooted patterns get a direct path; unrooted patterns get a `**/` prefix
-    # because in gitignore semantics they match at any depth.
+    # A slash at the start or middle anchors the pattern; any other gets a `**/` prefix.
     def build_glob(pat : Pattern, base_dir : String) : String
-      if pat.rooted?
+      if pat.rooted? || pat.body.includes?('/')
         File.join(base_dir, pat.body)
       else
         File.join(base_dir, "**", pat.body)

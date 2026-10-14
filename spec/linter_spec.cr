@@ -196,6 +196,17 @@ describe Ignorelint::Linter do
       end
     end
 
+    it "anchors a glob with a slash in the middle to the ignore file's directory" do
+      with_repo([] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "nested", "src"))
+        File.write(File.join(dir, "nested", "src", "a.txt"), "x\n")
+        {".gitignore", ".helmignore"}.each do |name|
+          found = Ignorelint::Linter.lint(File.join(dir, name), "src/*.txt\n*.txt\n").issues.select(&.code.dead_glob_rule?)
+          found.map(&.line).should eq([1])
+        end
+      end
+    end
+
     it "keeps a rule whose path is a dangling symlink" do
       with_repo(["exists.txt"]) do |dir|
         File.symlink("nowhere-target", File.join(dir, "dangling"))
