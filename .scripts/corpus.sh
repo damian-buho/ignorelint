@@ -17,6 +17,7 @@ Environment:
   IGNORELINT_IMAGE       image that lints (default: ghcr.io/damian-buho/ignorelint:latest)
   IGNORELINT_BIN         host binary that lints instead of the image (e.g. ~/.local/bin/ignorelint)
   IGNORELINT_CORPUS_RUN  result set name, to compare builds side by side (default: default)
+  IGNORELINT_CORPUS_QUERY  GitHub search for the TOP list (default: stars:>1000)
   NUMPROCS               parallel scans (default: 4)
 EOF
 	exit 2
@@ -50,8 +51,8 @@ search() {
 select_repos() {
 	local top="$1" want="$2" page day cutoff picked
 	for ((page = 1; page <= (top + 99) / 100; page++)); do
-		log "top page=${page} of top=${top}"
-		search 'stars:>1000' stars "${page}"
+		log "top page=${page} of top=${top} query=${IGNORELINT_CORPUS_QUERY:-stars:>1000}"
+		search "${IGNORELINT_CORPUS_QUERY:-stars:>1000}" stars "${page}"
 		sleep 2
 	done | head --lines="${top}"
 	cutoff="$(date --date='1 year ago' +%F)"
