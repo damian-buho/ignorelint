@@ -210,6 +210,8 @@ module Ignorelint
     # warning is emitted pointing to the original line.
     private def check_duplicate(pat : Pattern, seen : Hash(String, Int32), issues : Array(Issue)) : Nil
       key = pat.raw.strip
+      # A line of the opposite polarity in between makes the repeat meaningful again.
+      seen.reject! { |prior, _| prior.starts_with?('!') != key.starts_with?('!') }
       if prev = seen[key]?
         issues << Issue.new(pat.line, "Duplicate of line #{prev}: \"#{pat.raw}\"", :warn,
           :duplicate_rule)

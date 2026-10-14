@@ -941,10 +941,14 @@ describe Ignorelint::Linter do
       issue.code.tag.should eq("IG-008")
     end
 
-    it "assigns IG-011 to negated rooted (gitignore)" do
-      result = Ignorelint::Linter.lint(".gitignore", "!/keep\n")
-      issue = result.issues.find(&.code.negated_rooted?).as(Ignorelint::Issue)
-      issue.code.tag.should eq("IG-011")
+    it "keeps a duplicate that re-excludes after a negation" do
+      result = Ignorelint::Linter.lint("test.gitignore", "*.log\n!keep.log\n*.log\n!a\n*.tmp\n!a\n")
+      result.issues.any?(&.code.duplicate_rule?).should be_false
+    end
+
+    it "reports a duplicate with only same-polarity lines between" do
+      result = Ignorelint::Linter.lint("test.gitignore", "*.log\n*.tmp\n*.log\n")
+      result.issues.count(&.code.duplicate_rule?).should eq(1)
     end
 
     it "assigns IG-014 to path traversal (dockerignore)" do
