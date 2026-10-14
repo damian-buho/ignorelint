@@ -15,6 +15,8 @@ Usage: corpus.sh select TOP RANDOM > repos.txt   pick TOP most-starred plus RAND
 Environment:
   IGNORELINT_CORPUS_DIR  data directory (default: ~/.cache/ignorelint-corpus)
   IGNORELINT_IMAGE       image that lints (default: ghcr.io/damian-buho/ignorelint:latest)
+  IGNORELINT_BIN         host binary that lints instead of the image (e.g. ~/.local/bin/ignorelint)
+  IGNORELINT_CORPUS_RUN  result set name, to compare builds side by side (default: default)
   NUMPROCS               parallel scans (default: 4)
 EOF
 	exit 2
@@ -22,6 +24,8 @@ EOF
 
 data="${IGNORELINT_CORPUS_DIR:-${HOME}/.cache/ignorelint-corpus}"
 image="${IGNORELINT_IMAGE:-ghcr.io/damian-buho/ignorelint:latest}"
+bin="${IGNORELINT_BIN:-}"
+results="${data}/runs/${IGNORELINT_CORPUS_RUN:-default}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 log() { printf '[corpus] %s\n' "$*" >&2; }
@@ -80,7 +84,19 @@ fetch() {
 	log "repo=${repo} paths=$(tr --complement --delete '\0' <"${clone}/.git/corpus-paths" | wc --bytes) ignores=$(tr --complement --delete '\0' <"${clone}/.git/corpus-ignores" | wc --bytes)"
 }
 
-# Lints one repository into results/<owner>__<repo>.json, cloning it first when missing.
+# Runs ignorelint on one clone, through the host binary when set, else the network-less image.
+lint() {
+	local clone="$1"
+	if [[ -n "${bin}" ]]; then
+		(cd "${clone}" && NO_COLOR=1 timeout 300 "${bin}" --recursive --no-fail --format json)
+	else
+		timeout 300 docker run --rm --network none --read-only --user "$(id -u):$(id -g)" \
+			--volume "${clone}:/app/ws:ro" --workdir /app/ws --env NO_COLOR=1 "${image}" \
+			ignorelint --recursive --no-fail --format json
+	fi
+}
+
+# Lints one repository into <run>/<owner>__<repo>.json, cloning it first when missing.
 scan_one() {
 	local repo="$1" slug clone status
 	slug="${repo/\//__}"
@@ -89,35 +105,37 @@ scan_one() {
 	flock --exclusive 9
 	[[ -d "${clone}" ]] || fetch "${repo}" "${clone}" || return 0
 	status=0
-	timeout 300 docker run --rm --network none --read-only --user "$(id -u):$(id -g)" \
-		--volume "${clone}:/app/ws:ro" --workdir /app/ws --env NO_COLOR=1 "${image}" \
-		ignorelint --recursive --no-fail --format json \
-		>"${data}/results/${slug}.json" 2>"${data}/results/${slug}.err" || status=$?
-	jq --null-input --arg repo "${repo}" --arg sha "$(git -C "${clone}" rev-parse HEAD)" --arg image "${image}" \
-		--argjson status "${status}" '{$repo, $sha, $image, $status}' >"${data}/results/${slug}.meta.json"
-	log "repo=${repo} status=${status} issues=$(jq '.total // "invalid"' "${data}/results/${slug}.json" 2>/dev/null || echo invalid)"
+	lint "${clone}" >"${results}/${slug}.json" 2>"${results}/${slug}.err" || status=$?
+	jq --null-input --arg repo "${repo}" --arg sha "$(git -C "${clone}" rev-parse HEAD)" --arg linter "${linter}" \
+		--argjson status "${status}" '{$repo, $sha, $linter, $status}' >"${results}/${slug}.meta.json"
+	log "repo=${repo} status=${status} issues=$(jq '.total // "invalid"' "${results}/${slug}.json" 2>/dev/null || echo invalid)"
 }
 
 scan() {
 	local list="$1"
-	mkdir --parents "${data}"/{clones,results,locks,staging}
-	log "list=${list} repos=$(wc --lines <"${list}") image=${image} data=${data} jobs=${NUMPROCS:-4}"
-	docker image inspect "${image}" >/dev/null 2>&1 || retry docker pull --quiet "${image}" >/dev/null
-	export -f scan_one fetch retry log
-	export data image names
+	mkdir --parents "${data}"/{clones,locks,staging} "${results}"
+	if [[ -n "${bin}" ]]; then
+		linter="${bin} $(NO_COLOR=1 "${bin}" --version)"
+	else
+		docker image inspect "${image}" >/dev/null 2>&1 || retry docker pull --quiet "${image}" >/dev/null
+		linter="$(docker image inspect --format '{{index .RepoDigests 0}}' "${image}" 2>/dev/null || echo "${image}")"
+	fi
+	log "list=${list} repos=$(wc --lines <"${list}") linter=${linter} results=${results} jobs=${NUMPROCS:-4}"
+	export -f scan_one fetch lint retry log
+	export data image bin results linter names
 	# shellcheck disable=SC2016 # $1 expands in the child shell
 	rg --invert-match '^\s*(#|$)' "${list}" | xargs --max-procs="${NUMPROCS:-4}" --max-args=1 bash -c 'scan_one "$1"' _
 }
 
 summary() {
-	log "results=$(fd --hidden --glob '*.meta.json' "${data}/results" | wc --lines) data=${data}"
+	log "results=$(fd --hidden --glob '*.meta.json' "${results}" | wc --lines) run=${results}"
 	printf 'severity\tcode\tfile\tfindings\trepos\n'
 	# shellcheck disable=SC2016 # $repo is jq syntax
-	fd --hidden --glob '*.json' --exclude '*.meta.json' "${data}/results" --exec jq --compact-output \
+	fd --hidden --glob '*.json' --exclude '*.meta.json' "${results}" --exec jq --compact-output \
 		--arg repo '{/.}' '.issues[]? | {severity, code, file: (.file | split("/") | last), $repo}' '{}' \
 		| jq --slurp --raw-output 'group_by([.severity, .code, .file]) | map([.[0].severity, .[0].code, .[0].file, length, (map(.repo) | unique | length)])
 			| sort_by(({error: 0, warning: 1, info: 2}[.[0]] // 3), -.[3]) | .[] | @tsv'
-	log "crashes=$(jq --slurp '[.[] | select(.status != 0)] | length' "${data}"/results/*.meta.json)"
+	log "crashes=$(jq --slurp '[.[] | select(.status != 0)] | length' "${results}"/*.meta.json)"
 }
 
 names="$(rg --only-matching --replace '$1' '^\s+"([^"]+)"\s+=> FileType::' "${root}/src/file_type.cr" | sed 's/[.]/\\./g' | paste --serial --delimiters='|')"
