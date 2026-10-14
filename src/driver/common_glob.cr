@@ -38,7 +38,7 @@ module Ignorelint
         # Valid: `a/**/b`, `**/a`, `a/**`
         # Invalid: `a**b`, `a**`, `**a`
         if pat.invalid_doublestar?
-          issues << Issue.new(pat.line, "Invalid ** usage in \"#{pat.body}\"", :error,
+          issues << Issue.new(pat.line, "Invalid ** usage in \"#{pat.body}\": a \"**\" that is not a whole path segment matches like \"*\"", :warn,
             :invalid_doublestar)
         end
 

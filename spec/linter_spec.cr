@@ -386,6 +386,7 @@ describe Ignorelint::Linter do
     it "reports a**b" do
       result = Ignorelint::Linter.lint(".gitignore", "a**b\n")
       result.issues.any?(&.message.includes?("Invalid **")).should be_true
+      result.issues.select(&.code.invalid_doublestar?).all?(&.severity.warn?).should be_true
     end
 
     it "allows foo/**/bar" do
@@ -448,6 +449,7 @@ describe Ignorelint::Linter do
     it "reports a**b" do
       result = Ignorelint::Linter.lint(".dockerignore", "a**b\n")
       result.issues.any?(&.message.includes?("Invalid **")).should be_true
+      result.issues.select(&.code.invalid_doublestar?).all?(&.severity.error?).should be_true
     end
 
     it "allows foo/**/bar" do
