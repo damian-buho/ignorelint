@@ -65,20 +65,6 @@ describe Ignorelint::Pattern do
     end
   end
 
-  describe "unescaped hash" do
-    it "detects # in middle of pattern" do
-      Ignorelint::Pattern.new("file#name", 1).has_unescaped_hash?.should be_true
-    end
-
-    it "allows escaped #" do
-      Ignorelint::Pattern.new("file\\#name", 1).has_unescaped_hash?.should be_false
-    end
-
-    it "allows # at start (comment)" do
-      Ignorelint::Pattern.new("#comment", 1).has_unescaped_hash?.should be_false
-    end
-  end
-
   describe "double negation" do
     it "detects !!" do
       Ignorelint::Pattern.new("!!foo", 1).double_negation?.should be_true

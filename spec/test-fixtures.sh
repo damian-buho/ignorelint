@@ -124,7 +124,6 @@ assert_issue_contains "$(staged_file "${fixtures_dir}/broken/duplicate-patterns.
 assert_issue_contains "$(staged_file "${fixtures_dir}/broken/double-negation.gitignore")" "double negation"
 assert_issue_contains "$(staged_file "${fixtures_dir}/broken/empty-pattern.gitignore")" "empty pattern"
 assert_issue_contains "$(staged_file "${fixtures_dir}/broken/malformed-brackets.gitignore")" "bracket"
-assert_issue_contains "$(staged_file "${fixtures_dir}/broken/unescaped-hash.gitignore")" "unescaped"
 assert_issue_contains "$(staged_file "${fixtures_dir}/broken/consecutive-asterisks.gitignore")" "consecutive"
 assert_issue_contains "$(staged_file "${fixtures_dir}/broken/space-in-pattern.gitignore")" "space in pattern"
 

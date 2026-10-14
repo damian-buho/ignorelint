@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 # Issues: path traversal, consecutive asterisks, duplicate patterns,
-#          double negation, unescaped #, malformed brackets,
+#          double negation, malformed brackets,
 #          redundant pair, rooted shallow
 ../secrets
 ***.log

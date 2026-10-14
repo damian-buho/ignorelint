@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Issues: trailing whitespace, duplicate, double negation, unescaped #,
+# Issues: trailing whitespace, duplicate, double negation,
 #          consecutive asterisks, space in pattern, negated rooted,
 #          rooted shallow, redundant pair, malformed brackets
 /build 

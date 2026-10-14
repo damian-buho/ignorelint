@@ -33,7 +33,8 @@ module Ignorelint
     # `content.lines` splits on newlines. `map_with_index` provides both the
     # raw string and its zero-based index; `idx + 1` converts to 1-based.
     def parse(content : String) : Array(Pattern)
-      content.lines.map_with_index do |raw, idx|
+      # A leading UTF-8 BOM is skipped, as git and Docker do.
+      content.lchop('﻿').lines.map_with_index do |raw, idx|
         Pattern.new(raw, idx + 1)
       end
     end

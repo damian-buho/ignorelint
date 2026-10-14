@@ -42,7 +42,6 @@ module Ignorelint
   # it never changes. `Set` gives O(1) lookups via `includes?`.
   FIXABLE_CODES = Set{
     Code::TrailingWhitespace,
-    Code::UnescapedHash,
     Code::DoubleNegation,
     Code::DuplicateRule,
     Code::DoubleSlash,
@@ -79,7 +78,6 @@ module Ignorelint
 
       case issue.code
       when .trailing_whitespace?       then fix_trailing_whitespace(pat)
-      when .unescaped_hash?            then fix_unescaped_hash(pat)
       when .double_negation?           then fix_double_negation(pat)
       when .duplicate_rule?            then fix_duplicate_rule(pat)
       when .double_slash?              then fix_double_slash(pat)
@@ -280,7 +278,6 @@ module Ignorelint
       pat = Pattern.new(text, line_number)
       case code
       when .trailing_whitespace? then fix_trailing_whitespace(pat).replacement
-      when .unescaped_hash?      then fix_unescaped_hash(pat).replacement
       when .double_negation?     then fix_double_negation(pat).replacement
       when .double_slash?        then fix_double_slash(pat).replacement
       when .leading_whitespace?  then fix_leading_whitespace(pat).replacement
@@ -300,37 +297,6 @@ module Ignorelint
     private def fix_trailing_whitespace(pat : Pattern) : Fix
       raw = pat.raw.rstrip
       Fix.new(:trailing_whitespace, pat.line, pat.raw, raw)
-    end
-
-    # Fix: escape unescaped `#` characters with a backslash.
-    #
-    # `"file#1.txt"` → `"file\#1.txt"`
-    #
-    # The algorithm walks the raw string character by character, tracking
-    # escape state and the comment zone. Once inside a comment (line starting
-    # with `#`), everything passes through unchanged.
-    private def fix_unescaped_hash(pat : Pattern) : Fix
-      fixed = String::Builder.new(pat.raw.bytesize)
-      escaped = false
-      in_comment = pat.raw.lstrip.starts_with?('#')
-
-      pat.raw.each_char do |char|
-        if in_comment
-          fixed << char
-        elsif escaped
-          fixed << char
-          escaped = false
-        elsif char == '\\'
-          fixed << char
-          escaped = true
-        elsif char == '#'
-          fixed << "\\#"
-        else
-          fixed << char
-        end
-      end
-
-      Fix.new(:unescaped_hash, pat.line, pat.raw, fixed.to_s)
     end
 
     # Fix: remove the double negation prefix `!!`.

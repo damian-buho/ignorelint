@@ -96,9 +96,6 @@ module Ignorelint
     end
 
     # True for comment lines (start with `#` after optional whitespace).
-    # Note: in gitignore, `#` is only a comment marker at the start of a line;
-    # a `#` mid-pattern is treated as a literal character (and flagged by
-    # `has_unescaped_hash?`).
     def comment? : Bool
       @raw.lstrip.starts_with?('#')
     end
@@ -129,32 +126,6 @@ module Ignorelint
       return false if blank?
       return false if comment?
       @body.includes?("//")
-    end
-
-    # Detect an unescaped `#` inside the pattern body.
-    #
-    # In gitignore, `#` starts a comment only at the beginning of a line. A
-    # `#` mid-pattern (e.g. `"file#1.txt"`) is technically a literal, but
-    # most users do not realize this and may intend it as a comment delimiter.
-    # The check skips lines that are already comments.
-    #
-    # The algorithm walks character-by-character tracking the escape state:
-    #   - `\\` toggles `in_escape`
-    #   - `#` while not escaped → unescaped hash found
-    #   - any other character resets `in_escape`
-    def has_unescaped_hash? : Bool
-      in_escape = false
-      @raw.each_char do |char|
-        case
-        when char == '\\' && !in_escape
-          in_escape = true
-        when char == '#' && !in_escape && !@raw.lstrip.starts_with?('#')
-          return true
-        else
-          in_escape = false
-        end
-      end
-      false
     end
 
     # Detect `!!` at the start of a line (after leading whitespace); its meaning depends on the format.

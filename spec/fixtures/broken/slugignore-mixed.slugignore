@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 # Issues: negation not supported, invalid **, consecutive asterisks,
-#          duplicate patterns, trailing whitespace, unescaped #
+#          duplicate patterns, trailing whitespace
 !keep
 **test
 ***.log

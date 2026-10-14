@@ -70,15 +70,15 @@ describe Ignorelint::Linter do
     end
   end
 
-  describe "universal: unescaped #" do
-    it "reports # in pattern body" do
-      result = Ignorelint::Linter.lint("test.gitignore", "file#name\n")
-      result.issues.any?(&.message.includes?("Unescaped")).should be_true
+  describe "universal: literal #" do
+    it "accepts # mid-pattern, escaped or not" do
+      result = Ignorelint::Linter.lint("test.gitignore", "\\#*#\n.~lock.*#\nlock.odg#\nfile\\#name\n")
+      result.issues.reject(&.severity.info?).should be_empty
     end
 
-    it "allows escaped \\#" do
-      result = Ignorelint::Linter.lint("test.gitignore", "file\\#name\n")
-      result.issues.any?(&.message.includes?("Unescaped")).should be_false
+    it "skips a leading UTF-8 BOM" do
+      result = Ignorelint::Linter.lint("test.gitignore", "\uFEFF####\n*.log\n*.log\n")
+      result.issues.map(&.code).should eq([Ignorelint::Code::DuplicateRule])
     end
   end
 

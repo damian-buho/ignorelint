@@ -196,7 +196,7 @@ module Ignorelint
         .option("file-path-in-report", value_mode: :required, description: "Record this path instead of the linted one in machine-readable reports")
         .option("format", value_mode: :required, description: "Output format (#{OutputFormat.valid_values}, default: human)")
         .option("recursive", "r", description: "Search subdirectories for *ignore files (skips hidden dirs, node_modules, symlinks)")
-        .option("fix", description: "Auto-fix deterministically fixable issues (IG-001,002,003,008,015,018,022,023,024)")
+        .option("fix", description: "Auto-fix deterministically fixable issues (IG-001,003,008,015,018,022,023,024)")
         .option("diff", description: "Preview auto-fix changes without writing (cannot combine with --fix)")
         .option("stdin", description: "Lint piped content instead of files (requires --file; a lone - path does the same)")
         .option("file", value_mode: :required, description: "Filename for --stdin input (drives format detection)")

@@ -14,7 +14,7 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | Code | Default severity | Meaning | Autofix |
 | --- | --- | --- | --- |
 | IG-001 | warn | Trailing whitespace | ✓ |
-| IG-002 | warn | Unescaped hash | ✓ |
+| IG-002 | — | Retired: `#` mid-pattern is literal in every format | — |
 | IG-003 | error | Double negation | ✓ (`.npmignore`) |
 | IG-004 | error | Empty pattern | — |
 | IG-005 | error | Consecutive asterisks | — |

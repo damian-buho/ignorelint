@@ -144,7 +144,7 @@ Options:
       --file-path-in-report=FILE-PATH-IN-REPORT  Record this path instead of the linted one in machine-readable reports
       --format=FORMAT                            Output format (human|tty|gnu|json|checkstyle|junit|gitlab_codeclimate|codacy|sonarqube|sarif, default: human)
   -r, --recursive                                Search subdirectories for *ignore files (skips hidden dirs, node_modules, symlinks)
-      --fix                                      Auto-fix deterministically fixable issues (IG-001,002,003,008,015,018,022,023,024)
+      --fix                                      Auto-fix deterministically fixable issues (IG-001,003,008,015,018,022,023,024)
       --diff                                     Preview auto-fix changes without writing (cannot combine with --fix)
       --stdin                                    Lint piped content instead of files (requires --file; a lone - path does the same)
       --file=FILE                                Filename for --stdin input (drives format detection)

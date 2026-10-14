@@ -24,8 +24,8 @@ describe Ignorelint::Fixer do
       Ignorelint::Fixer.fixable?(Ignorelint::Code::TrailingWhitespace).should be_true
     end
 
-    it "returns true for IG-002 (unescaped hash)" do
-      Ignorelint::Fixer.fixable?(Ignorelint::Code::UnescapedHash).should be_true
+    it "returns false for IG-002 (retired)" do
+      Ignorelint::Fixer.fixable?(Ignorelint::Code::UnescapedHash).should be_false
     end
 
     it "returns true for IG-003 (double negation)" do
@@ -76,15 +76,6 @@ describe Ignorelint::Fixer do
       fixes, sort = lint_and_collect("bar  \n")
       result = apply("bar  \n", fixes, sort)
       result.should eq("bar\n")
-    end
-  end
-
-  describe "IG-002: unescaped hash" do
-    it "escapes # in pattern body" do
-      fixes, _ = lint_and_collect("file#name\n")
-      fixes.size.should be >= 1
-      hash_fix = fixes.find(&.code.unescaped_hash?).as(Ignorelint::Fix)
-      hash_fix.replacement.should eq("file\\#name")
     end
   end
 

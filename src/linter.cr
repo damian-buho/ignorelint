@@ -165,11 +165,6 @@ module Ignorelint
           :trailing_whitespace)
       end
 
-      if pat.has_unescaped_hash?
-        issues << Issue.new(pat.line, "Unescaped # in \"#{pat.raw}\"", :warn,
-          :unescaped_hash)
-      end
-
       if pat.double_negation?
         issues << Issue.new(pat.line, double_negation_message(pat, path), :error, :double_negation)
       end
