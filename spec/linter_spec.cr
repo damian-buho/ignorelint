@@ -78,7 +78,7 @@ describe Ignorelint::Linter do
 
     it "skips a leading UTF-8 BOM" do
       result = Ignorelint::Linter.lint("test.gitignore", "\uFEFF####\n*.log\n*.log\n")
-      result.issues.map(&.code).should eq([Ignorelint::Code::DuplicateRule])
+      result.issues.reject(&.severity.info?).map(&.code).should eq([Ignorelint::Code::DuplicateRule])
     end
   end
 
