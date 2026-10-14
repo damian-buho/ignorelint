@@ -2,14 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-*.md
-.compose
-.env
-.forgejo
-.git
-.github
-.gitignore
-.makefile
-.secrets
-docs
-lefthook.yaml
+# Issues: path traversal ../ (build context is already the root)
+../secrets
+../../etc/passwd
+../../../root/.ssh

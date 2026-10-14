@@ -2,8 +2,8 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Issues: space in pattern (most ignore formats cannot escape spaces)
-my files/
-node modules/
-old code/
-some folder name/
+# Issues: a space before # (only a line-leading # starts a comment, so the whole line is one pattern)
+my files # notes
+node modules #comment
+old code # trailing note
+some folder name # keep
