@@ -10,9 +10,10 @@ set -euo pipefail
 usage() {
 	cat >&2 <<'EOF'
 Usage: corpus.sh select TOP RANDOM > repos.txt   pick TOP most-starred plus RANDOM active repositories
-       corpus.sh files COUNT NAME… > repos.txt          pick up to COUNT non-fork repositories per ignore file NAME (code search)
+       corpus.sh files COUNT NAME… > repos.txt   pick up to COUNT non-fork repositories per ignore file NAME (code search)
        corpus.sh scan repos.txt                  clone what is missing, lint every listed repository
        corpus.sh summary                         findings per rule and file name, as TSV
+       corpus.sh findings repos.txt [SEVERITY…]  every finding of the listed repositories, as TSV (default: error warning)
 Environment:
   IGNORELINT_CORPUS_DIR  data directory (default: ~/.cache/ignorelint-corpus)
   IGNORELINT_IMAGE       image that lints (default: ghcr.io/damian-buho/ignorelint:latest)
@@ -154,6 +155,18 @@ summary() {
 	log "crashes=$(jq --slurp '[.[] | select(.status != 0)] | length' "${results}"/*.meta.json)"
 }
 
+findings() {
+	local list="$1" repo
+	shift
+	log "list=${list} severities=${*:-error warning} run=${results}"
+	rg --invert-match '^\s*(#|$)' "${list}" | while read -r repo; do
+		[[ -f "${results}/${repo/\//__}.json" ]] || { log "repo=${repo} has no result"; continue; }
+		jq --raw-output --arg repo "${repo}" --arg severities "${*:-error warning}" \
+			'.issues[]? | select(.severity | IN($severities | split(" ")[])) | [$repo, .file, .line, .code, .message] | @tsv' \
+			"${results}/${repo/\//__}.json"
+	done
+}
+
 names="$(rg --only-matching --replace '$1' '^\s+"([^"]+)"\s+=> FileType::' "${root}/src/file_type.cr" | sed 's/[.]/\\./g' | paste --serial --delimiters='|')"
 
 case "${1:-}" in
@@ -161,5 +174,6 @@ select) [[ $# -eq 3 ]] || usage; select_repos "$2" "$3" ;;
 files) [[ $# -ge 3 ]] || usage; select_files "${@:2}" ;;
 scan) [[ $# -eq 2 ]] || usage; scan "$2" ;;
 summary) summary ;;
+findings) [[ $# -ge 2 ]] || usage; findings "${@:2}" ;;
 *) usage ;;
 esac
