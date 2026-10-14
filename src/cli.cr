@@ -67,7 +67,7 @@ module Ignorelint
     # Piped input read by `--stdin`.
     @input : IO
 
-    # Whether human output is colored, as decided by Athena (`--ansi`, `NO_COLOR`, TTY).
+    # Whether human output is colored, as decided by `color_support?` plus Athena's `--ansi`/`--no-ansi`.
     @color : Bool = false
 
     # Explicitly provided file paths (from positional CLI arguments).
@@ -173,10 +173,17 @@ module Ignorelint
       app.add(self)
       app.default_command(name, true)
       app.auto_exit = false
-      output = ACON::Output::ConsoleOutput.new(decorated: ACON::Output::IO.new(@io).decorated?)
+      output = ACON::Output::ConsoleOutput.new(decorated: self.class.color_support?(@io))
       output.io = @io
       output.error_output = ACON::Output::IO.new(@err, decorated: output.decorated?)
       app.run(ACON::Input::ARGV.new(args), output).value
+    end
+
+    # Colour decision for `io`: `FORCE_COLOR` forces, `NO_COLOR`/`TERM=dumb` cancels, else TTY only — Athena's heuristic ignores the stream and would decorate a pipe.
+    def self.color_support?(io : IO) : Bool
+      return false if ENV["NO_COLOR"]?.presence
+      return true if ENV["FORCE_COLOR"]?.presence
+      io.tty? && ENV["TERM"]? != "dumb"
     end
 
     # Athena crashes on a non-integer SHELL_VERBOSITY, so warn and unset it instead.
@@ -196,7 +203,7 @@ module Ignorelint
         .option("file-path-in-report", value_mode: :required, description: "Record this path instead of the linted one in machine-readable reports")
         .option("format", value_mode: :required, description: "Output format (#{OutputFormat.valid_values}, default: human)")
         .option("recursive", "r", description: "Search subdirectories for *ignore files (skips hidden dirs, node_modules, symlinks)")
-        .option("fix", description: "Auto-fix deterministically fixable issues (IG-001,003,008,015,018,022,023,024)")
+        .option("fix", description: "Auto-fix deterministically fixable issues (#{Fixer.fixable_tags})")
         .option("diff", description: "Preview auto-fix changes without writing (cannot combine with --fix)")
         .option("stdin", description: "Lint piped content instead of files (requires --file; a lone - path does the same)")
         .option("file", value_mode: :required, description: "Filename for --stdin input (drives format detection)")

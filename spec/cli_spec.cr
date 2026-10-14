@@ -1020,5 +1020,31 @@ describe Ignorelint::CLI do
         end
       end
     end
+
+    it "leaves the report plain on a pipe when no flag or variable asks for colour" do
+      with_color_env do
+        with_ignore_file("!!foo\n") do |path|
+          report = run_cli([path] of String)[1]
+          report.should_not contain("\e[")
+          report.should contain("error:")
+        end
+      end
+    end
+  end
+
+  describe "--version" do
+    it "stays plain when stdout is a pipe" do
+      with_color_env do
+        _, out, _ = run_cli(["--version"] of String)
+        out.should_not contain("\e[")
+        out.should contain("ignorelint ")
+      end
+    end
+
+    it "colors with --ansi even on a pipe" do
+      with_color_env do
+        run_cli(["--version", "--ansi"] of String)[1].should contain("\e[")
+      end
+    end
   end
 end
