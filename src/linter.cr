@@ -175,8 +175,12 @@ module Ignorelint
       end
 
       if pat.consecutive_asterisks?
-        issues << Issue.new(pat.line, "Consecutive *** in \"#{pat.body}\"", :error,
-          :consecutive_star)
+        # Git's wildmatch collapses a run of stars; other matchers do not.
+        issues << if Ignorelint.file_type_from_path(path).gitignore?
+          Issue.new(pat.line, "Consecutive *** in \"#{pat.body}\": git reads a run of stars as \"**\" between slashes and as \"*\" inside a name", :warn, :consecutive_star)
+        else
+          Issue.new(pat.line, "Consecutive *** in \"#{pat.body}\"", :error, :consecutive_star)
+        end
       end
 
       if pat.malformed_brackets?

@@ -413,6 +413,18 @@ describe Ignorelint::Linter do
 
   # -- .gitignore-specific rules ------------------------------------------
 
+  describe "gitignore: consecutive stars" do
+    it "warns, since git collapses a run of stars" do
+      result = Ignorelint::Linter.lint(".gitignore", "****/node_modules\n")
+      result.issues.select(&.code.consecutive_star?).map(&.severity).should eq [Ignorelint::Severity::Warn]
+    end
+
+    it "stays an error in .eslintignore, where node-ignore reads ****/ as */" do
+      result = Ignorelint::Linter.lint(".eslintignore", "****/node_modules\n")
+      result.issues.select(&.code.consecutive_star?).map(&.severity).should eq [Ignorelint::Severity::Error]
+    end
+  end
+
   describe "gitignore: invalid **" do
     it "reports a**b" do
       result = Ignorelint::Linter.lint(".gitignore", "a**b\n")

@@ -17,11 +17,11 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | IG-002 | — | Retired: `#` mid-pattern is literal in every format | — |
 | IG-003 | error | Double negation | ✓ (`.npmignore`) |
 | IG-004 | error | Empty pattern | — |
-| IG-005 | error | Consecutive asterisks | — |
+| IG-005 | error (warn in `.gitignore`, where git collapses a run of stars) | Consecutive asterisks | — |
 | IG-006 | error | Malformed brackets | — |
 | IG-007 | warn | Space in pattern | — |
 | IG-008 | warn | Duplicate rule | ✓ |
-| IG-009 | warn (error in `.dockerignore`) | Invalid doublestar: a `**` that is not a whole path segment | — |
+| IG-009 | warn (error in `.dockerignore`, unless the `**` ends the rule) | Invalid doublestar: a `**` that is not a whole path segment | — |
 | IG-010 | info | Rooted shallow pattern | — |
 | IG-011 | — | Retired: a leading `/` anchors a negation as it anchors any pattern | — |
 | IG-012 | warn | Redundant pair | — |
