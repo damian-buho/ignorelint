@@ -15,7 +15,7 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | --- | --- | --- | --- |
 | IG-001 | warn | Trailing whitespace | ✓ |
 | IG-002 | warn | Unescaped hash | ✓ |
-| IG-003 | error | Double negation | ✓ |
+| IG-003 | error | Double negation | ✓ (`.npmignore`) |
 | IG-004 | error | Empty pattern | — |
 | IG-005 | error | Consecutive asterisks | — |
 | IG-006 | error | Malformed brackets | — |
@@ -43,7 +43,7 @@ Severities are `error`, `warn`, and `info`; every code is emitted in all output 
 
 ## Autofix
 
-`--fix` corrects the nine codes marked above. Same-line fixes compose in one pass, line endings (LF or CRLF) are preserved, and the file is written atomically via temp file plus rename, keeping its permissions. Sorting is skipped while any pattern is negated, since negation order decides the match. Symlinks are linted but never rewritten. Fixed findings are relabelled `fixed` and no longer affect the exit code. `--diff` previews the same changes without writing: it lists each replacement as `line N: "old" → "new"`, each deletion as `line N: delete "old"`, and any reordering as `would reorder N lines`, then reports the unfixed findings with the usual exit code. It cannot be combined with `--fix`.
+`--fix` corrects the nine codes marked above. Same-line fixes compose in one pass, line endings (LF or CRLF) are preserved, and the file is written atomically via temp file plus rename, keeping its permissions. Sorting is skipped while any pattern is negated, since negation order decides the match. Double negation is rewritten only in `.npmignore`, where npm’s matcher cancels each `!!` pair; every other format negates once and reads `!!x` as re-including a file named `!x`, so the finding names that file instead. Symlinks are linted but never rewritten. Fixed findings are relabelled `fixed` and no longer affect the exit code. `--diff` previews the same changes without writing: it lists each replacement as `line N: "old" → "new"`, each deletion as `line N: delete "old"`, and any reordering as `would reorder N lines`, then reports the unfixed findings with the usual exit code. It cannot be combined with `--fix`.
 
 ## Suppressions
 

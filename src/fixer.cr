@@ -98,12 +98,14 @@ module Ignorelint
     # They must be applied in the right order (individual first, then sort)
     # to avoid index-shifting bugs.
     def collect_fixes(issues : Array(Issue), patterns : Array(Pattern),
-                      content_lines : Array(String)) : {Array(Fix), SortFix?}
+                      content_lines : Array(String), negation_toggles : Bool = false) : {Array(Fix), SortFix?}
       fixes = [] of Fix
       sort_fix = nil
 
       issues.each do |issue|
         next unless fixable?(issue.code)
+        # Stripping `!!` preserves meaning only where each `!` flips negation.
+        next if issue.code.double_negation? && !negation_toggles
 
         # Sorting is a bulk operation — don't create individual fixes for each
         # unsorted rule. Instead, build one SortFix that reorders everything.

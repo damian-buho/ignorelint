@@ -56,8 +56,12 @@ module Ignorelint
     # All patterns parsed from the file (including blanks and comments).
     getter patterns : Array(Pattern)
 
+    # Path of the linted file; selects format-specific fixes.
+    getter path : String
+
     def initialize(@issues : Array(Issue) = [] of Issue,
-                   @patterns : Array(Pattern) = [] of Pattern)
+                   @patterns : Array(Pattern) = [] of Pattern,
+                   @path : String = "")
     end
 
     # True when no issues were found (the file is clean).
@@ -71,7 +75,7 @@ module Ignorelint
     # to the fixer without the CLI needing to pass `issues` and `patterns`
     # separately.
     def collect_fixes(content_lines : Array(String)) : {Array(Fix), Fixer::SortFix?}
-      Fixer.collect_fixes(@issues, @patterns, content_lines)
+      Fixer.collect_fixes(@issues, @patterns, content_lines, Linter.negation_toggles?(@path))
     end
   end
 
@@ -135,7 +139,7 @@ module Ignorelint
 
       # Sort issues by line number for deterministic, editor-friendly output
       issues = apply_suppressions(patterns, issues, honor_pragmas)
-      LintResult.new(issues: issues.sort_by(&.line), patterns: patterns)
+      LintResult.new(issues: issues.sort_by(&.line), patterns: patterns, path: path)
     end
 
     # -- Universal checks (all ignore formats) ----------------------------
@@ -149,13 +153,13 @@ module Ignorelint
     private def check_universal(pat : Pattern, path : String) : Array(Issue)
       issues = [] of Issue
 
-      check_structural(pat, issues)
+      check_structural(pat, path, issues)
       check_whitespace_and_format(pat, path, issues)
 
       issues
     end
 
-    private def check_structural(pat : Pattern, issues : Array(Issue)) : Nil
+    private def check_structural(pat : Pattern, path : String, issues : Array(Issue)) : Nil
       if pat.has_trailing_whitespace?
         issues << Issue.new(pat.line, "Trailing whitespace in \"#{pat.raw}\"", :warn,
           :trailing_whitespace)
@@ -167,8 +171,7 @@ module Ignorelint
       end
 
       if pat.double_negation?
-        issues << Issue.new(pat.line, "Double negation \"#{pat.raw}\" cancels out", :error,
-          :double_negation)
+        issues << Issue.new(pat.line, double_negation_message(pat, path), :error, :double_negation)
       end
 
       if pat.empty_pattern?
@@ -389,6 +392,18 @@ module Ignorelint
     end
 
     # -- Helpers -----------------------------------------------------------
+
+    # True for formats whose matcher (minimatch) flips negation on every leading `!`.
+    def negation_toggles?(path : String) : Bool
+      Ignorelint.file_type_from_path(path).npmignore?
+    end
+
+    # Names what `!!` really does: cancels out under minimatch, re-includes a literal `!` name elsewhere.
+    private def double_negation_message(pat : Pattern, path : String) : String
+      return "Double negation \"#{pat.raw}\" cancels out" if negation_toggles?(path)
+      literal = pat.raw.strip.lchop('!')
+      "Double negation \"#{pat.raw}\" re-includes a file literally named \"#{literal}\"; write \"!\\#{literal}\" if that is intended"
+    end
 
     # Check whether the given path is a dockerignore file.
     #

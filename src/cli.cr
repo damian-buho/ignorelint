@@ -434,14 +434,14 @@ module Ignorelint
           issue
         end
       end
-      LintResult.new(issues: issues, patterns: result.patterns)
+      LintResult.new(issues: issues, patterns: result.patterns, path: result.path)
     end
 
     # Drops disabled-rule issues; patterns are kept for downstream fixing.
     private def without_disabled(result : LintResult) : LintResult
       return result if @disabled.empty?
       kept = result.issues.reject { |issue| @disabled.includes?(issue.code.tag) }
-      LintResult.new(issues: kept, patterns: result.patterns)
+      LintResult.new(issues: kept, patterns: result.patterns, path: result.path)
     end
 
     # Copies the options Athena parsed into the CLI state; `_set` marks values env and file must not override.
@@ -678,7 +678,7 @@ module Ignorelint
           issue
         end
       end
-      LintResult.new(issues: issues, patterns: result.patterns)
+      LintResult.new(issues: issues, patterns: result.patterns, path: result.path)
     end
 
     # Determine whether the lint result should cause a non-zero exit.

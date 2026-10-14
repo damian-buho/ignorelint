@@ -89,11 +89,16 @@ describe Ignorelint::Fixer do
   end
 
   describe "IG-003: double negation" do
-    it "removes leading !!" do
-      fixes, _ = lint_and_collect("!!foo\n")
+    it "removes leading !! where minimatch toggles negation" do
+      fixes, _ = lint_and_collect("!!foo\n", ".npmignore")
       fixes.size.should be >= 1
       dn_fix = fixes.find(&.code.double_negation?).as(Ignorelint::Fix)
       dn_fix.replacement.should eq("foo")
+    end
+
+    it "keeps !! where only the first ! negates" do
+      fixes, _ = lint_and_collect("!!foo\n")
+      fixes.none?(&.code.double_negation?).should be_true
     end
   end
 
@@ -255,7 +260,7 @@ describe Ignorelint::Fixer do
 
     it "strips repeated double negations fully" do
       content = "!!!!x\n"
-      fixes, sort = lint_and_collect(content)
+      fixes, sort = lint_and_collect(content, ".npmignore")
       result = apply(content, fixes, sort)
       result.should eq("x\n")
     end

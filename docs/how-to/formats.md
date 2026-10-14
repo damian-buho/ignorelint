@@ -57,7 +57,7 @@ Editor and CI log grepping — one record per line, `file:line` first:
 
 ```console
 $ ignorelint --format=gnu | grep ': error:'
-.gitignore:4: error: IG-003 Double negation "!!keep.log" cancels out
+.gitignore:4: error: IG-003 Double negation "!!keep.log" re-includes a file literally named "!keep.log"; write "!\!keep.log" if that is intended
 ```
 
 SonarQube — import the generic issue format, naming the report in your scanner configuration:

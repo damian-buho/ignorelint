@@ -13,7 +13,7 @@ info:  .gitignore:1 [IG-020] Directory "node_modules" does not exist
 info:  .gitignore:2 [IG-021] Glob "*.log" matches no files (dead rule)
 warn:  .gitignore:3 [IG-008] Duplicate of line 1: "node_modules/"
 info:  .gitignore:3 [IG-020] Directory "node_modules" does not exist
-info:  .gitignore:4 [IG-003] Double negation "!!keep.log" cancels out
+info:  .gitignore:4 [IG-003] Double negation "!!keep.log" re-includes a file literally named "!keep.log"; write "!\!keep.log" if that is intended
 $ echo $?
 0
 $ ignorelint --info=IG-003 --fail-on=warn > /dev/null; echo $?

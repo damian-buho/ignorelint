@@ -35,9 +35,14 @@ describe Ignorelint::Linter do
   end
 
   describe "universal: double negation" do
-    it "reports !!" do
+    it "reports !! in gitignore as a literal re-include" do
       result = Ignorelint::Linter.lint("test.gitignore", "!!foo\n")
-      result.issues.any?(&.message.includes?("Double negation")).should be_true
+      result.issues.any?(&.message.includes?("re-includes a file literally named \"!foo\"")).should be_true
+    end
+
+    it "reports !! in npmignore as cancelling out" do
+      result = Ignorelint::Linter.lint(".npmignore", "!!foo\n")
+      result.issues.any?(&.message.includes?("cancels out")).should be_true
     end
   end
 

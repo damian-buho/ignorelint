@@ -157,8 +157,7 @@ module Ignorelint
       false
     end
 
-    # Detect `!!` at the start of a line (after leading whitespace).
-    # Double negation cancels out — `"!!foo"` is equivalent to `"foo"`.
+    # Detect `!!` at the start of a line (after leading whitespace); its meaning depends on the format.
     def double_negation? : Bool
       @raw.lstrip.starts_with?("!!")
     end

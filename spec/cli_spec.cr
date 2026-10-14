@@ -6,11 +6,11 @@ require "spec"
 require "file_utils"
 require "../src/cli"
 
-private def with_ignore_file(content : String, & : String -> T) : T forall T
+private def with_ignore_file(content : String, name : String = ".gitignore", & : String -> T) : T forall T
   dir = File.join("/tmp", "ignorelint-cli-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
   Dir.mkdir_p(dir)
   begin
-    path = File.join(dir, ".gitignore")
+    path = File.join(dir, name)
     File.write(path, content)
     yield path
   ensure
@@ -232,12 +232,20 @@ describe Ignorelint::CLI do
 
   describe "--diff preview" do
     it "lists replacements, writes nothing, exits per unfixed issues" do
-      with_ignore_file("!!foo\n") do |path|
+      with_ignore_file("!!foo\n", ".npmignore") do |path|
         code, out, _ = run_cli(["--diff", path] of String)
         code.should eq(1)
         out.should contain("would fix #{path}:")
         out.should contain("line 1: \"!!foo\" → \"foo\"")
         File.read(path).should eq("!!foo\n")
+      end
+    end
+
+    it "proposes no rewrite for !! where git reads it as a literal" do
+      with_ignore_file("!!foo\n") do |path|
+        code, out, _ = run_cli(["--diff", path] of String)
+        code.should eq(1)
+        out.should_not contain("would fix")
       end
     end
 
@@ -299,10 +307,16 @@ describe Ignorelint::CLI do
     end
 
     it "prints fixed content to stdout with the report on stderr" do
-      code, out, err = run_cli(["--stdin", "--file=.gitignore", "--fix"] of String, "!!foo\n")
+      code, out, err = run_cli(["--stdin", "--file=.npmignore", "--fix"] of String, "!!foo\n")
       code.should eq(0)
       out.should eq("foo\n")
       err.should contain("fixed:")
+    end
+
+    it "leaves a gitignore !! untouched with --fix" do
+      code, out, _ = run_cli(["--stdin", "--file=.gitignore", "--fix"] of String, "!!foo\n")
+      code.should eq(1)
+      out.should eq("!!foo\n")
     end
 
     it "passes clean content through stdout with --fix" do
