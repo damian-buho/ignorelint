@@ -35,7 +35,7 @@ También hereda las características de B19 / Ubuntu; consulta [Características
 
 ## Qué entrega este proyecto
 
-- **Acción de CI** `damian-buho/ignorelint@2.1.0`
+- **Acción de CI** `damian-buho/ignorelint@2.2.0`
 - **Ejecutable** `ignorelint` — comando `ignorelint`
 - **Imagen de contenedor** `ghcr.io/damian-buho/ignorelint:latest`
 - **Imagen de contenedor** `damianbuho/ignorelint:latest`
@@ -95,7 +95,7 @@ Publicado para: `linux/amd64`, `linux/arm64`
 Ejecútalo como un paso de un flujo de trabajo de GitHub Actions:
 
 ```yaml
-- uses: damian-buho/ignorelint@2.1.0
+- uses: damian-buho/ignorelint@2.2.0
 ```
 
 La acción acepta estas entradas:
