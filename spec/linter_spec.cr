@@ -260,6 +260,14 @@ describe Ignorelint::Linter do
         found.first.message.should contain("build")
       end
     end
+
+    it "keeps IG-020 when a directory-only pattern differs in case from a file" do
+      with_repo(["BUILD"]) do |dir|
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "build/\n")
+        result.issues.select(&.code.case_mismatch?).should be_empty
+        result.issues.count(&.code.path_not_found?).should eq(1)
+      end
+    end
   end
 
   describe "suppressions: disable-next-line" do

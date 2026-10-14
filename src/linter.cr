@@ -263,7 +263,10 @@ module Ignorelint
       return if File.exists?(target, follow_symlinks: false) || Dir.exists?(target)
 
       kind = pat.directory_only? ? "Directory" : "Path"
-      if corrected = case_corrected_path(base_dir, pat.body)
+      corrected = case_corrected_path(base_dir, pat.body)
+      # A directory-only pattern cannot have meant a file (`build/` vs Bazel `BUILD`).
+      corrected = nil if corrected && pat.directory_only? && !Dir.exists?(File.join(base_dir, corrected))
+      if corrected
         issues << Issue.new(pat.line, "#{kind} \"#{pat.body}\" differs in case from \"#{corrected}\" on disk", :warn,
           :case_mismatch)
         return
