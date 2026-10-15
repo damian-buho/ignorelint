@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: patterns npm already excludes from every package (redundant)
+.git
+.DS_Store
+node_modules
+*.swp

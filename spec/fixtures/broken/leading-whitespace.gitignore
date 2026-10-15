@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+# Issues: a leading space or tab is part of the pattern, not trimmed
+  dist
+	node_modules
+  *.log
