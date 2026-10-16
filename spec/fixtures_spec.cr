@@ -35,7 +35,7 @@ end
 
 # Every fixture file of one corpus, sorted, minus any REUSE sidecar.
 private def fixture_names(corpus : String) : Array(String)
-  Dir.children(File.join(FIXTURES_DIR, corpus)).sort.reject(&.ends_with?(".license"))
+  Dir.children(File.join(FIXTURES_DIR, corpus)).sort.reject(&.ends_with?(".license")).select { |name| File.file?(File.join(FIXTURES_DIR, corpus, name)) }
 end
 
 private def describe_issue(issue : Ignorelint::Issue) : String
