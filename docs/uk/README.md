@@ -90,6 +90,8 @@ chmod +x ~/.local/bin/ignorelint
 
 Опубліковано для: `linux/amd64`, `linux/arm64`
 
+Щоб видалити, зітріть цей єдиний файл: `rm ~/.local/bin/ignorelint`.
+
 ## Використання
 
 Запускайте його як крок робочого процесу GitHub Actions:

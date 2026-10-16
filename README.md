@@ -88,6 +88,8 @@ chmod +x ~/.local/bin/ignorelint
 
 Published for: `linux/amd64`, `linux/arm64`
 
+To uninstall, delete that one file: `rm ~/.local/bin/ignorelint`.
+
 ## Usage
 
 Run it as a step in a GitHub Actions workflow:
