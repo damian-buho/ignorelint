@@ -67,6 +67,7 @@ module Ignorelint
     Code::LeadingWhitespace       => "IG-024",
     Code::CaseMismatch            => "IG-025",
     Code::SuppressionDirective    => "IG-026",
+    Code::Hint                    => "IG-027",
   }
 
   # Every known diagnostic tag in upper case, for override validation.
@@ -99,6 +100,7 @@ module Ignorelint
     Code::LeadingWhitespace       => "Leading whitespace",
     Code::CaseMismatch            => "Case mismatch",
     Code::SuppressionDirective    => "Suppression directive",
+    Code::Hint                    => "Hint",
   }
 
   enum Code
@@ -128,6 +130,7 @@ module Ignorelint
     LeadingWhitespace
     CaseMismatch
     SuppressionDirective
+    Hint
 
     def tag : String
       CODE_TAG_MAP[self]? || "IG-???"

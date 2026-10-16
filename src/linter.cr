@@ -39,6 +39,7 @@ require "./fixer"
 require "./issue"
 require "./format_linter"
 require "./parser"
+require "yaml"
 
 module Ignorelint
   # The result of linting one file.
@@ -82,6 +83,9 @@ module Ignorelint
   # The main linting module. Stateless — all data flows through parameters.
   module Linter
     extend self
+
+    # Patterns loaded from the knowledge base at compile time.
+    HINT_PATTERNS = YAML.parse({{ read_file("knowledge/patterns.yaml") }})["patterns"].as_a.map(&.as_s)
 
     # Lint a single ignore file and return all found issues.
     #
@@ -135,6 +139,7 @@ module Ignorelint
           check_path_exists(pat, base_dir, issues, format_linter)
           check_glob_matches(pat, base_dir, issues, format_linter)
         end
+        check_hints(path, patterns, base_dir, issues)
       end
 
       # Sort issues by line number for deterministic, editor-friendly output
@@ -356,6 +361,98 @@ module Ignorelint
       hint = !pat.rooted? && deep != glob && glob_any?(deep, pat) ? "; \"**/#{pat.body}\" would match at any depth" : ""
       issues << Issue.new(pat.line, "Glob \"#{pat.body}\" matches no #{label}s (dead rule)#{hint}", :info,
         :dead_glob_rule)
+    end
+
+    # Hint: known paths that clutter context/publish but are not ignored.
+    private def check_hints(path : String, patterns : Array(Pattern), base_dir : String,
+                            issues : Array(Issue)) : Nil
+      basename = File.basename(path)
+      candidates = hint_candidates(basename)
+      return if candidates.empty?
+
+      tracked = git_tracked_files(base_dir)
+      candidates.each do |name|
+        next unless candidate_exists?(base_dir, name)
+        next if git_skips_candidate?(base_dir, name, tracked)
+        next if ignored_by_patterns?(patterns, name)
+        issues << Issue.new(1, "Hint: \"#{name}\" exists but is not ignored", :info, :hint)
+      end
+    end
+
+    # True when at least one file/directory matching `name` exists on disk.
+    private def candidate_exists?(base_dir : String, name : String) : Bool
+      if name.includes?('*') || name.includes?('?')
+        !Dir.glob(File.join(base_dir, "**", name)).empty?
+      else
+        target = File.join(base_dir, name)
+        File.exists?(target, follow_symlinks: false) || Dir.exists?(target)
+      end
+    end
+
+    # Known clutter paths, seeded from the project knowledge base (YAML).
+    private def hint_candidates(basename : String) : Array(String)
+      HINT_PATTERNS
+    end
+
+    # Run a git subcommand safely; returns {success, stdout}.
+    private def run_git(base_dir : String, args : Array(String)) : {Bool, String}
+      exe = Process.find_executable("git")
+      return {false, ""} if exe.nil?
+      begin
+        output = IO::Memory.new
+        err = IO::Memory.new
+        status = Process.run(exe, ["-C", base_dir] + args, output: output, error: err)
+        {status.success?, output.to_s}
+      rescue
+        {false, ""}
+      end
+    end
+
+    # Files tracked by git in `base_dir` (paths relative to base_dir).
+    # Returns an empty array when base_dir is not inside a git work tree.
+    private def git_tracked_files(base_dir : String) : Array(String)
+      return [] of String unless Dir.exists?(base_dir)
+      ok, _ = run_git(base_dir, ["rev-parse", "--is-inside-work-tree"])
+      return [] of String unless ok
+      ok2, listing = run_git(base_dir, ["ls-files", "-z", "--", "."])
+      return [] of String unless ok2
+      listing.split('\u0000').reject(&.empty?)
+    end
+
+    # True when a git-tracked or git-ignored candidate should not be hinted.
+    private def git_skips_candidate?(base_dir : String, name : String, tracked : Array(String)) : Bool
+      if name.includes?('*') || name.includes?('?')
+        return true if tracked.any? { |tracked_file| tracked_file.split('/').any? { |segment| (File.match?(name, segment) rescue false) } }
+        matches = Dir.glob(File.join(base_dir, "**", name))
+        return false if matches.empty?
+        matches.all? do |match_path|
+          rel = match_path.sub(base_dir + "/", "")
+          ok, _ = run_git(base_dir, ["check-ignore", "-q", rel])
+          ok
+        end
+      else
+        norm = name.rstrip('/')
+        full = File.join(base_dir, norm)
+        return true if File.symlink?(full)
+        return true if tracked.includes?(norm)
+        return true if tracked.any?(&.starts_with?(norm + "/"))
+        ok, _ = run_git(base_dir, ["check-ignore", "-q", norm])
+        ok
+      end
+    end
+
+    # True when some pattern already ignores `name`.
+    private def ignored_by_patterns?(patterns : Array(Pattern), name : String) : Bool
+      norm = name.strip('/').downcase
+      sample = name.gsub('*', 'x').gsub('?', 'x').strip('/').downcase
+      patterns.any? { |pat| pattern_ignores?(pat, norm, sample) }
+    end
+
+    private def pattern_ignores?(pat : Pattern, norm : String, sample : String) : Bool
+      return false if pat.blank? || pat.comment? || pat.negated?
+      body = pat.body.strip('/').downcase
+      return true if [norm, sample, "*", "**", "**/*", "**/#{norm}"].includes?(body)
+      (File.match?(pat.body, sample) rescue false) || (File.match?(pat.body, "#{sample}/") rescue false)
     end
 
     # -- Suppressions --------------------------------------------------------
