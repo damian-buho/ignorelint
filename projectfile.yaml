@@ -18,6 +18,7 @@ identity:
     uk: Ignorelint — лінтер і автокоректор для ignore-файлів як-от .gitignore, .dockerignore та .npmignore, написаний на Crystal. Розпізнає 25 назв файлів у восьми специфічних для форматів glob-драйверах і звітує 25 діагностичних правил із десятьма форматами виводу — від людиночитного та GNU до JUnit, Code Climate, Codacy, SonarQube і SARIF.
   version: 2.2.0
   released: "2026-10-14"
+  visibility: public
 includes:
   - .makefile/b19/ci.yaml
   - .makefile/b19/images/crystal.yaml
@@ -45,9 +46,9 @@ license:
   spdx: "MIT"
 links:
   - label:
-      en: Ignorelint on GitHub
-      es: Ignorelint en GitHub
-      uk: Ignorelint на GitHub
+      en: Repository on GitHub
+      es: Repositorio en GitHub
+      uk: Репозиторій на GitHub
     priority: 80
     tags:
       - public
@@ -65,17 +66,17 @@ links:
     type: bugs
     url: https://github.com/damian-buho/ignorelint/issues
   - label:
-      en: Ignorelint on kiota.ch
-      es: Ignorelint en kiota.ch
-      uk: Ignorelint на kiota.ch
+      en: Repository on kiota.ch
+      es: Repositorio en kiota.ch
+      uk: Репозиторій на kiota.ch
     preferred: true
     priority: 10
     type: source-code
     url: https://kiota.ch/damian-buho/ignorelint
   - label:
-      en: Ignorelint on Codeberg
-      es: Ignorelint en Codeberg
-      uk: Ignorelint на Codeberg
+      en: Repository on Codeberg
+      es: Repositorio en Codeberg
+      uk: Репозиторій на Codeberg
     priority: 90
     tags:
       - public
@@ -157,6 +158,9 @@ repositories:
   - role: mirror
     type: git
     url: git@codeberg.org:damian-buho/ignorelint.git
+  - role: mirror
+    type: git
+    url: ssh://git@codeberg.org/damian-buho/ignorelint.git
 requirements:
   runtime:
     crystal: '>= 1.13.0'
