@@ -26,11 +26,20 @@ contact:
 license: MIT
 repository-code: https://kiota.ch/damian-buho/ignorelint
 keywords:
-  - ignorelint
   - linter
   - gitignore
   - dockerignore
+  - npmignore
   - ignore-files
+  - claudeignore
+  - cursorignore
+  - eslintignore
+  - prettierignore
+  - vercelignore
+  - helmignore
+  - tfignore
+  - slugignore
+  - github-action
   - crystal
 version: 2.2.0
 date-released: "2026-10-14"

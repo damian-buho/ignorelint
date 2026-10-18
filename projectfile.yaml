@@ -13,9 +13,18 @@ identity:
     uk: Лінтер для .gitignore, .dockerignore та понад 20 інших ignore-файлів
   title: Ignorelint
   description:
-    en: Ignorelint is a linter and auto-fixer for ignore files such as .gitignore, .dockerignore and .npmignore, written in Crystal. It recognises 25 filenames across eight format-specific glob drivers and reports 25 diagnostic rules with ten output formats, from human and GNU to JUnit, Code Climate, Codacy, SonarQube and SARIF.
-    es: Ignorelint es un linter y corrector automático para archivos de ignorados como .gitignore, .dockerignore y .npmignore, escrito en Crystal. Reconoce 25 nombres de archivo a través de ocho controladores de globs específicos de formato e informa 25 reglas de diagnóstico con diez formatos de salida, desde el legible y GNU hasta JUnit, Code Climate, Codacy, SonarQube y SARIF.
-    uk: Ignorelint — лінтер і автокоректор для ignore-файлів як-от .gitignore, .dockerignore та .npmignore, написаний на Crystal. Розпізнає 25 назв файлів у восьми специфічних для форматів glob-драйверах і звітує 25 діагностичних правил із десятьма форматами виводу — від людиночитного та GNU до JUnit, Code Climate, Codacy, SonarQube і SARIF.
+    en: |-
+      Linter, validator and auto-fixer for every ignore file: .gitignore, .dockerignore, .npmignore, .prettierignore, .eslintignore, .helmignore, .vercelignore, .claudeignore, .cursorignore, .aiderignore and 15 more. Finds duplicate and redundant rules; ships as a GitHub Action with SARIF output. Written in Crystal.
+
+      It recognises 25 filenames across eight format-specific glob drivers and reports 25 diagnostic rules with ten output formats, from human and GNU to JUnit, Code Climate, Codacy, SonarQube and SARIF.
+    es: |-
+      Linter, validador y corrector automático para cualquier archivo de ignorados: .gitignore, .dockerignore, .npmignore, .prettierignore, .eslintignore, .helmignore, .vercelignore, .claudeignore, .cursorignore, .aiderignore y 15 más. Encuentra reglas duplicadas y redundantes; se distribuye como GitHub Action con salida SARIF. Escrito en Crystal.
+
+      Reconoce 25 nombres de archivo a través de ocho controladores de globs específicos de formato e informa 25 reglas de diagnóstico con diez formatos de salida, desde el legible y GNU hasta JUnit, Code Climate, Codacy, SonarQube y SARIF.
+    uk: |-
+      Лінтер, валідатор і автокоректор для будь-якого ignore-файлу: .gitignore, .dockerignore, .npmignore, .prettierignore, .eslintignore, .helmignore, .vercelignore, .claudeignore, .cursorignore, .aiderignore та ще 15. Знаходить дубльовані й надлишкові правила; постачається як GitHub Action з виводом SARIF. Написаний на Crystal.
+
+      Розпізнає 25 назв файлів у восьми специфічних для форматів glob-драйверах і звітує 25 діагностичних правил із десятьма форматами виводу — від людиночитного та GNU до JUnit, Code Climate, Codacy, SonarQube і SARIF.
   version: 2.2.0
   released: "2026-10-14"
   visibility: public
@@ -34,11 +43,20 @@ includes:
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/registry/dockerhub.yaml
   - https://kiota.ch/damian-buho/metadata/raw/branch/main/traits/personal-image.yaml
 keywords:
-  - ignorelint
   - linter
   - gitignore
   - dockerignore
+  - npmignore
   - ignore-files
+  - claudeignore
+  - cursorignore
+  - eslintignore
+  - prettierignore
+  - vercelignore
+  - helmignore
+  - tfignore
+  - slugignore
+  - github-action
   - crystal
 kind: SoftwareSourceCode
 license:

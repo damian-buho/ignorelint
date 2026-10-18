@@ -12,7 +12,9 @@ pf-cli-managed: yes
 
 # Ignorelint
 
-Ignorelint es un linter y corrector automático para archivos de ignorados como .gitignore, .dockerignore y .npmignore, escrito en Crystal. Reconoce 25 nombres de archivo a través de ocho controladores de globs específicos de formato e informa 25 reglas de diagnóstico con diez formatos de salida, desde el legible y GNU hasta JUnit, Code Climate, Codacy, SonarQube y SARIF.
+Linter, validador y corrector automático para cualquier archivo de ignorados: .gitignore, .dockerignore, .npmignore, .prettierignore, .eslintignore, .helmignore, .vercelignore, .claudeignore, .cursorignore, .aiderignore y 15 más. Encuentra reglas duplicadas y redundantes; se distribuye como GitHub Action con salida SARIF. Escrito en Crystal.
+
+Reconoce 25 nombres de archivo a través de ocho controladores de globs específicos de formato e informa 25 reglas de diagnóstico con diez formatos de salida, desde el legible y GNU hasta JUnit, Code Climate, Codacy, SonarQube y SARIF.
 
 [![Stand with Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://damian-buho.github.io/support-ukraine/) [![Projectfile inside](https://badges.kiota.ch/static/v1?label=projectfile&message=inside&labelColor=0d0d0d&color=8c6723&style=flat-square)](https://projectfile.org) [![License](https://badges.kiota.ch/static/v1?label=license&message=MIT&color=1e5913&style=flat-square)](LICENSE) [![Cosign](https://badges.kiota.ch/static/v1?label=cosign&message=enabled&color=1e5913&style=flat-square)](https://docs.sigstore.dev/cosign/verifying/verify/) [![PRs welcome](https://badges.kiota.ch/static/v1?label=PRs&message=welcome&color=1e5913&style=flat-square)](CONTRIBUTING.md) [![REUSE compliance](https://api.reuse.software/badge/codeberg.org/damian-buho/ignorelint)](https://api.reuse.software/info/codeberg.org/damian-buho/ignorelint)
 

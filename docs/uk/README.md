@@ -12,7 +12,9 @@ pf-cli-managed: yes
 
 # Ignorelint
 
-Ignorelint — лінтер і автокоректор для ignore-файлів як-от .gitignore, .dockerignore та .npmignore, написаний на Crystal. Розпізнає 25 назв файлів у восьми специфічних для форматів glob-драйверах і звітує 25 діагностичних правил із десятьма форматами виводу — від людиночитного та GNU до JUnit, Code Climate, Codacy, SonarQube і SARIF.
+Лінтер, валідатор і автокоректор для будь-якого ignore-файлу: .gitignore, .dockerignore, .npmignore, .prettierignore, .eslintignore, .helmignore, .vercelignore, .claudeignore, .cursorignore, .aiderignore та ще 15. Знаходить дубльовані й надлишкові правила; постачається як GitHub Action з виводом SARIF. Написаний на Crystal.
+
+Розпізнає 25 назв файлів у восьми специфічних для форматів glob-драйверах і звітує 25 діагностичних правил із десятьма форматами виводу — від людиночитного та GNU до JUnit, Code Climate, Codacy, SonarQube і SARIF.
 
 [![Stand with Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://damian-buho.github.io/support-ukraine/) [![Projectfile inside](https://badges.kiota.ch/static/v1?label=projectfile&message=inside&labelColor=0d0d0d&color=8c6723&style=flat-square)](https://projectfile.org) [![License](https://badges.kiota.ch/static/v1?label=license&message=MIT&color=1e5913&style=flat-square)](LICENSE) [![Cosign](https://badges.kiota.ch/static/v1?label=cosign&message=enabled&color=1e5913&style=flat-square)](https://docs.sigstore.dev/cosign/verifying/verify/) [![PRs welcome](https://badges.kiota.ch/static/v1?label=PRs&message=welcome&color=1e5913&style=flat-square)](CONTRIBUTING.md) [![REUSE compliance](https://api.reuse.software/badge/codeberg.org/damian-buho/ignorelint)](https://api.reuse.software/info/codeberg.org/damian-buho/ignorelint)
 

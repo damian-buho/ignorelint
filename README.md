@@ -10,7 +10,9 @@ pf-cli-managed: yes
 
 # Ignorelint
 
-Ignorelint is a linter and auto-fixer for ignore files such as .gitignore, .dockerignore and .npmignore, written in Crystal. It recognises 25 filenames across eight format-specific glob drivers and reports 25 diagnostic rules with ten output formats, from human and GNU to JUnit, Code Climate, Codacy, SonarQube and SARIF.
+Linter, validator and auto-fixer for every ignore file: .gitignore, .dockerignore, .npmignore, .prettierignore, .eslintignore, .helmignore, .vercelignore, .claudeignore, .cursorignore, .aiderignore and 15 more. Finds duplicate and redundant rules; ships as a GitHub Action with SARIF output. Written in Crystal.
+
+It recognises 25 filenames across eight format-specific glob drivers and reports 25 diagnostic rules with ten output formats, from human and GNU to JUnit, Code Climate, Codacy, SonarQube and SARIF.
 
 [![Stand with Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://damian-buho.github.io/support-ukraine/) [![Projectfile inside](https://badges.kiota.ch/static/v1?label=projectfile&message=inside&labelColor=0d0d0d&color=8c6723&style=flat-square)](https://projectfile.org) [![License](https://badges.kiota.ch/static/v1?label=license&message=MIT&color=1e5913&style=flat-square)](LICENSE) [![Cosign](https://badges.kiota.ch/static/v1?label=cosign&message=enabled&color=1e5913&style=flat-square)](https://docs.sigstore.dev/cosign/verifying/verify/) [![PRs welcome](https://badges.kiota.ch/static/v1?label=PRs&message=welcome&color=1e5913&style=flat-square)](CONTRIBUTING.md) [![REUSE compliance](https://api.reuse.software/badge/codeberg.org/damian-buho/ignorelint)](https://api.reuse.software/info/codeberg.org/damian-buho/ignorelint)
 
