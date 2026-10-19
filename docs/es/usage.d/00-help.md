@@ -57,6 +57,7 @@ Help:
     IGNORELINT_OVERRIDE_WARNING=CODES Same as --warning
     IGNORELINT_OVERRIDE_INFO=CODES Same as --info
     IGNORELINT_CONFIG=PATH     Same as --config
+    IGNORELINT_PF_CLI_TIMEOUT=SECONDS Give pf-cli this long to answer (default 30)
     IGNORELINT_DISABLE_IGNORE_PRAGMA=1 Same as --disable-ignore-pragma
     IGNORELINT_FILE_PATH_IN_REPORT=PATH Same as --file-path-in-report
     NO_COLOR=1                 Disable colored output (also TERM=dumb)

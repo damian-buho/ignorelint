@@ -189,15 +189,30 @@ describe Ignorelint::CLI do
       err.should contain("is a directory")
     end
 
-    it "leaves stderr empty on a clean human run" do
+    it "reports only progress and timing on stderr for a clean human run" do
       with_ignore_file("# just a comment\n") do |path|
         code, _, err = run_cli([path] of String)
         code.should eq(0)
-        if pf_cli_available?
-          err.should be_empty
-        else
-          (err.empty? || err.includes?("pf-cli not found")).should be_true
-        end
+        err.should contain("linting 1 file(s)…")
+        err.should match(/checked 1 file\(s\) in \d+ms \(0 fixes, \d+ pf-cli calls\)/)
+        err.should_not contain("warning")
+        err.should_not contain("error")
+      end
+    end
+
+    it "keeps progress and timing off stderr under --quiet" do
+      with_ignore_file("# just a comment\n") do |path|
+        code, _, err = run_cli([path, "--quiet"] of String)
+        code.should eq(0)
+        err.should_not contain("linting")
+        err.should_not contain("checked")
+      end
+    end
+
+    it "counts applied fixes in the timing line" do
+      with_ignore_file("foo  \n") do |path|
+        _, _, err = run_cli([path, "--fix"] of String)
+        err.should match(/\(1 fixes, /)
       end
     end
   end
@@ -697,7 +712,8 @@ describe Ignorelint::CLI do
         with_policy_dir("foo  \n") do
           code, _, err = run_cli([".gitignore"] of String)
           code.should eq(0)
-          err.should be_empty
+          err.should_not contain("warning")
+          err.should_not contain("error")
         end
       end
     end

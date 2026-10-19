@@ -54,6 +54,10 @@ module Ignorelint
 
     # Process entry point: runs `args` and exits with the resulting code.
     def self.run(args : Array(String)) : Nil
+      Process.on_terminate do |reason|
+        STDERR << "interrupted, cleaning up…\n"
+        exit(reason.interrupted? ? 130 : 143)
+      end
       code = new.main(args)
       exit(code) if code != 0
     end
@@ -148,6 +152,9 @@ module Ignorelint
     # True once `--recursive` was passed explicitly (env and file must not override it).
     @recursive_set : Bool = false
 
+    # Number of pf-cli invocations made while loading policy, for the timing line.
+    @pf_cli_calls = 0
+
     # Explicit projectfile path from `--config` (empty means undiscovered).
     @config_path : String?
 
@@ -233,6 +240,7 @@ module Ignorelint
         IGNORELINT_OVERRIDE_WARNING=CODES Same as --warning
         IGNORELINT_OVERRIDE_INFO=CODES Same as --info
         IGNORELINT_CONFIG=PATH     Same as --config
+        IGNORELINT_PF_CLI_TIMEOUT=SECONDS Give pf-cli this long to answer (default 30)
         IGNORELINT_DISABLE_IGNORE_PRAGMA=1 Same as --disable-ignore-pragma
         IGNORELINT_FILE_PATH_IN_REPORT=PATH Same as --file-path-in-report
         NO_COLOR=1                 Disable colored output (also TERM=dumb)
@@ -269,6 +277,9 @@ module Ignorelint
       end
       paths = @paths.empty? ? find_ignore_files : @paths
       exit_code = 0
+      started = Time.instant
+      fixes = 0
+      @err << "linting #{paths.size} file(s)…\n" unless @quiet
 
       # Three-phase formatter lifecycle: start → format each file → finish
       formatter.start(@io)
@@ -276,10 +287,13 @@ module Ignorelint
       paths.each do |path|
         code, result = lint_file(path)
         exit_code |= code # Bitwise OR: any non-zero code makes the final code non-zero
+        fixes += result.issues.count(&.severity.fixed?)
         formatter.format_file(for_report(result, formatter), @io)
       end
 
       formatter.finish(@io)
+      elapsed = (Time.instant - started).total_milliseconds.to_i
+      @err << "checked #{paths.size} file(s) in #{elapsed}ms (#{fixes} fixes, #{@pf_cli_calls} pf-cli calls)\n" unless @quiet
 
       exit_code
     end
@@ -310,9 +324,11 @@ module Ignorelint
           @err << "error: config file not found: #{explicit}\n"
           return
         end
+        @pf_cli_calls += 1
         return ProjectfilePolicy.fetch(explicit, @err, explicit: true, quiet: @quiet)
       end
       if found = ProjectfilePolicy.discover
+        @pf_cli_calls += 1
         return ProjectfilePolicy.fetch(found, @err, explicit: false, quiet: @quiet)
       end
       PolicySettings.new
