@@ -33,6 +33,7 @@ COPY --chown=${B19_UID}:${B19_GID} .container/compile-crystal/ /
 
 COPY --chown=${B19_UID}:${B19_GID} shard.yml shard.lock ./
 COPY --chown=${B19_UID}:${B19_GID} src/       ./src/
+COPY --chown=${B19_UID}:${B19_GID} knowledge/ ./knowledge/
 
 USER 0
 
