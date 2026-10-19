@@ -22,7 +22,7 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | IG-007 | warn | Space in pattern | — |
 | IG-008 | warn | Duplicate rule | ✓ |
 | IG-009 | warn (error in `.dockerignore`, unless the `**` ends the rule) | Invalid doublestar: a `**` that is not a whole path segment | — |
-| IG-010 | info | Rooted shallow pattern | — |
+| IG-010 | info | Rooted shallow pattern, reported only when an unignored entry of that name sits below the root | — |
 | IG-011 | — | Retired: a leading `/` anchors a negation as it anchors any pattern | — |
 | IG-012 | warn | Redundant pair | — |
 | IG-013 | error | Negation unsupported | — |
@@ -58,6 +58,8 @@ Blank lines and other comments between the directive and the pattern are skipped
 
 ## Filesystem checks
 
-Literal patterns are tested for existence, glob patterns for at least one match on disk. Negated patterns are skipped (they re-include rather than ignore), as are patterns containing `..` segments. A literal missing only by case warns with the on-disk spelling instead of plain absence. A path that is simply absent is not a finding, because a fresh clone lacks build output, caches and secrets by design: IG-020 and IG-021 speak only when something suggests the rule went stale. For a literal that is a sibling spelled within one edit (two for names over nine characters, none under five) that the file does not name itself, the finding suggests it; otherwise a path or glob that matched files deleted within the last 2000 commits is reported. Outside a git work tree, or in a shallow clone, only the spelling clue remains. Paths resolve against the directory of the linted file, or the working directory for `--stdin` input.
+Literal patterns are tested for existence, glob patterns for at least one match on disk. Negated patterns are skipped (they re-include rather than ignore), as are patterns containing `..` segments. A literal missing only by case warns with the on-disk spelling instead of plain absence. A path that is simply absent is not a finding, because a fresh clone lacks build output, caches and secrets by design: IG-020 and IG-021 speak only when something suggests the rule went stale. For a literal that is a sibling spelled within one edit (two for names over nine characters, none under five) that the file does not name itself, the finding suggests it; otherwise a path or glob that matched files deleted within the last 2000 commits is reported. Outside a git work tree, or in a shallow clone, only the spelling clue remains.
+
+IG-010 follows the same rule. A rooted name such as `/build` is the usual way to ignore only the top level, so it is reported only when git lists an untracked, unignored entry of that name below the root (`packages/a/build`), and the finding names it. Outside a git work tree it stays silent. Paths resolve against the directory of the linted file, or the working directory for `--stdin` input.
 
 <!-- textlint-enable -->

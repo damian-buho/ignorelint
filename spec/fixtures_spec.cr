@@ -16,6 +16,11 @@ private STAGING_CODES = {
   Ignorelint::Code::UnsortedRule,
 }
 
+# Entries a fixture needs on disk, in a git work tree, before its rule can fire.
+private STAGED_ENTRIES = {
+  "rooted-shallow.gitignore" => ["a/build/x", "a/dist/x", "a/coverage/x"],
+}
+
 # The filename a fixture is detected by: its last extension, or the whole name.
 private def staged_name(name : String) : String
   ".#{name.rpartition('.')[2]}"
@@ -26,6 +31,13 @@ private def lint_fixture(corpus : String, name : String) : Ignorelint::LintResul
   dir = File.join(Dir.tempdir, "ignorelint-fixtures-#{Process.pid}-#{Random.rand(1_000_000)}")
   Dir.mkdir_p(dir)
   begin
+    if entries = STAGED_ENTRIES[name]?
+      entries.each do |entry|
+        Dir.mkdir_p(File.dirname(File.join(dir, entry)))
+        File.write(File.join(dir, entry), "x\n")
+      end
+      Process.run("git", ["-C", dir, "init", "--quiet"], clear_env: true, env: {"PATH" => ENV["PATH"], "HOME" => dir})
+    end
     Ignorelint::Linter.lint(File.join(dir, staged_name(name)),
       File.read(File.join(FIXTURES_DIR, corpus, name)))
   ensure

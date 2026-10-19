@@ -159,6 +159,7 @@ module Ignorelint
       # A rule that matches no files is likely stale (e.g., ignoring a
       # directory that was deleted months ago).
       base_dir = File.dirname(File.expand_path(path))
+      settle_rooted_shallow(issues, patterns, base_dir)
       if Dir.exists?(base_dir)
         history = History.new { path_index(git_deleted_files(base_dir)) }
         named = patterns.select(&.literal?).map(&.body.strip('/')).to_set
@@ -422,6 +423,25 @@ module Ignorelint
       end
       issues << Issue.new(pat.line, "Glob \"#{pat.body}\" matches no #{label}s (dead rule)#{hint}", :info,
         :dead_glob_rule)
+    end
+
+    # IG-010 stays only when an unignored entry of the same name sits below the root, and names it.
+    private def settle_rooted_shallow(issues : Array(Issue), patterns : Array(Pattern), base_dir : String) : Nil
+      candidates = issues.select(&.code.rooted_shallow?)
+      return if candidates.empty?
+      issues.reject!(&.code.rooted_shallow?)
+      files, dirs = path_index(git_untracked_files(base_dir))
+      candidates.each do |issue|
+        next unless pat = patterns.find { |candidate| candidate.line == issue.line }
+        next unless witness = nested_witness(pat, files, dirs)
+        issues << Issue.new(issue.line, "#{issue.message}; \"#{witness}\" is not ignored", :info, :rooted_shallow)
+      end
+    end
+
+    # An untracked, non-ignored entry below the root that the unrooted form of the pattern would match.
+    private def nested_witness(pat : Pattern, files : Array(String), dirs : Set(String)) : String?
+      matches = ->(entry : String) { entry.includes?('/') && (File.match?(pat.body, File.basename(entry)) rescue false) }
+      (pat.directory_only? ? nil : files.find(&matches)) || dirs.find(&matches)
     end
 
     # Hint: known paths that clutter context/publish but are not ignored.

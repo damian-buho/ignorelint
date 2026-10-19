@@ -504,9 +504,47 @@ describe Ignorelint::Linter do
   end
 
   describe "gitignore: rooted shallow" do
-    it "reports /build (no subdirs)" do
-      result = Ignorelint::Linter.lint(".gitignore", "/build\n")
-      result.issues.any?(&.message.includes?("Rooted pattern")).should be_true
+    it "reports /build when an unignored build exists below the root, naming it" do
+      with_history([] of String, [] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "packages", "a", "build"))
+        File.write(File.join(dir, "packages", "a", "build", "x.js"), "x\n")
+        found = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "/build\n").issues.select(&.code.rooted_shallow?)
+        found.size.should eq(1)
+        found.first.message.should contain("\"packages/a/build\" is not ignored")
+      end
+    end
+
+    it "stays silent for /build when nothing of that name sits below the root" do
+      with_history([] of String, [] of String) do |dir|
+        File.write(File.join(dir, "build"), "x\n")
+        Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "/build\n/dist\n").issues.select(&.code.rooted_shallow?).should be_empty
+      end
+    end
+
+    it "stays silent when the nested entry is already ignored on disk" do
+      with_history([] of String, [] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "packages", "a", "build"))
+        File.write(File.join(dir, "packages", "a", "build", "x.js"), "x\n")
+        File.write(File.join(dir, ".gitignore"), "packages/a/build/\n")
+        Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "/build\n").issues.select(&.code.rooted_shallow?).should be_empty
+      end
+    end
+
+    it "matches a directory-only pattern against directories and a glob against basenames" do
+      with_history([] of String, [] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "a"))
+        File.write(File.join(dir, "a", "build"), "x\n")
+        File.write(File.join(dir, "a", "cache.tmp"), "x\n")
+        found = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "/build/\n/*.tmp\n").issues.select(&.code.rooted_shallow?)
+        found.map(&.line).should eq([2])
+      end
+    end
+
+    it "stays silent outside a git work tree" do
+      with_repo([] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "a", "build"))
+        Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "/build\n").issues.select(&.code.rooted_shallow?).should be_empty
+      end
     end
 
     it "allows /src/build/ (has subdirs)" do
