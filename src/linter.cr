@@ -370,22 +370,31 @@ module Ignorelint
       candidates = hint_candidates(basename)
       return if candidates.empty?
 
-      tracked = git_tracked_files(base_dir)
+      files, dirs = untracked_index(git_untracked_files(base_dir))
       candidates.each do |name|
-        next unless candidate_exists?(base_dir, name)
-        next if git_skips_candidate?(base_dir, name, tracked)
+        next unless untracked_match?(name, files, dirs)
         next if ignored_by_patterns?(patterns, name)
         issues << Issue.new(1, "Hint: \"#{name}\" exists but is not ignored", :info, :hint)
       end
     end
 
-    # True when at least one file/directory matching `name` exists on disk.
-    private def candidate_exists?(base_dir : String, name : String) : Bool
-      if name.includes?('*') || name.includes?('?')
-        !Dir.glob(File.join(base_dir, "**", name)).empty?
-      else
-        target = File.join(base_dir, name)
-        File.exists?(target, follow_symlinks: false) || Dir.exists?(target)
+    # Splits untracked paths into files and their parent directories, built once per run.
+    private def untracked_index(untracked : Array(String)) : {Array(String), Set(String)}
+      dirs = Set(String).new
+      untracked.each do |file|
+        parts = file.split('/')
+        (1...parts.size).each { |depth| dirs << parts[0, depth].join('/') }
+      end
+      {untracked, dirs}
+    end
+
+    # True when an untracked, non-ignored file or directory matches the candidate; no disk walk.
+    private def untracked_match?(name : String, files : Array(String), dirs : Set(String)) : Bool
+      norm = name.strip('/')
+      anchored = name.starts_with?('/') || norm.includes?('/')
+      entries = name.ends_with?('/') ? dirs.to_a : files + dirs.to_a
+      entries.any? do |entry|
+        (File.match?(norm, anchored ? entry : File.basename(entry)) rescue false)
       end
     end
 
@@ -408,37 +417,15 @@ module Ignorelint
       end
     end
 
-    # Files tracked by git in `base_dir` (paths relative to base_dir).
+    # Untracked files git does not ignore in `base_dir` (paths relative to base_dir).
     # Returns an empty array when base_dir is not inside a git work tree.
-    private def git_tracked_files(base_dir : String) : Array(String)
+    private def git_untracked_files(base_dir : String) : Array(String)
       return [] of String unless Dir.exists?(base_dir)
       ok, _ = run_git(base_dir, ["rev-parse", "--is-inside-work-tree"])
       return [] of String unless ok
-      ok2, listing = run_git(base_dir, ["ls-files", "-z", "--", "."])
+      ok2, listing = run_git(base_dir, ["ls-files", "-z", "--others", "--exclude-standard", "--", "."])
       return [] of String unless ok2
       listing.split('\u0000').reject(&.empty?)
-    end
-
-    # True when a git-tracked or git-ignored candidate should not be hinted.
-    private def git_skips_candidate?(base_dir : String, name : String, tracked : Array(String)) : Bool
-      if name.includes?('*') || name.includes?('?')
-        return true if tracked.any? { |tracked_file| tracked_file.split('/').any? { |segment| (File.match?(name, segment) rescue false) } }
-        matches = Dir.glob(File.join(base_dir, "**", name))
-        return false if matches.empty?
-        matches.all? do |match_path|
-          rel = match_path.sub(base_dir + "/", "")
-          ok, _ = run_git(base_dir, ["check-ignore", "-q", rel])
-          ok
-        end
-      else
-        norm = name.rstrip('/')
-        full = File.join(base_dir, norm)
-        return true if File.symlink?(full)
-        return true if tracked.includes?(norm)
-        return true if tracked.any?(&.starts_with?(norm + "/"))
-        ok, _ = run_git(base_dir, ["check-ignore", "-q", norm])
-        ok
-      end
     end
 
     # True when some pattern already ignores `name`.

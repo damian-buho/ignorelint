@@ -1056,4 +1056,33 @@ describe Ignorelint::Linter do
       issue.severity.should eq(Ignorelint::Severity::Info)
     end
   end
+
+  describe "filesystem: hints come from git, not a disk walk" do
+    it "hints an untracked match, skips a tracked one and a non-repo directory" do
+      with_repo([] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "vendors"))
+        File.write(File.join(dir, "vendors", "lib.txt"), "x\n")
+        env = {"PATH" => ENV["PATH"], "HOME" => dir}
+        git = ->(args : Array(String)) { Process.run("git", ["-C", dir] + args, clear_env: true, env: env) }
+        hint = -> { Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "# none\n").issues.select(&.code.hint?).map(&.message) }
+
+        hint.call.should be_empty
+        git.call(["init", "--quiet"])
+        hint.call.any?(&.includes?("\"/vendors/*\"")).should be_true
+        git.call(["add", "vendors/lib.txt"])
+        hint.call.any?(&.includes?("\"/vendors/*\"")).should be_false
+      end
+    end
+
+    it "stays silent when a pattern already ignores the untracked match" do
+      with_repo([] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "vendors"))
+        File.write(File.join(dir, "vendors", "lib.txt"), "x\n")
+        env = {"PATH" => ENV["PATH"], "HOME" => dir}
+        Process.run("git", ["-C", dir, "init", "--quiet"], clear_env: true, env: env)
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "/vendors/*\n")
+        result.issues.select(&.code.hint?).any?(&.message.includes?("\"/vendors/*\"")).should be_false
+      end
+    end
+  end
 end
