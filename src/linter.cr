@@ -39,6 +39,7 @@ require "./fixer"
 require "./issue"
 require "./format_linter"
 require "./parser"
+require "levenshtein"
 require "yaml"
 
 module Ignorelint
@@ -81,8 +82,34 @@ module Ignorelint
   end
 
   # The main linting module. Stateless — all data flows through parameters.
+  # Loads the deleted-path index on first use and shares it across one lint run.
+  class History
+    @index : {Array(String), Set(String)}?
+
+    def initialize(&@loader : -> {Array(String), Set(String)})
+    end
+
+    def get : {Array(String), Set(String)}
+      if cached = @index
+        return cached
+      end
+      loaded = @loader.call
+      @index = loaded
+      loaded
+    end
+  end
+
   module Linter
     extend self
+
+    # Shortest segment compared for a close spelling; shorter names collide (`.env` vs `.venv`).
+    NEAR_MISS_MIN_SIZE = 5
+
+    # Longest segment allowed one edit; longer names allow two.
+    NEAR_MISS_SHORT_SIZE = 9
+
+    # Most recent commits scanned for deleted paths.
+    HISTORY_DEPTH = 2000
 
     # Patterns loaded from the knowledge base at compile time.
     HINT_PATTERNS = YAML.parse({{ read_file("knowledge/patterns.yaml") }})["patterns"].as_a.map(&.as_s)
@@ -133,11 +160,13 @@ module Ignorelint
       # directory that was deleted months ago).
       base_dir = File.dirname(File.expand_path(path))
       if Dir.exists?(base_dir)
+        history = History.new { path_index(git_deleted_files(base_dir)) }
+        named = patterns.select(&.literal?).map(&.body.strip('/')).to_set
         patterns.each do |pat|
           next if pat.blank? || pat.comment?
           next if pat.negated? # Negated patterns re-include, not ignore — skip dead-rule check
-          check_path_exists(pat, base_dir, issues, format_linter)
-          check_glob_matches(pat, base_dir, issues, format_linter)
+          check_path_exists(pat, base_dir, issues, format_linter, history, named)
+          check_glob_matches(pat, base_dir, issues, format_linter, history)
         end
         check_hints(path, patterns, base_dir, issues)
       end
@@ -263,7 +292,7 @@ module Ignorelint
     #
     # A missing target that exists under a different case also names that near match (IG-025).
     private def check_path_exists(pat : Pattern, base_dir : String, issues : Array(Issue),
-                                  format_linter : FormatLinter) : Nil
+                                  format_linter : FormatLinter, history : History, named : Set(String)) : Nil
       return unless pat.literal?
       return if pat.body.split('/').includes?("..")
 
@@ -282,8 +311,41 @@ module Ignorelint
         return
       end
 
-      issues << Issue.new(pat.line, "#{kind} \"#{pat.body}\" does not exist", :info,
-        :path_not_found)
+      reason = stale_reason(pat, base_dir, history, named)
+      return unless reason
+      issues << Issue.new(pat.line, "#{kind} \"#{pat.body}\" does not exist; #{reason}", :info, :path_not_found)
+    end
+
+    # The clue that a missing literal went stale, or nil when its absence is unremarkable.
+    private def stale_reason(pat : Pattern, base_dir : String, history : History, named : Set(String)) : String?
+      if near = near_miss(base_dir, pat.body, named)
+        return "did you mean \"#{near}\"?"
+      end
+      files, dirs = history.get
+      "it was deleted from git history" if indexed_match?(candidate_name(pat), files, dirs)
+    end
+
+    # The pattern as written, so matching keeps its anchoring and directory-only meaning.
+    private def candidate_name(pat : Pattern) : String
+      "#{pat.rooted? ? "/" : ""}#{pat.body}#{pat.directory_only? ? "/" : ""}"
+    end
+
+    # The path with its first missing segment swapped for a closely spelled sibling, or nil.
+    private def near_miss(base_dir : String, body : String, named : Set(String)) : String?
+      segments = body.split('/').reject(&.empty?)
+      current = base_dir
+      segments.each_with_index do |segment, depth|
+        entries = Dir.children(current) rescue (return)
+        if entries.includes?(segment)
+          current = File.join(current, segment)
+          next
+        end
+        return if segment.size < NEAR_MISS_MIN_SIZE
+        tolerance = segment.size <= NEAR_MISS_SHORT_SIZE ? 1 : 2
+        found = Levenshtein.find(segment, entries.reject { |entry| named.includes?(entry) }, tolerance)
+        return unless found
+        return (segments[0, depth] + [found] + segments[depth + 1..]).join('/')
+      end
     end
 
     # True when an unanchored name the format matches at any depth sits below the root.
@@ -342,7 +404,7 @@ module Ignorelint
     # because different ignore formats have different matching semantics
     # (e.g. dockerignore anchors every pattern to the context root).
     private def check_glob_matches(pat : Pattern, base_dir : String, issues : Array(Issue),
-                                   format_linter : FormatLinter) : Nil
+                                   format_linter : FormatLinter, history : History) : Nil
       return if pat.literal?
       return if pat.body.split('/').includes?("..")
 
@@ -353,6 +415,11 @@ module Ignorelint
       label = pat.directory_only? ? "directory" : "file"
       deep = File.join(base_dir, "**", pat.body)
       hint = !pat.rooted? && deep != glob && glob_any?(deep, pat) == true ? "; \"**/#{pat.body}\" would match at any depth" : ""
+      if hint.empty?
+        files, dirs = history.get
+        return unless indexed_match?(candidate_name(pat), files, dirs)
+        hint = "; matching files were deleted from git history"
+      end
       issues << Issue.new(pat.line, "Glob \"#{pat.body}\" matches no #{label}s (dead rule)#{hint}", :info,
         :dead_glob_rule)
     end
@@ -364,16 +431,16 @@ module Ignorelint
       candidates = hint_candidates(basename)
       return if candidates.empty?
 
-      files, dirs = untracked_index(git_untracked_files(base_dir))
+      files, dirs = path_index(git_untracked_files(base_dir))
       candidates.each do |name|
-        next unless untracked_match?(name, files, dirs)
+        next unless indexed_match?(name, files, dirs)
         next if ignored_by_patterns?(patterns, name)
         issues << Issue.new(1, "Hint: \"#{name}\" exists but is not ignored", :info, :hint)
       end
     end
 
-    # Splits untracked paths into files and their parent directories, built once per run.
-    private def untracked_index(untracked : Array(String)) : {Array(String), Set(String)}
+    # Splits paths into files and their parent directories, built once per run.
+    private def path_index(untracked : Array(String)) : {Array(String), Set(String)}
       dirs = Set(String).new
       untracked.each do |file|
         parts = file.split('/')
@@ -382,8 +449,8 @@ module Ignorelint
       {untracked, dirs}
     end
 
-    # True when an untracked, non-ignored file or directory matches the candidate; no disk walk.
-    private def untracked_match?(name : String, files : Array(String), dirs : Set(String)) : Bool
+    # True when an indexed file or directory matches the candidate as an ignore rule would; no disk walk.
+    private def indexed_match?(name : String, files : Array(String), dirs : Set(String)) : Bool
       norm = name.strip('/')
       anchored = name.starts_with?('/') || norm.includes?('/')
       entries = name.ends_with?('/') ? dirs.to_a : files + dirs.to_a
@@ -409,6 +476,17 @@ module Ignorelint
       rescue
         {false, ""}
       end
+    end
+
+    # Paths deleted in the last HISTORY_DEPTH commits, relative to `base_dir`; empty outside a git work tree.
+    private def git_deleted_files(base_dir : String) : Array(String)
+      return [] of String unless Dir.exists?(base_dir)
+      ok, _ = run_git(base_dir, ["rev-parse", "--is-inside-work-tree"])
+      return [] of String unless ok
+      ok2, listing = run_git(base_dir, ["log", "--diff-filter=D", "--no-renames", "--name-only", "--pretty=format:",
+                                        "--relative", "--max-count=#{HISTORY_DEPTH}", "--", "."])
+      return [] of String unless ok2
+      listing.split('\n').reject(&.empty?)
     end
 
     # Untracked files git does not ignore in `base_dir` (paths relative to base_dir).

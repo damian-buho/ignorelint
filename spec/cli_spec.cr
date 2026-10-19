@@ -6,10 +6,11 @@ require "spec"
 require "file_utils"
 require "../src/cli"
 
-private def with_ignore_file(content : String, name : String = ".gitignore", & : String -> T) : T forall T
+private def with_ignore_file(content : String, name : String = ".gitignore", siblings : Array(String) = [] of String, & : String -> T) : T forall T
   dir = File.join("/tmp", "ignorelint-cli-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
   Dir.mkdir_p(dir)
   begin
+    siblings.each { |sibling| Dir.mkdir_p(File.join(dir, sibling)) }
     path = File.join(dir, name)
     File.write(path, content)
     yield path
@@ -55,10 +56,11 @@ private def run_cli(args : Array(String), input : String = "") : {Int32, String,
 end
 
 # A temp dir holding a projectfile.yaml plus a .gitignore; runs the block there.
-private def with_policy_dir(ignore_content : String, & : -> T) : T forall T
+private def with_policy_dir(ignore_content : String, siblings : Array(String) = [] of String, & : -> T) : T forall T
   dir = File.join("/tmp", "ignorelint-policy-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
   Dir.mkdir_p(dir)
   begin
+    siblings.each { |sibling| Dir.mkdir_p(File.join(dir, sibling)) }
     File.write(File.join(dir, "projectfile.yaml"), "$schema: https://projectfile.org/schema/v1.json\n")
     File.write(File.join(dir, ".gitignore"), ignore_content)
     old = Dir.current
@@ -857,7 +859,7 @@ describe Ignorelint::CLI do
 
   describe "--error/--warning/--info severity overrides" do
     it "promotes IG-020 to error so the default fail-on exits 1" do
-      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+      with_ignore_file("nonexistent-dir-xyz/\n", siblings: ["nonexistent-dir-xya"]) do |path|
         code, out, _ = run_cli(["--error=IG-020", path] of String)
         code.should eq(1)
         out.should contain("error:")
@@ -875,7 +877,7 @@ describe Ignorelint::CLI do
     end
 
     it "applies error, then warning, then info, whatever the flag order" do
-      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+      with_ignore_file("nonexistent-dir-xyz/\n", siblings: ["nonexistent-dir-xya"]) do |path|
         code, out, _ = run_cli(["--error=IG-020", "--warning=IG-020", path] of String)
         code.should eq(0)
         out.should contain("warn:")
@@ -886,7 +888,7 @@ describe Ignorelint::CLI do
     end
 
     it "takes comma/space separated tags case-insensitively and repeatably" do
-      with_ignore_file("!!foo\nnonexistent-dir-xyz/\n") do |path|
+      with_ignore_file("!!foo\nnonexistent-dir-xyz/\n", siblings: ["nonexistent-dir-xya"]) do |path|
         code, out, _ = run_cli(["--error=ig-020 ig-003", path] of String)
         code.should eq(1)
         out.should contain("[IG-020]")
@@ -906,7 +908,7 @@ describe Ignorelint::CLI do
     end
 
     it "reads IGNORELINT_OVERRIDE_ERROR" do
-      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+      with_ignore_file("nonexistent-dir-xyz/\n", siblings: ["nonexistent-dir-xya"]) do |path|
         with_env("IGNORELINT_OVERRIDE_ERROR", "IG-020") do
           code, out, _ = run_cli([path] of String)
           code.should eq(1)
@@ -931,7 +933,7 @@ describe Ignorelint::CLI do
     end
 
     it "prefers the flag over the environment per code" do
-      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+      with_ignore_file("nonexistent-dir-xyz/\n", siblings: ["nonexistent-dir-xya"]) do |path|
         with_env("IGNORELINT_OVERRIDE_ERROR", "IG-020") do
           code, out, _ = run_cli(["--info=IG-020", path] of String)
           code.should eq(0)
@@ -953,7 +955,7 @@ describe Ignorelint::CLI do
 
     it "applies the projectfile override map" do
       with_fake_cli(%q(echo '{"override": {"error": ["IG-020"]}}')) do
-        with_policy_dir("nonexistent-dir-xyz/\n") do
+        with_policy_dir("nonexistent-dir-xyz/\n", ["nonexistent-dir-xya"]) do
           code, out, _ = run_cli([".gitignore"] of String)
           code.should eq(1)
           out.should contain("error:")
@@ -963,7 +965,7 @@ describe Ignorelint::CLI do
 
     it "prefers the env over the projectfile per code" do
       with_fake_cli(%q(echo '{"override": {"error": ["IG-020"]}}')) do
-        with_policy_dir("nonexistent-dir-xyz/\n") do
+        with_policy_dir("nonexistent-dir-xyz/\n", ["nonexistent-dir-xya"]) do
           with_env("IGNORELINT_OVERRIDE_INFO", "IG-020") do
             code, out, _ = run_cli([".gitignore"] of String)
             code.should eq(0)
@@ -975,7 +977,7 @@ describe Ignorelint::CLI do
 
     it "prefers the flag over the projectfile" do
       with_fake_cli(%q(echo '{"override": {"error": ["IG-020"]}}')) do
-        with_policy_dir("nonexistent-dir-xyz/\n") do
+        with_policy_dir("nonexistent-dir-xyz/\n", ["nonexistent-dir-xya"]) do
           code, out, _ = run_cli(["--info=IG-020", ".gitignore"] of String)
           code.should eq(0)
           out.should contain("info:")
@@ -984,7 +986,7 @@ describe Ignorelint::CLI do
     end
 
     it "renders the overridden severity in every output format" do
-      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+      with_ignore_file("nonexistent-dir-xyz/\n", siblings: ["nonexistent-dir-xya"]) do |path|
         _, out, _ = run_cli(["--error=IG-020", "--format=json", path] of String)
         out.should contain("\"severity\": \"error\"")
         _, out, _ = run_cli(["--error=IG-020", "--format=checkstyle", path] of String)
@@ -1003,7 +1005,7 @@ describe Ignorelint::CLI do
     end
 
     it "renders the overridden severity in human output" do
-      with_ignore_file("nonexistent-dir-xyz/\n") do |path|
+      with_ignore_file("nonexistent-dir-xyz/\n", siblings: ["nonexistent-dir-xya"]) do |path|
         _, out, _ = run_cli(["--error=IG-020", path] of String)
         out.should contain("error:")
         out.should contain("[IG-020]")

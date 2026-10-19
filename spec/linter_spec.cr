@@ -17,6 +17,29 @@ private def with_repo(files : Array(String), & : String -> T) : T forall T
   end
 end
 
+private def git_in(dir : String, *args : String) : Nil
+  env = {"PATH" => ENV["PATH"], "HOME" => dir, "GIT_AUTHOR_NAME" => "t", "GIT_AUTHOR_EMAIL" => "t@t",
+         "GIT_COMMITTER_NAME" => "t", "GIT_COMMITTER_EMAIL" => "t@t"}
+  Process.run("git", ["-C", dir] + args.to_a, clear_env: true, env: env)
+end
+
+# A repo whose history added then deleted `deleted`, leaving `live` on disk.
+private def with_history(live : Array(String), deleted : Array(String), & : String -> T) : T forall T
+  with_repo(live) do |dir|
+    deleted.each do |name|
+      Dir.mkdir_p(File.dirname(File.join(dir, name)))
+      File.write(File.join(dir, name), "x\n")
+    end
+    git_in(dir, "init", "--quiet")
+    git_in(dir, "add", "--all")
+    git_in(dir, "commit", "--quiet", "--message", "seed")
+    deleted.each { |name| FileUtils.rm_rf(File.join(dir, name.split('/').first)) }
+    git_in(dir, "add", "--all")
+    git_in(dir, "commit", "--quiet", "--message", "prune")
+    yield dir
+  end
+end
+
 describe Ignorelint::Linter do
   # -- Universal rules ----------------------------------------------------
 
@@ -176,18 +199,19 @@ describe Ignorelint::Linter do
   end
 
   describe "filesystem: dead-rule detection" do
-    it "flags missing literal paths but not existing ones" do
-      with_repo(["exists.txt"]) do |dir|
+    it "flags a missing literal path deleted from history but not an existing one" do
+      with_history(["exists.txt"], ["missing.txt"]) do |dir|
         content = "*.nomatch-xyz\n*.txt\nexists.txt\nmissing.txt\n"
         result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), content)
         found = result.issues.select(&.code.path_not_found?)
         found.any?(&.message.includes?("missing.txt")).should be_true
+        found.first.message.should contain("deleted from git history")
         found.any?(&.message.includes?("exists.txt")).should be_false
       end
     end
 
-    it "flags globs matching nothing but not globs matching files" do
-      with_repo(["exists.txt"]) do |dir|
+    it "flags a glob whose files were deleted from history but not a glob matching files" do
+      with_history(["exists.txt"], ["old.nomatch-xyz"]) do |dir|
         content = "*.nomatch-xyz\n*.txt\nexists.txt\nmissing.txt\n"
         result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), content)
         found = result.issues.select(&.code.dead_glob_rule?)
@@ -208,7 +232,7 @@ describe Ignorelint::Linter do
     end
 
     it "finds an unanchored literal at any depth, but not in a dockerignore" do
-      with_repo([] of String) do |dir|
+      with_history([] of String, ["data/old.txt", "data.txt/old.txt"]) do |dir|
         Dir.mkdir_p(File.join(dir, "nested", "data"))
         gitignore = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "data\n/data\ndata.txt/\n").issues
         gitignore.select(&.code.path_not_found?).map(&.line).should eq([2, 3])
@@ -228,7 +252,7 @@ describe Ignorelint::Linter do
     end
 
     it "keeps a rule whose path is a dangling symlink" do
-      with_repo(["exists.txt"]) do |dir|
+      with_history(["exists.txt"], ["missing.txt"]) do |dir|
         File.symlink("nowhere-target", File.join(dir, "dangling"))
         result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "dangling\nmissing.txt\n")
         found = result.issues.select(&.code.path_not_found?)
@@ -259,11 +283,12 @@ describe Ignorelint::Linter do
       end
     end
 
-    it "keeps IG-020 when nothing matches at all" do
+    it "stays silent when nothing hints at the missing path" do
       with_repo(["other.txt"]) do |dir|
-        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "missing.txt\n")
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "missing.txt\n*.suo\nnode_modules/\n")
         result.issues.select(&.code.case_mismatch?).should be_empty
-        result.issues.count(&.code.path_not_found?).should eq(1)
+        result.issues.select(&.code.path_not_found?).should be_empty
+        result.issues.select(&.code.dead_glob_rule?).should be_empty
       end
     end
 
@@ -292,11 +317,51 @@ describe Ignorelint::Linter do
       end
     end
 
-    it "keeps IG-020 when a directory-only pattern differs in case from a file" do
+    it "stays silent when a directory-only pattern differs in case from a file" do
       with_repo(["BUILD"]) do |dir|
         result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "build/\n")
         result.issues.select(&.code.case_mismatch?).should be_empty
-        result.issues.count(&.code.path_not_found?).should eq(1)
+        result.issues.select(&.code.path_not_found?).should be_empty
+      end
+    end
+  end
+
+  describe "filesystem: clue-only dead rules" do
+    it "suggests a closely spelled sibling and honours the length thresholds" do
+      # {pattern, sibling, suggested}; 4 chars is too short, 9 allows one edit, 10 allows two
+      cases = [
+        {"dist", "disk", false}, {"dists", "dist", true}, {"abcdefghi", "abcdefgxx", false},
+        {"abcdefghi", "abcdefghx", true}, {"abcdefghij", "abcdefghxx", true}, {"abcdefghij", "abcdefgxxx", false},
+      ]
+      cases.each do |pattern, sibling, suggested|
+        with_repo([sibling]) do |dir|
+          found = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "#{pattern}\n").issues.select(&.code.path_not_found?)
+          found.size.should eq(suggested ? 1 : 0)
+          found.first.message.should contain("did you mean \"#{sibling}\"?") if suggested
+        end
+      end
+    end
+
+    it "swaps only the first missing segment of a nested path" do
+      with_repo([] of String) do |dir|
+        Dir.mkdir_p(File.join(dir, "guide"))
+        File.write(File.join(dir, "guide", "index.md"), "x\n")
+        found = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "guides/index.md\n").issues.select(&.code.path_not_found?)
+        found.first.message.should contain("did you mean \"guide/index.md\"?")
+      end
+    end
+
+    it "skips a sibling the file already names itself" do
+      with_repo(["builds"]) do |dir|
+        found = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "build\nbuilds\n").issues.select(&.code.path_not_found?)
+        found.should be_empty
+      end
+    end
+
+    it "treats a path the history never held as healthy, as on a fresh clone" do
+      with_history([] of String, ["old.txt"]) do |dir|
+        found = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "old.txt\nnode_modules/\n.env\n").issues.select(&.code.path_not_found?)
+        found.map(&.message).should eq(["Path \"old.txt\" does not exist; it was deleted from git history"])
       end
     end
   end
@@ -1051,9 +1116,11 @@ describe Ignorelint::Linter do
     end
 
     it "assigns info to non-existent path checks" do
-      result = Ignorelint::Linter.lint("test.gitignore", "nonexistent_dir/\n")
-      issue = result.issues.find(&.message.includes?("does not exist")).as(Ignorelint::Issue)
-      issue.severity.should eq(Ignorelint::Severity::Info)
+      with_history([] of String, ["nonexistent_dir/old.txt"]) do |dir|
+        result = Ignorelint::Linter.lint(File.join(dir, ".gitignore"), "nonexistent_dir/\n")
+        issue = result.issues.find(&.message.includes?("does not exist")).as(Ignorelint::Issue)
+        issue.severity.should eq(Ignorelint::Severity::Info)
+      end
     end
   end
 

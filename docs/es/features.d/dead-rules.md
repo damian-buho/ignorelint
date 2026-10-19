@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 
 # Detección de reglas muertas contra el sistema de archivos
 
-- Los patrones literales se comprueban por existencia y los globs por al menos una coincidencia, para que las rutas eliminadas aparezcan como reglas obsoletas. Ver la [referencia de reglas](docs/how-to/rules.md).
+- Una regla se marca como obsoleta solo con evidencia, una ruta eliminada o una grafía casi igual, así un clon recién hecho queda en silencio. Ver la [referencia de reglas](../how-to/rules.md).
 - Los patrones negados se omiten, ya que reincluyen en lugar de ignorar.
 - Los patrones que salen del árbol se omiten en lugar de explorarse.
 

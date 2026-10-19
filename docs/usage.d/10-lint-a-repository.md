@@ -10,10 +10,7 @@ With no path, ignorelint lints every ignore file it recognises in the working di
 ```console
 $ printf 'node_modules/\n*.log\nnode_modules/\n!!keep.log\n' > .gitignore
 $ ignorelint
-info:  .gitignore:1 [IG-020] Directory "node_modules" does not exist
-info:  .gitignore:2 [IG-021] Glob "*.log" matches no files (dead rule)
 warn:  .gitignore:3 [IG-008] Duplicate of line 1: "node_modules/"
-info:  .gitignore:3 [IG-020] Directory "node_modules" does not exist
 error: .gitignore:4 [IG-003] Double negation "!!keep.log" re-includes a file literally named "!keep.log"; write "!\!keep.log" if that is intended
 $ echo $?
 1

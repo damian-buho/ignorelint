@@ -32,8 +32,8 @@ Every file goes through the same pipeline: universal checks, format-specific che
 | IG-017 | — | Retired: `.eslintignore` matches unrooted patterns at any depth | — |
 | IG-018 | info | Redundant built-in exclude | ✓ |
 | IG-019 | warn | Built-in include protected | — |
-| IG-020 | info | Path not found | — |
-| IG-021 | info | Dead glob rule | — |
+| IG-020 | info | Path not found, reported only with a clue: a close spelling or a deletion in git history | — |
+| IG-021 | info | Dead glob rule, reported only with a clue: matching files deleted in git history, or a match at another depth | — |
 | IG-022 | warn | Double slash | ✓ |
 | IG-023 | info | Unsorted rule | ✓ |
 | IG-024 | warn | Leading whitespace | ✓ |
@@ -58,6 +58,6 @@ Blank lines and other comments between the directive and the pattern are skipped
 
 ## Filesystem checks
 
-Literal patterns are tested for existence, glob patterns for at least one match on disk. Negated patterns are skipped (they re-include rather than ignore), as are patterns containing `..` segments. A literal missing only by case warns with the on-disk spelling instead of plain absence. Paths resolve against the directory of the linted file, or the working directory for `--stdin` input.
+Literal patterns are tested for existence, glob patterns for at least one match on disk. Negated patterns are skipped (they re-include rather than ignore), as are patterns containing `..` segments. A literal missing only by case warns with the on-disk spelling instead of plain absence. A path that is simply absent is not a finding, because a fresh clone lacks build output, caches and secrets by design: IG-020 and IG-021 speak only when something suggests the rule went stale. For a literal that is a sibling spelled within one edit (two for names over nine characters, none under five) that the file does not name itself, the finding suggests it; otherwise a path or glob that matched files deleted within the last 2000 commits is reported. Outside a git work tree, or in a shallow clone, only the spelling clue remains. Paths resolve against the directory of the linted file, or the working directory for `--stdin` input.
 
 <!-- textlint-enable -->
