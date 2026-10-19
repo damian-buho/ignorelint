@@ -37,6 +37,15 @@ module Ignorelint
     # Address of the policy subtree inside the document.
     POLICY_PATH = "org.ignorelint"
 
+    # Env var holding the pf-cli deadline in whole seconds.
+    TIMEOUT_ENV = "IGNORELINT_PF_CLI_TIMEOUT"
+
+    # Deadline applied when the env var is unset or unusable.
+    DEFAULT_TIMEOUT = 30
+
+    # Seconds a terminated pf-cli gets to exit before it is killed.
+    KILL_GRACE = 2.seconds
+
     # Candidate filenames for working-directory discovery, in probe order.
     DISCOVER_NAMES = {"projectfile.yaml", "projectfile.toml", "projectfile.json"}
 
@@ -56,11 +65,17 @@ module Ignorelint
     def self.fetch(document : String, err : IO, explicit : Bool, quiet : Bool = false) : PolicySettings?
       fetched = IO::Memory.new
       capture = IO::Memory.new
-      status = run_pf_cli(document, fetched, capture)
+      seconds = timeout_seconds(err)
+      status = run_pf_cli(document, fetched, capture, seconds)
+      if status == :timeout
+        err << "warning: pf-cli timed out after #{seconds}s, skipping projectfile policy\n" unless quiet
+        return PolicySettings.new
+      end
       if status.nil?
         err << "info: pf-cli not found, skipping projectfile policy\n" unless quiet
         return PolicySettings.new
       end
+      status = status.as(Process::Status)
       if status.success?
         err << capture.to_s unless capture.empty?
         return extract_json(fetched.to_s, document, err)
@@ -70,12 +85,42 @@ module Ignorelint
       explicit ? nil : PolicySettings.new
     end
 
-    # Runs pf-cli; nil when the binary is not on PATH.
-    private def self.run_pf_cli(document : String, fetched : IO, capture : IO) : Process::Status?
-      Process.run("pf-cli", {"get", "--file", document, POLICY_PATH, "--format", "json"},
+    # Reads the deadline from the env; a non-positive or non-integer value warns and uses the default.
+    def self.timeout_seconds(err : IO) : Int32
+      raw = ENV[TIMEOUT_ENV]?.presence
+      return DEFAULT_TIMEOUT if raw.nil?
+      seconds = raw.to_i?
+      return seconds if seconds && seconds > 0
+      err << "warning: ignoring #{TIMEOUT_ENV}=#{raw} (expected a positive integer of seconds)\n"
+      DEFAULT_TIMEOUT
+    end
+
+    # Runs pf-cli under a deadline; nil when the binary is not on PATH, :timeout when it ran out of time.
+    private def self.run_pf_cli(document : String, fetched : IO, capture : IO, seconds : Int32) : (Process::Status | Symbol)?
+      process = Process.new("pf-cli", {"get", "--file", document, POLICY_PATH, "--format", "json"},
         output: fetched, error: capture)
+      done = Channel(Process::Status).new(1)
+      spawn { done.send(process.wait) }
+      select
+      when status = done.receive
+        status
+      when timeout(seconds.seconds)
+        stop(process, done)
+        :timeout
+      end
     rescue File::NotFoundError
       nil
+    end
+
+    # Terminates a stuck pf-cli, killing it when it ignores the request.
+    private def self.stop(process : Process, done : Channel(Process::Status)) : Nil
+      process.terminate
+      select
+      when done.receive
+      when timeout(KILL_GRACE)
+        process.terminate(graceful: false)
+        done.receive
+      end
     end
 
     # Parses the fetched JSON value into settings.

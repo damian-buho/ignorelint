@@ -242,6 +242,50 @@ describe Ignorelint::ProjectfilePolicy do
       end
     end
 
+    it "stops a hanging pf-cli at the deadline and falls back to empty settings" do
+      with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
+        with_fake_path(%q(exec sleep 30)) do
+          ENV["IGNORELINT_PF_CLI_TIMEOUT"] = "1"
+          begin
+            err = IO::Memory.new
+            started = Time.instant
+            settings = Ignorelint::ProjectfilePolicy.fetch(doc, err, explicit: true).as(Ignorelint::PolicySettings)
+            (Time.instant - started).should be < 10.seconds
+            err.to_s.should contain("pf-cli timed out after 1s")
+            settings.empty?.should be_true
+          ensure
+            ENV.delete("IGNORELINT_PF_CLI_TIMEOUT")
+          end
+        end
+      end
+    end
+
+    it "kills a pf-cli that ignores the termination request" do
+      with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
+        with_fake_path(%q(trap '' TERM; while :; do :; done)) do
+          ENV["IGNORELINT_PF_CLI_TIMEOUT"] = "1"
+          begin
+            err = IO::Memory.new
+            Ignorelint::ProjectfilePolicy.fetch(doc, err, explicit: true)
+            err.to_s.should contain("timed out after 1s")
+          ensure
+            ENV.delete("IGNORELINT_PF_CLI_TIMEOUT")
+          end
+        end
+      end
+    end
+
+    it "accepts the smallest and rejects non-positive or non-integer deadlines" do
+      {"1" => 1, "30" => 30, "0" => 30, "-1" => 30, "abc" => 30, "" => 30}.each do |raw, expected|
+        ENV["IGNORELINT_PF_CLI_TIMEOUT"] = raw
+        err = IO::Memory.new
+        Ignorelint::ProjectfilePolicy.timeout_seconds(err).should eq(expected)
+        err.to_s.empty?.should eq(raw.empty? || raw == "1" || raw == "30")
+      end
+    ensure
+      ENV.delete("IGNORELINT_PF_CLI_TIMEOUT")
+    end
+
     it "informs and continues when pf-cli is not on PATH" do
       with_pf_doc("projectfile.yaml", "x: 1\n") do |doc|
         dir = File.join("/tmp", "ignorelint-emptybin-spec-#{Process.pid}-#{Random.rand(1_000_000)}")
