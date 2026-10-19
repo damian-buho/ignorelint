@@ -29,7 +29,7 @@ require "./version"
 module Ignorelint
   # Single-command console application; reports usage errors as `error:` lines with exit 2.
   class Application < ACON::Application
-    # Athena raises usage errors with code 0, which would exit as success.
+    # Athena maps a caught exception to exit 1; usage errors keep ignorelint's exit 2.
     protected def do_run(input : ACON::Input::Interface, output : ACON::Output::Interface) : ACON::Command::Status
       super
     rescue ex : ACON::Exception
@@ -175,7 +175,6 @@ module Ignorelint
 
     # Runs `args` through a single-command Athena application and returns the exit code.
     def main(args : Array(String)) : Int32
-      drop_invalid_shell_verbosity
       app = Application.new("ignorelint", VERSION)
       app.add(self)
       app.default_command(name, true)
@@ -191,14 +190,6 @@ module Ignorelint
       return false if ENV["NO_COLOR"]?.presence
       return true if ENV["FORCE_COLOR"]?.presence
       io.tty? && ENV["TERM"]? != "dumb"
-    end
-
-    # Athena crashes on a non-integer SHELL_VERBOSITY, so warn and unset it instead.
-    private def drop_invalid_shell_verbosity : Nil
-      raw = ENV["SHELL_VERBOSITY"]?
-      return if raw.nil? || raw.to_i?
-      @err << "warning: ignoring non-integer SHELL_VERBOSITY=" << raw << '\n'
-      ENV.delete("SHELL_VERBOSITY")
     end
 
     protected def configure : Nil

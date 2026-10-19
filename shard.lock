@@ -6,5 +6,5 @@ shards:
 
   athena-console:
     git: https://github.com/athena-framework/console.git
-    version: 0.4.3
+    version: 0.5.0
 

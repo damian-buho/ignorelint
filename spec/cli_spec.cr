@@ -607,11 +607,13 @@ describe Ignorelint::CLI do
               out.should_not contain("found")
             end
           end
-          with_env("SHELL_VERBOSITY", "no") do
-            code, _, err = run_cli([] of String)
-            code.should eq(0)
-            err.should contain("ignoring non-integer SHELL_VERBOSITY=no")
-            err.should_not contain(".gitignore found")
+          {"no", ""}.each do |value|
+            with_env("SHELL_VERBOSITY", value) do
+              code, _, err = run_cli([] of String)
+              code.should eq(0)
+              err.should_not contain("SHELL_VERBOSITY")
+              err.should_not contain(".gitignore found")
+            end
           end
           with_env("SHELL_VERBOSITY", "1") do
             code, out, err = run_cli([] of String)

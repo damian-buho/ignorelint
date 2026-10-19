@@ -16,4 +16,4 @@ repository: ssh://git@kiota.ch/damian-buho/ignorelint.git
 dependencies:
   athena-console:
     github: athena-framework/console
-    version: ~> 0.4.3
+    version: ~> 0.5.0
