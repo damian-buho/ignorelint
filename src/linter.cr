@@ -289,14 +289,17 @@ module Ignorelint
     # True when an unanchored name the format matches at any depth sits below the root.
     private def exists_deeper?(pat : Pattern, target : String, glob : String) : Bool
       return false if glob == target || pat.body.matches?(/[*?\[\]{}\\]/)
-      glob_any?(glob, pat)
+      glob_any?(glob, pat) == true
     end
 
-    # True when the glob matches an entry, a directory when the pattern is directory-only.
-    private def glob_any?(glob : String, pat : Pattern) : Bool
-      Dir.glob(glob).any? { |match| !pat.directory_only? || Dir.exists?(match) }
-    rescue File::BadPatternError
+    # True when the glob matches an entry (a directory when directory-only), stopping at the first hit; nil for an invalid glob.
+    private def glob_any?(glob : String, pat : Pattern) : Bool?
+      Dir.glob(glob) do |match|
+        return true if !pat.directory_only? || Dir.exists?(match)
+      end
       false
+    rescue File::BadPatternError
+      nil
     end
 
     # IG-025: Walk each path segment for a case-only difference on disk.
@@ -344,21 +347,12 @@ module Ignorelint
       return if pat.body.split('/').includes?("..")
 
       glob = format_linter.build_glob(pat, base_dir)
-      matches = begin
-        Dir.glob(glob)
-      rescue File::BadPatternError
-        # If the pattern is invalid as a filesystem glob, skip the check
-        # rather than crashing. The structural glob checks will have already
-        # flagged it.
-        return
-      end
-      matches = matches.select { |match| Dir.exists?(match) } if pat.directory_only?
-
-      return unless matches.empty?
+      found = glob_any?(glob, pat)
+      return if found.nil? || found
 
       label = pat.directory_only? ? "directory" : "file"
       deep = File.join(base_dir, "**", pat.body)
-      hint = !pat.rooted? && deep != glob && glob_any?(deep, pat) ? "; \"**/#{pat.body}\" would match at any depth" : ""
+      hint = !pat.rooted? && deep != glob && glob_any?(deep, pat) == true ? "; \"**/#{pat.body}\" would match at any depth" : ""
       issues << Issue.new(pat.line, "Glob \"#{pat.body}\" matches no #{label}s (dead rule)#{hint}", :info,
         :dead_glob_rule)
     end
