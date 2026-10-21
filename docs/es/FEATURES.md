@@ -21,7 +21,7 @@ SPDX-License-Identifier: MIT
 
 ### Detección de reglas muertas contra el sistema de archivos
 
-- Los patrones literales se comprueban por existencia y los globs por al menos una coincidencia, para que las rutas eliminadas aparezcan como reglas obsoletas. Ver la [referencia de reglas](docs/how-to/rules.md).
+- Una regla se marca como obsoleta solo con evidencia, una ruta eliminada o una grafía casi igual, así un clon recién hecho queda en silencio. Ver la [referencia de reglas](../how-to/rules.md).
 - Los patrones negados se omiten, ya que reincluyen en lugar de ignorar.
 - Los patrones que salen del árbol se omiten en lugar de explorarse.
 
@@ -97,6 +97,13 @@ SPDX-License-Identifier: MIT
 - El ámbito reservado `always/{pre,post}` enmarca cada etapa, se llame como se llame, de modo que la configuración transversal se escribe una vez en lugar de por etapa.
 - Los hooks heredables se propagan a las imágenes derivadas automáticamente vía superposición de capas de Docker: las derivadas obtienen gratis la lógica de compilación del padre.
 - Los hooks no heredables se limpian tras su ejecución para evitar que se filtren en etapas posteriores.
+
+### Autoridades de certificación comprometidas desconfiadas antes que upstream
+
+- Los certificados listados por huella SHA-256 se eliminan del almacén de confianza del sistema durante la construcción, antes de que la distribución publique su propia corrección.
+- Una sola lista sirve a todo el linaje de imágenes, y `b19-ca-distrust bundle` recorta con ella cualquier paquete PEM incluido.
+- Incluye la desconfianza de los intermedios de eMudhra cuyas claves privadas pueden recuperarse (octubre de 2026), junto con sus firmas cruzadas y raíces.
+- Las imágenes derivadas añaden huellas con una variable o un archivo, y `B19_CA_DISTRUST_ENABLED=false` desactiva el recorte. [Guía](../how-to/use-ca-distrust.md)
 
 ### Detección automática del número de CPUs (NUMPROCS)
 

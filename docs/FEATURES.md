@@ -19,7 +19,7 @@ SPDX-License-Identifier: MIT
 
 ### Dead-rule detection against the live filesystem
 
-- Literal patterns are checked for existence and globs for at least one match, so removed paths surface as stale rules. See the [rules reference](docs/how-to/rules.md).
+- A rule is reported as stale only with evidence, a deleted path or a near-miss spelling, so a fresh clone stays quiet. See the [rules reference](how-to/rules.md).
 - Negated patterns are skipped, since they re-include rather than ignore.
 - Patterns reaching outside the tree are skipped instead of probed.
 
@@ -94,6 +94,13 @@ SPDX-License-Identifier: MIT
 - Cross-cutting setup (CA trust, locale, shared installs) is written once and runs on every stage automatically.
 - Downstream images inherit parent build logic through the layer overlay — no duplication needed.
 - Non-inheritable one-off setup is cleaned up after execution to avoid leaking into later stages.
+
+### Compromised certificate authorities distrusted ahead of upstream
+
+- Certificates listed by SHA-256 fingerprint are removed from the system trust store at build time, before the distribution ships its own fix.
+- One list serves the whole image lineage, and `b19-ca-distrust bundle` cuts any vendored PEM bundle from it too.
+- Ships distrusting the eMudhra intermediates whose private keys can be recovered (October 2026), together with their cross-signs and roots.
+- Downstream images add fingerprints with one variable or one file, and `B19_CA_DISTRUST_ENABLED=false` turns the cut off. [How-to](how-to/use-ca-distrust.md)
 
 ### Automatic CPU count detection
 
