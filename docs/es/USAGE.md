@@ -63,6 +63,7 @@ Help:
     IGNORELINT_OVERRIDE_WARNING=CODES Same as --warning
     IGNORELINT_OVERRIDE_INFO=CODES Same as --info
     IGNORELINT_CONFIG=PATH     Same as --config
+    IGNORELINT_PF_CLI_TIMEOUT=SECONDS Give pf-cli this long to answer (default 30)
     IGNORELINT_DISABLE_IGNORE_PRAGMA=1 Same as --disable-ignore-pragma
     IGNORELINT_FILE_PATH_IN_REPORT=PATH Same as --file-path-in-report
     NO_COLOR=1                 Disable colored output (also TERM=dumb)
@@ -76,10 +77,7 @@ Sin rutas, ignorelint revisa cada archivo ignore que reconoce en el directorio d
 ```console
 $ printf 'node_modules/\n*.log\nnode_modules/\n!!keep.log\n' > .gitignore
 $ ignorelint
-info:  .gitignore:1 [IG-020] Directory "node_modules" does not exist
-info:  .gitignore:2 [IG-021] Glob "*.log" matches no files (dead rule)
 warn:  .gitignore:3 [IG-008] Duplicate of line 1: "node_modules/"
-info:  .gitignore:3 [IG-020] Directory "node_modules" does not exist
 error: .gitignore:4 [IG-003] Double negation "!!keep.log" re-includes a file literally named "!keep.log"; write "!\!keep.log" if that is intended
 $ echo $?
 1
@@ -91,10 +89,7 @@ $ echo $?
 
 ```console
 $ ignorelint --info=IG-003
-info:  .gitignore:1 [IG-020] Directory "node_modules" does not exist
-info:  .gitignore:2 [IG-021] Glob "*.log" matches no files (dead rule)
 warn:  .gitignore:3 [IG-008] Duplicate of line 1: "node_modules/"
-info:  .gitignore:3 [IG-020] Directory "node_modules" does not exist
 info:  .gitignore:4 [IG-003] Double negation "!!keep.log" re-includes a file literally named "!keep.log"; write "!\!keep.log" if that is intended
 $ echo $?
 0
@@ -110,4 +105,10 @@ $ ignorelint --info=IG-003 --fail-on=warn > /dev/null; echo $?
 $ printf 'build/\nbuild/\n' | ignorelint --stdin --file=.gitignore --fix 2> /dev/null
 build/
 ```
+
+## Seguir el avance y acotar la consulta de política
+
+Cada ejecución escribe `linting N file(s)…` en la salida de errores antes del primer archivo y `checked N file(s) in Xms (F fixes, P pf-cli calls)` tras el último, así un árbol lento nunca parece colgado; `--quiet` silencia ambas. La política del projectfile se lee con `pf-cli`, que dispone de 30 segundos para responder; `IGNORELINT_PF_CLI_TIMEOUT` fija otro número entero de segundos. Al agotarse el plazo, ignorelint avisa y sigue solo con opciones y entorno. Ctrl-C escribe `interrupted, cleaning up…` y termina con `130`.
+
+Los formatos humano y `gnu` emiten cada archivo al terminar; `json`, `checkstyle`, `junit`, `sarif` y los demás informes se acumulan y se imprimen una sola vez al final.
 <!-- textlint-enable -->
