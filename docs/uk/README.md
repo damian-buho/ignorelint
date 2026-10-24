@@ -37,7 +37,7 @@ pf-cli-managed: yes
 
 ## Що надає цей проєкт
 
-- **CI-дія** `damian-buho/ignorelint@3.0.0`
+- **CI-дія** `damian-buho/ignorelint@3.0.1`
 - **Виконуваний файл** `ignorelint` — команда `ignorelint`
 - **Образ контейнера** `ghcr.io/damian-buho/ignorelint:latest`
 - **Образ контейнера** `damianbuho/ignorelint:latest`
@@ -99,7 +99,7 @@ chmod +x ~/.local/bin/ignorelint
 Запускайте його як крок робочого процесу GitHub Actions:
 
 ```yaml
-- uses: damian-buho/ignorelint@3.0.0
+- uses: damian-buho/ignorelint@3.0.1
 ```
 
 Дія приймає такі вхідні параметри:
