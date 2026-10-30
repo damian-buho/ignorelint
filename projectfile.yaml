@@ -25,8 +25,8 @@ identity:
       Лінтер, валідатор і автокоректор для будь-якого ignore-файлу: .gitignore, .dockerignore, .npmignore, .prettierignore, .eslintignore, .helmignore, .vercelignore, .claudeignore, .cursorignore, .aiderignore та ще 15. Знаходить дубльовані й надлишкові правила; постачається як GitHub Action з виводом SARIF. Написаний на Crystal.
 
       Розпізнає 25 назв файлів у восьми специфічних для форматів glob-драйверах і звітує 25 діагностичних правил із десятьма форматами виводу — від людиночитного та GNU до JUnit, Code Climate, Codacy, SonarQube і SARIF.
-  version: 3.0.1
-  released: "2026-10-24"
+  version: 3.0.2
+  released: "2026-10-30"
   visibility: public
 includes:
   - .makefile/b19/ci.yaml
