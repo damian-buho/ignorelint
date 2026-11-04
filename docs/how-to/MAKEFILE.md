@@ -387,6 +387,14 @@ Check Crystal formatting without writing
 
 > Image: CRYSTAL_TOOL_IMAGE
 
+### `crystal-format-staged`
+
+Format the staged Crystal source
+
+`crystal tool format`
+
+> Image: CRYSTAL_TOOL_IMAGE
+
 ### `crystal-lint`
 
 Type-check Crystal without code generation
