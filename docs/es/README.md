@@ -37,7 +37,7 @@ También hereda las características de B19 / Ubuntu; consulta [Características
 
 ## Qué entrega este proyecto
 
-- **Acción de CI** `damian-buho/ignorelint@3.0.4`
+- **Acción de CI** `damian-buho/ignorelint@3.0.5`
 - **Ejecutable** `ignorelint` — comando `ignorelint`
 - **Imagen de contenedor** `ghcr.io/damian-buho/ignorelint:latest`
 - **Imagen de contenedor** `damianbuho/ignorelint:latest`
@@ -99,7 +99,7 @@ Para desinstalarlo, borra ese único archivo: `rm ~/.local/bin/ignorelint`.
 Ejecútalo como un paso de un flujo de trabajo de GitHub Actions:
 
 ```yaml
-- uses: damian-buho/ignorelint@3.0.4
+- uses: damian-buho/ignorelint@3.0.5
 ```
 
 La acción acepta estas entradas:
