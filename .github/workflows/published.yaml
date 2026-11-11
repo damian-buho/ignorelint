@@ -933,6 +933,9 @@ jobs:
           version: 29.8.1-cli
           pull: missing
           run: sh -c 'test ! -f .compose/example.yaml || docker compose --file .compose/example.yaml config --no-interpolate --quiet'
+      - name: configuration-names-check
+        if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_CONFIGURATION_NAMES_CHECK != 'true'
+        run: .makefile/container/scripts/configuration-capture.sh --names --default-lang= es uk
       - name: crystal-format-check
         if: vars.CI_SKIP_SOURCE_PASSES_LINT != 'true' && vars.CI_SKIP_CRYSTAL_FORMAT_CHECK != 'true'
         uses: projectfile-org/actions/run-tool@b0da59497e5cc94a601334e6b4d9e376000012b7 # v1
