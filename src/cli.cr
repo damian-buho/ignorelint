@@ -24,6 +24,7 @@ require "./linter"
 require "./output_format"
 require "./parser"
 require "./projectfile_policy"
+require "./rule_pages"
 require "./version"
 
 module Ignorelint
@@ -211,6 +212,9 @@ module Ignorelint
         .option("info", value_mode: ACON::Input::Option::Value[:required, :is_array], description: "Demote rules to info severity (comma-separated tags; applied last)")
         .option("disable-ignore-pragma", description: "Parse suppression directives but apply none; IG-026 still lists them")
         .option("config", value_mode: :required, description: "Projectfile read via pf-cli for the org.ignorelint policy subtree (default: ./projectfile.*)")
+        .option("rules", description: "Lint nothing: print the rule catalog with --format yaml, or write one page per rule with --format markdown --output DIR")
+        .option("lang", value_mode: :required, description: "Language of the --rules pages, a BCP 47 tag (rule texts are English in every language today)")
+        .option("output", value_mode: :required, description: "Directory --rules --format markdown writes the pages in")
         .help(HELP)
     end
 
@@ -240,8 +244,28 @@ module Ignorelint
 
     # Reads the options Athena parsed, then lints with flags beating env beating the projectfile.
     protected def execute(input : ACON::Input::Interface, output : ACON::Output::Interface) : ACON::Command::Status
+      return ACON::Command::Status.new(rule_pages(input)) if input.option("rules", Bool)
       read_options(input, output)
       ACON::Command::Status.new(lint_all)
+    end
+
+    # Prints the rule catalog or writes the rule pages; 2 on a usage error.
+    private def rule_pages(input : ACON::Input::Interface) : Int32
+      format = input.option("format") || "yaml"
+      dir = input.option("output")
+      @err << "rules format=#{format} lang=#{input.option("lang") || "en"} output=#{dir || "-"}\n" if @verbose
+      unless RulePages::FORMATS.includes?(format)
+        @err << "error: --rules --format #{format}: expected #{RulePages::FORMATS.join(" or ")}\n"
+        return 2
+      end
+      if format == "yaml"
+        return (@err << "error: --output: only with --rules --format markdown\n"; 2) if dir
+        @io << RulePages.catalog
+        return 0
+      end
+      return (@err << "error: --rules --format markdown: needs --output DIR\n"; 2) unless dir
+      @io << RulePages.write_all(dir) << " pages written to " << dir << "\n"
+      0
     end
 
     # Lints stdin, the given paths or the discovered files; returns the exit code.

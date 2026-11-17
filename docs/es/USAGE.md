@@ -39,6 +39,9 @@ Options:
       --info=INFO                                Demote rules to info severity (comma-separated tags; applied last) (multiple values allowed)
       --disable-ignore-pragma                    Parse suppression directives but apply none; IG-026 still lists them
       --config=CONFIG                            Projectfile read via pf-cli for the org.ignorelint policy subtree (default: ./projectfile.*)
+      --rules                                    Lint nothing: print the rule catalog with --format yaml, or write one page per rule with --format markdown --output DIR
+      --lang=LANG                                Language of the --rules pages, a BCP 47 tag (rule texts are English in every language today)
+      --output=OUTPUT                            Directory --rules --format markdown writes the pages in
   -h, --help                                     Display help for the given command. When no command is given display help for the ignorelint command
       --silent                                   Do not output any message
   -q, --quiet                                    Only errors are displayed. All other output is suppressed
