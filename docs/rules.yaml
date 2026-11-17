@@ -1,0 +1,117 @@
+# SPDX-FileCopyrightText: 2026 Damián Búho <damian.buho@proton.me>
+#
+# SPDX-License-Identifier: MIT
+
+org:
+  projectfile:
+    pages:
+      rules:
+        items:
+          - id: IG-001
+            title: "Trailing whitespace"
+            autofix: true
+            severity: warn
+          - id: IG-002
+            title: "Unescaped hash"
+            autofix: false
+            retired: true
+          - id: IG-003
+            title: "Double negation"
+            autofix: true
+            severity: error
+          - id: IG-004
+            title: "Empty pattern"
+            autofix: false
+            severity: error
+          - id: IG-005
+            title: "Consecutive asterisks"
+            autofix: false
+            severity: error
+          - id: IG-006
+            title: "Malformed brackets"
+            autofix: false
+            severity: error
+          - id: IG-007
+            title: "Space in pattern"
+            autofix: false
+            severity: warn
+          - id: IG-008
+            title: "Duplicate rule"
+            autofix: true
+            severity: warn
+          - id: IG-009
+            title: "Invalid doublestar"
+            autofix: false
+            severity: warn
+          - id: IG-010
+            title: "Rooted shallow pattern"
+            autofix: false
+            severity: info
+          - id: IG-011
+            title: "Negated rooted pattern"
+            autofix: false
+            retired: true
+          - id: IG-012
+            title: "Redundant pair"
+            autofix: false
+            severity: warn
+          - id: IG-013
+            title: "Negation unsupported"
+            autofix: false
+            severity: error
+          - id: IG-014
+            title: "Path traversal"
+            autofix: false
+            severity: error
+          - id: IG-015
+            title: "Slash has no effect"
+            autofix: true
+            severity: info
+          - id: IG-016
+            title: "Doublestar unsupported"
+            autofix: false
+            severity: error
+          - id: IG-017
+            title: "Unrooted non-recursive pattern"
+            autofix: false
+            retired: true
+          - id: IG-018
+            title: "Redundant built-in exclude"
+            autofix: true
+            severity: info
+          - id: IG-019
+            title: "Built-in include protected"
+            autofix: false
+            severity: warn
+          - id: IG-020
+            title: "Path not found"
+            autofix: false
+            severity: info
+          - id: IG-021
+            title: "Dead glob rule"
+            autofix: false
+            severity: info
+          - id: IG-022
+            title: "Double slash"
+            autofix: true
+            severity: warn
+          - id: IG-023
+            title: "Unsorted rule"
+            autofix: true
+            severity: info
+          - id: IG-024
+            title: "Leading whitespace"
+            autofix: true
+            severity: warn
+          - id: IG-025
+            title: "Case mismatch"
+            autofix: false
+            severity: info
+          - id: IG-026
+            title: "Suppression directive"
+            autofix: false
+            severity: info
+          - id: IG-027
+            title: "Hint"
+            autofix: false
+            severity: info
