@@ -115,7 +115,7 @@ Build the container image with the configured backend
 
 ### `act`
 
-Replay the generated GHA workflows locally via act (one goal: make act-<goal>)
+Replay the generated GHA workflows locally via act (one goal: make act-&lt;goal>)
 
 ### `ci-check`
 
@@ -303,7 +303,7 @@ Lint the Dockerfile for best practices
 
 ### `pages-capture`
 
-Capture each declared page collection catalog into docs/<name>.yaml
+Capture each declared page collection catalog into docs/&lt;name>.yaml
 
 `.makefile/container/scripts/pages-capture.sh --default-lang=${org.projectfile.i18n.default-language} ${org.projectfile.i18n.languages[]}`
 
