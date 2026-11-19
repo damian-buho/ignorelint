@@ -41,5 +41,5 @@ keywords:
   - slugignore
   - github-action
   - crystal
-version: 3.0.5
-date-released: "2026-11-08"
+version: 3.1.0
+date-released: "2026-11-19"
